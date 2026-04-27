@@ -1,0 +1,575 @@
+{
+  "version": "1.0",
+  "catalog_date": "2026-04-26",
+  "source": "LISTA_DE_PRECIOS_26_ABRIL.xlsx",
+  "note": "Generado automáticamente. Vigencia_fin=indefinido significa sin fecha de vencimiento conocida.",
+  "devices": [
+    {
+      "id": "ip15",
+      "excel_name": "Apple iPhone 15 128GB",
+      "brand": "APPLE",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-01-23",
+      "vigency_end": "2026-06-27",
+      "active": true
+    },
+    {
+      "id": "ip16",
+      "excel_name": "Apple iPhone 16 128GB",
+      "brand": "APPLE",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-03-29",
+      "vigency_end": "2026-06-27",
+      "active": true
+    },
+    {
+      "id": "ip17",
+      "excel_name": "Apple iPhone 17 256GB",
+      "brand": "APPLE",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-03-29",
+      "vigency_end": "2026-06-27",
+      "active": true
+    },
+    {
+      "id": "ip17pro",
+      "excel_name": "Apple iPhone 17 Pro 256GB",
+      "brand": "APPLE",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-03-29",
+      "vigency_end": "2026-06-27",
+      "active": true
+    },
+    {
+      "id": "ip17pro_512",
+      "excel_name": "Apple iPhone 17 Pro 512GB",
+      "brand": "APPLE",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-03-29",
+      "vigency_end": "2026-06-27",
+      "active": true
+    },
+    {
+      "id": "ip17promax",
+      "excel_name": "Apple iPhone 17 Pro Max 256GB",
+      "brand": "APPLE",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-03-29",
+      "vigency_end": "2026-06-27",
+      "active": true
+    },
+    {
+      "id": "ip17promax_512",
+      "excel_name": "Apple iPhone 17 Pro Max 512GB",
+      "brand": "APPLE",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-03-29",
+      "vigency_end": "2026-06-27",
+      "active": true
+    },
+    {
+      "id": "ip17e",
+      "excel_name": "Apple iPhone 17e 256GB",
+      "brand": "APPLE",
+      "status": "INV. LIMITADO EN CANAL",
+      "vigency_start": "2026-03-13",
+      "vigency_end": "indefinido",
+      "active": true
+    },
+    {
+      "id": "px10",
+      "excel_name": "Google Pixel 10 128GB",
+      "brand": "GOOGLE",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-10",
+      "vigency_end": "2026-05-07",
+      "active": true
+    },
+    {
+      "id": "px10_256",
+      "excel_name": "Google Pixel 10 256GB",
+      "brand": "GOOGLE",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-10",
+      "vigency_end": "2026-05-07",
+      "active": true
+    },
+    {
+      "id": "px10pro",
+      "excel_name": "Google Pixel 10 Pro 256GB",
+      "brand": "GOOGLE",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-10",
+      "vigency_end": "2026-05-07",
+      "active": true
+    },
+    {
+      "id": "px10pro_512",
+      "excel_name": "Google Pixel 10 Pro 512GB",
+      "brand": "GOOGLE",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-10",
+      "vigency_end": "2026-05-07",
+      "active": true
+    },
+    {
+      "id": "px10proxl_1tb",
+      "excel_name": "Google Pixel 10 Pro XL 1TB",
+      "brand": "GOOGLE",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-01-16",
+      "vigency_end": "indefinido",
+      "active": true
+    },
+    {
+      "id": "px10proxl",
+      "excel_name": "Google Pixel 10 Pro XL 256GB",
+      "brand": "GOOGLE",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-10",
+      "vigency_end": "2026-05-07",
+      "active": true
+    },
+    {
+      "id": "px10proxl_512",
+      "excel_name": "Google Pixel 10 Pro XL 512GB",
+      "brand": "GOOGLE",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-10",
+      "vigency_end": "2026-05-07",
+      "active": true
+    },
+    {
+      "id": "h400",
+      "excel_name": "Honor 400 512GB Bundle Headphones",
+      "brand": "HONOR",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-13",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "h400bal",
+      "excel_name": "Honor 400 512GB Bundle Headphones + Balon",
+      "brand": "HONOR",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-13",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "hmagic7px8c",
+      "excel_name": "Honor Magic 7 Pro + X8C",
+      "brand": "HONOR",
+      "status": "RESURTIBLE",
+      "vigency_start": "2025-11-13",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "hmagic8lite",
+      "excel_name": "Honor Magic 8 Lite 512GB 5G Bundle Headphones",
+      "brand": "HONOR",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-03-17",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "hmagic8pro",
+      "excel_name": "Honor Magic 8 Pro Bundle Pad X8B",
+      "brand": "HONOR",
+      "status": "NPI",
+      "vigency_start": "2026-05-01",
+      "vigency_end": "2026-05-31",
+      "active": true
+    },
+    {
+      "id": "hx5c",
+      "excel_name": "Honor X5C Plus",
+      "brand": "HONOR",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-10",
+      "vigency_end": "2026-05-31",
+      "active": true
+    },
+    {
+      "id": "hx6c",
+      "excel_name": "Honor X6C",
+      "brand": "HONOR",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-01",
+      "vigency_end": "2026-05-11",
+      "active": true
+    },
+    {
+      "id": "hx7d",
+      "excel_name": "Honor X7D",
+      "brand": "HONOR",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-10",
+      "vigency_end": "2026-05-31",
+      "active": true
+    },
+    {
+      "id": "hx8d",
+      "excel_name": "Honor X8D",
+      "brand": "HONOR",
+      "status": "NPI",
+      "vigency_start": "2026-05-01",
+      "vigency_end": "2026-05-31",
+      "active": true
+    },
+    {
+      "id": "medge70f_npi",
+      "excel_name": "Motorola Edge 70 Fusión Bundle Buds",
+      "brand": "MOTOROLA",
+      "status": "NPI",
+      "vigency_start": "2026-04-01",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "medge60f",
+      "excel_name": "Motorola Moto Edge 60 Fusion",
+      "brand": "MOTOROLA",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-01",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "medge60pro",
+      "excel_name": "Motorola Moto Edge 60 Pro",
+      "brand": "MOTOROLA",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-10",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "medge60pro_w",
+      "excel_name": "Motorola Moto Edge 60 Pro + Watch y Balon",
+      "brand": "MOTOROLA",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-10",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "medge70",
+      "excel_name": "Motorola Moto Edge 70",
+      "brand": "MOTOROLA",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-13",
+      "vigency_end": "2026-06-07",
+      "active": true
+    },
+    {
+      "id": "mg06",
+      "excel_name": "Motorola Moto G06",
+      "brand": "MOTOROLA",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-10",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "mg15",
+      "excel_name": "Motorola Moto G15",
+      "brand": "MOTOROLA",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-17",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "mg17",
+      "excel_name": "Motorola Moto G17",
+      "brand": "MOTOROLA",
+      "status": "NPI",
+      "vigency_start": "2026-04-01",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "mg56",
+      "excel_name": "Motorola Moto G56",
+      "brand": "MOTOROLA",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-01",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "mg77",
+      "excel_name": "Motorola Moto G77",
+      "brand": "MOTOROLA",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-03-27",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "mrazr60u",
+      "excel_name": "Motorola Razr 60 Ultra",
+      "brand": "MOTOROLA",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-17",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "opa5",
+      "excel_name": "Oppo A5",
+      "brand": "OPPO",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-10",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "opa5pro4g",
+      "excel_name": "Oppo A5 Pro 4G",
+      "brand": "OPPO",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-01",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "opa5pro5g",
+      "excel_name": "Oppo A5 Pro 5G Bundle Enco Buds 3",
+      "brand": "OPPO",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-17",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "opa58",
+      "excel_name": "Oppo A58 128GB",
+      "brand": "OPPO",
+      "status": "INV. LIMITADO EN CANAL",
+      "vigency_start": "2026-02-01",
+      "vigency_end": "indefinido",
+      "active": true
+    },
+    {
+      "id": "opa6k",
+      "excel_name": "Oppo A6k",
+      "brand": "OPPO",
+      "status": "NPI",
+      "vigency_start": "2026-04-17",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "opa6x",
+      "excel_name": "Oppo A6x",
+      "brand": "OPPO",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-01",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "opfindx9pro",
+      "excel_name": "Oppo Find X9 Pro",
+      "brand": "OPPO",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-02-01",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "opreno13",
+      "excel_name": "Oppo Reno 13 5G",
+      "brand": "OPPO",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-17",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "opreno14",
+      "excel_name": "Oppo Reno 14 5G Bundle Headphones",
+      "brand": "OPPO",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-02-13",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "opreno14f",
+      "excel_name": "Oppo Reno 14F",
+      "brand": "OPPO",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-01",
+      "vigency_end": "2026-04-30",
+      "active": true
+    },
+    {
+      "id": "sa17",
+      "excel_name": "Samsung A17 128GB 4G",
+      "brand": "SAMSUNG",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-24",
+      "vigency_end": "2026-05-10",
+      "active": true
+    },
+    {
+      "id": "sa37",
+      "excel_name": "Samsung Galaxy A37 256GB",
+      "brand": "SAMSUNG",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-20",
+      "vigency_end": "2026-05-10",
+      "active": true
+    },
+    {
+      "id": "sa57",
+      "excel_name": "Samsung Galaxy A57 256GB",
+      "brand": "SAMSUNG",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-20",
+      "vigency_end": "2026-05-10",
+      "active": true
+    },
+    {
+      "id": "ss25edge",
+      "excel_name": "Samsung Galaxy S25 Edge",
+      "brand": "SAMSUNG",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-20",
+      "vigency_end": "2026-05-10",
+      "active": true
+    },
+    {
+      "id": "ss25u",
+      "excel_name": "Samsung Galaxy S25 Ultra 256GB",
+      "brand": "SAMSUNG",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-20",
+      "vigency_end": "2026-05-10",
+      "active": true
+    },
+    {
+      "id": "ss25u_512",
+      "excel_name": "Samsung Galaxy S25 Ultra 512GB",
+      "brand": "SAMSUNG",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-20",
+      "vigency_end": "2026-05-10",
+      "active": true
+    },
+    {
+      "id": "ss26",
+      "excel_name": "Samsung Galaxy S26 256GB",
+      "brand": "SAMSUNG",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-01",
+      "vigency_end": "2026-06-30",
+      "active": true
+    },
+    {
+      "id": "ss26plus",
+      "excel_name": "Samsung Galaxy S26 Plus 512GB",
+      "brand": "SAMSUNG",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-01",
+      "vigency_end": "2026-06-30",
+      "active": true
+    },
+    {
+      "id": "ss26ultra",
+      "excel_name": "Samsung Galaxy S26 Ultra 512GB",
+      "brand": "SAMSUNG",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-01",
+      "vigency_end": "2026-06-30",
+      "active": true
+    },
+    {
+      "id": "xrn15",
+      "excel_name": "Redmi Note 15",
+      "brand": "XIAOMI",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-13",
+      "vigency_end": "2026-06-06",
+      "active": true
+    },
+    {
+      "id": "xrn15pro",
+      "excel_name": "Redmi Note 15 Pro 5G + Buds 6 Active + Smart Band 9 Active",
+      "brand": "XIAOMI",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-01",
+      "vigency_end": "2026-05-31",
+      "active": true
+    },
+    {
+      "id": "x15t",
+      "excel_name": "Xiaomi 15T Bundle Bocina Sound Outdoor",
+      "brand": "XIAOMI",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-01",
+      "vigency_end": "2026-05-31",
+      "active": true
+    },
+    {
+      "id": "x15tpro",
+      "excel_name": "Xiaomi 15T Pro Bundle Redmi Pad",
+      "brand": "XIAOMI",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-04-01",
+      "vigency_end": "2026-05-31",
+      "active": true
+    },
+    {
+      "id": "x17ultra",
+      "excel_name": "XIAOMI 17 Ultra + Sound Party + Photo Kit",
+      "brand": "XIAOMI",
+      "status": "NPI",
+      "vigency_start": "2026-04-28",
+      "vigency_end": "2026-05-31",
+      "active": true
+    },
+    {
+      "id": "xr15",
+      "excel_name": "Xiaomi Redmi 15",
+      "brand": "XIAOMI",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-03-17",
+      "vigency_end": "2026-05-31",
+      "active": true
+    },
+    {
+      "id": "xr15c",
+      "excel_name": "Xiaomi Redmi 15C",
+      "brand": "XIAOMI",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-01-12",
+      "vigency_end": "2026-05-31",
+      "active": true
+    },
+    {
+      "id": "xra5",
+      "excel_name": "Xiaomi Redmi A5",
+      "brand": "XIAOMI",
+      "status": "RESURTIBLE",
+      "vigency_start": "2026-02-01",
+      "vigency_end": "indefinido",
+      "active": true
+    },
+    {
+      "id": "xra7pro",
+      "excel_name": "Xiaomi Redmi A7 Pro",
+      "brand": "XIAOMI",
+      "status": "NPI",
+      "vigency_start": "2026-04-20",
+      "vigency_end": "2026-05-31",
+      "active": true
+    }
+  ]
+}
