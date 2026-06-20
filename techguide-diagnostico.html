@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Diagnóstico de ventas · TechGuide</title>
+<style>
+  :root{--bg:#0b0f14;--surface:#141a22;--surface2:#1b232d;--sep:#27313d;--label:#e8edf3;--label2:#9fb0c0;--label3:#64748b;--orange:#FF9F0A;--green:#34D399;--amber:#FBBF24;--red:#F87171;--blue:#38BDF8}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--label);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:16px;max-width:920px;margin:0 auto}
+  h1{font-size:18px;margin-bottom:3px}
+  .sub{color:var(--label3);font-size:12px;margin-bottom:16px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
+  .fld{display:flex;flex-direction:column;gap:4px}
+  .fld label{font-size:11px;color:var(--label2);font-weight:600}
+  input{background:var(--surface2);border:1px solid var(--sep);color:var(--label);border-radius:9px;padding:9px 11px;font-size:14px;min-width:160px}
+  button{background:var(--orange);color:#1a1206;border:none;border-radius:9px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer}
+  button:active{transform:scale(.97)}
+  button.sec{background:var(--surface2);color:var(--label)}
+  .card{background:var(--surface);border:1px solid var(--sep);border-radius:13px;padding:14px;margin-bottom:13px}
+  .sumline{display:flex;gap:14px;flex-wrap:wrap;font-size:15px}
+  .sumline b{color:var(--orange)}
+  .chip{display:inline-flex;gap:5px;align-items:center;background:var(--surface2);border-radius:8px;padding:5px 10px;font-size:13px}
+  .chip span{font-weight:700}
+  .warn{color:var(--amber);font-weight:600}
+  .ok{color:var(--green);font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--sep);vertical-align:top}
+  th{color:var(--label2);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+  td.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--label2);font-size:11.5px}
+  .tag{display:inline-block;padding:1px 7px;border-radius:6px;font-size:11px;font-weight:600}
+  .tag.po{background:rgba(56,189,248,.16);color:var(--blue)}
+  .tag.re{background:rgba(52,211,153,.16);color:var(--green)}
+  .tag.se{background:rgba(251,191,36,.16);color:var(--amber)}
+  .tag.ac{background:rgba(248,113,113,.16);color:var(--red)}
+  .tag.pr{background:rgba(159,176,192,.16);color:var(--label2)}
+  .tag.hijo{background:rgba(255,159,10,.14);color:var(--orange)}
+  .dupe td{background:rgba(248,113,113,.08)}
+  .muted{color:var(--label3);font-size:12px}
+  .sectit{font-size:13px;font-weight:700;margin:4px 0 8px;color:var(--label)}
+  #status{font-size:13px;color:var(--label2);margin:8px 0}
+</style></head>
+<body>
+  <h1>Diagnóstico de ventas</h1>
+  <div class="sub">Lista los documentos crudos de <code>comisiones_ventas</code> de una tienda y semana, para ver exactamente qué se está contando.</div>
+
+  <div class="row">
+    <div class="fld"><label>Tienda (id formal)</label><input id="tienda" value="PRM TDA LEON CENTRO"></div>
+    <div class="fld"><label>Semana (periodo ISO)</label><input id="periodo" placeholder="2026-W25"></div>
+    <button onclick="run()">Consultar</button>
+    <button class="sec" onclick="setHoy()">Semana actual</button>
+  </div>
+
+  <div id="status"></div>
+  <div id="out"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+const cfg={apiKey:"AIzaSyC9qhK78TKkLUu_gcN3WRwyKV8-mTk1Lsc",authDomain:"techguide-primemx.firebaseapp.com",projectId:"techguide-primemx",storageBucket:"techguide-primemx.firebasestorage.app",messagingSenderId:"53436933819",appId:"1:53436933819:web:fef1e0299e41c136c5ab9e"};
+const db=getFirestore(initializeApp(cfg));
+const MM={pospago:'po',migra:'po',renov:'re',seguro:'se',addon:'se',acces:'ac',prepago:'pr'};
+const LABELS={po:'Pospago',re:'Renovaciones',ac:'Accesorios',se:'Seguros',pr:'Prepago'};
+
+function isoWeek(d){d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-day);const ys=new Date(Date.UTC(d.getUTCFullYear(),0,1));return Math.ceil((((d-ys)/86400000)+1)/7);}
+function periodoHoy(){const d=new Date();return d.getFullYear()+'-W'+String(isoWeek(d)).padStart(2,'0');}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function fmt(n){return (n||0).toLocaleString('es-MX');}
+
+window.setHoy=()=>{document.getElementById('periodo').value=periodoHoy();};
+setHoy();
+
+window.run=async()=>{
+  const tienda=document.getElementById('tienda').value.trim();
+  const periodo=document.getElementById('periodo').value.trim()||periodoHoy();
+  const status=document.getElementById('status'), out=document.getElementById('out');
+  out.innerHTML=''; status.textContent='Consultando '+tienda+' · '+periodo+' …';
+  let snap;
+  try{ snap=await getDocs(query(collection(db,'comisiones_ventas'),where('tienda','==',tienda))); }
+  catch(e){ status.innerHTML='<span class="warn">Error al consultar: '+esc(e.message)+'</span>'; return; }
+
+  const all=[]; snap.forEach(d=>all.push({id:d.id,...d.data()}));
+  const docs=all.filter(o=>o.periodo===periodo);
+  const otros=all.length-docs.length;
+  status.innerHTML='Encontrados <b>'+docs.length+'</b> docs en '+esc(periodo)+' · '+otros+' en otras semanas (no contados).';
+
+  // conteo por métrica
+  const cnt={po:0,re:0,ac:0,se:0,pr:0}, sinTipo=[];
+  docs.forEach(o=>{const k=MM[o.tipo]; if(k)cnt[k]++; else sinTipo.push(o);});
+  let chips=''; for(const k of ['po','re','ac','se','pr']) chips+='<span class="chip">'+LABELS[k]+' <span>'+cnt[k]+'</span></span>';
+  const padres=docs.filter(o=>!o.esHijo).length, hijos=docs.filter(o=>o.esHijo).length;
+
+  let html='<div class="card"><div class="sectit">Conteo por métrica (lo que marca el tablero)</div><div class="sumline" style="margin-bottom:10px">'+chips+'</div>'
+    +'<div class="muted">'+padres+' ventas "padre" (transacción principal) + '+hijos+' "hijas" (seguro/accesorio pegado) = '+docs.length+' docs. El tablero cuenta cada doc por su tipo, así que una venta con seguro pegado suma 1 en pospago y 1 en seguros.</div>'
+    +(sinTipo.length?'<div class="warn" style="margin-top:6px">⚠ '+sinTipo.length+' docs con tipo desconocido (no se cuentan).</div>':'')+'</div>';
+
+  // posibles duplicados: misma firma attuid|tipo|title|com
+  const groups={};
+  docs.forEach(o=>{const sig=(o.attuid||'?')+'|'+(o.tipo||'')+'|'+(o.title||'')+'|'+(o.com||0)+'|'+(o.localId||''); (groups[sig]=groups[sig]||[]).push(o);});
+  const dupes=Object.values(groups).filter(g=>g.length>1);
+  if(dupes.length){
+    let dh='<div class="card"><div class="sectit"><span class="warn">⚠ Posibles duplicados</span> — misma cuenta, mismo tipo, mismo título, mismo importe</div>';
+    dupes.forEach(g=>{dh+='<div style="margin:6px 0"><b>'+esc(g[0].title||g[0].tipo)+'</b> · '+esc(g[0].attuid)+' · $'+fmt(g[0].com)+' · <span class="warn">'+g.length+' veces</span><div class="muted mono">'+g.map(o=>o.id).join('  ·  ')+'</div></div>';});
+    dh+='<div class="muted" style="margin-top:8px">Si estos son ventas repetidas por error (doble toque al guardar), bórralos en Firebase por su id y el conteo cuadra.</div></div>';
+    html+=dh;
+  } else {
+    html+='<div class="card"><span class="ok">✓ Sin duplicados exactos.</span> <span class="muted">La diferencia (si la hay) viene de ventas con seguro/accesorio pegado, que suman en su métrica.</span></div>';
+  }
+
+  // por asesor
+  const porAse={};
+  docs.forEach(o=>{const a=o.attuid||'?'; (porAse[a]=porAse[a]||[]).push(o);});
+  let ah='<div class="card"><div class="sectit">Por asesor</div><table><tr><th>ATTUID</th><th>Pos</th><th>Ren</th><th>Acc</th><th>Seg</th><th>Pre</th><th>Docs</th></tr>';
+  Object.keys(porAse).sort().forEach(a=>{const c={po:0,re:0,ac:0,se:0,pr:0}; porAse[a].forEach(o=>{const k=MM[o.tipo]; if(k)c[k]++;}); ah+='<tr><td class="mono">'+esc(a)+'</td><td>'+c.po+'</td><td>'+c.re+'</td><td>'+c.ac+'</td><td>'+c.se+'</td><td>'+c.pr+'</td><td>'+porAse[a].length+'</td></tr>';});
+  ah+='</table></div>'; html+=ah;
+
+  // detalle completo
+  let th='<div class="card"><div class="sectit">Detalle de los '+docs.length+' documentos</div><table><tr><th>ATTUID</th><th>Métrica</th><th>Título</th><th>$</th><th>Tipo doc</th><th>Grupo</th><th>doc id</th></tr>';
+  docs.sort((a,b)=>(a.attuid||'').localeCompare(b.attuid||'')||(a.grupo||'').localeCompare(b.grupo||''));
+  const dupIds=new Set(); dupes.forEach(g=>g.forEach(o=>dupIds.add(o.id)));
+  docs.forEach(o=>{const k=MM[o.tipo]||''; const cls=dupIds.has(o.id)?' class="dupe"':'';
+    th+='<tr'+cls+'><td class="mono">'+esc(o.attuid)+'</td><td>'+(k?'<span class="tag '+k+'">'+LABELS[k]+'</span>':'<span class="warn">?'+esc(o.tipo)+'</span>')+'</td><td>'+esc(o.title)+'<div class="muted">'+esc(o.sub||o.plan||o.modelo||'')+'</div></td><td>$'+fmt(o.com)+'</td><td>'+(o.esHijo?'<span class="tag hijo">hija</span>':'padre')+'</td><td class="mono">'+esc(o.grupo||'')+'</td><td class="mono">'+esc(o.id)+'</td></tr>';});
+  th+='</table></div>'; html+=th;
+
+  out.innerHTML=html;
+};
+</script>
+</body></html>
