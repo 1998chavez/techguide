@@ -192,26 +192,26 @@ var PLAN_COMMISSION = {
 
 // ── EQUIPMENT INCENTIVE ─────────────────────────────────────────────────────
 var EQUIPMENT_INCENTIVE = {
-  // Flyer Pixel (9a no aplica): 10 / 10 Pro / 10 Pro XL
-  'px10': 350, 'px10_256': 350,
-  'px10pro': 350, 'px10pro_512': 350,
-  'px10proxl': 350, 'px10proxl_512': 350,
-  // Flyer Honor (29 jun-05 jul): H400 512GB / X8D / Magic 8 Lite
-  'h400': 350, 'h400bal': 350,
-  'hx8d': 200,
-  'hmagic8lite': 180,
-  // Flyer Motorola
+  // Flyer Pixel (06 jul-02 ago): 9a y 10 $250 / 10 Pro y Pro XL $400 (Pixel 9a sin ficha en catálogo)
+  'px10': 250, 'px10_256': 250,
+  'px10pro': 400, 'px10pro_512': 400,
+  'px10proxl': 400, 'px10proxl_512': 400,
+  // Flyer Honor (06 jul-09 ago): H400 512GB / X8D / Magic 8 Lite
+  'h400': 300, 'h400bal': 300,
+  'hx8d': 180,
+  'hmagic8lite': 160,
+  // Flyer Motorola (08 jun-12 jul): solo Edge 70 Fusion
   'medge70f_npi': 350,   // Moto Edge 70 Fusion (ambas versiones)
-  'mg77': 230,           // Moto G77 (+$50 x unidad desde la 5a venta — no automatizable)
-  // Flyer OPPO (Reno 12 y Reno 13F no existen en catálogo)
+  // Flyer OPPO (06 jul-02 ago) — Reno 12 y Reno 13F no existen en catálogo
   'opfindx9pro': 310,    // X9 Pro
   'opreno14': 190,       // Reno 14
   'opreno14f': 155,      // Reno 14F
   'opa6k': 70,           // A6K
   'opa5pro5g': 45,       // A5 Pro 5G
-  // Flyer Xiaomi
-  'x15t': 250,           // 15T
-  'xrn15pro': 210,       // Redmi Note 15 Pro
+  // Flyer Xiaomi (06 jul-02 ago)
+  'x17t': 150,           // 17T + Bundle Sound Outdoor
+  'x15t': 250,           // 15T + Bundle Bocina Sound Party
+  'xrn15pro': 210,       // Redmi Note 15 Pro + doble bundle
   'xrn15': 120           // Redmi Note 15
 };
 

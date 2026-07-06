@@ -345,7 +345,7 @@ const planRank=p=>PLAN_ORDER.indexOf(p);
 const isAzul3plus=p=>planRank(p)>=2;
 const isPlataPlus=p=>planRank(p)>=3;
 /* Bono por equipo (de marca) — del EQUIPMENT_INCENTIVE de la app. Solo equipo nuevo + plan Azul 3+. */
-var EQUIP_INC={'Pixel 10':350,'Pixel 10 Pro':350,'Pixel 10 Pro XL':350,'Honor 400':350,'Honor 400 + Balón':350,'Honor X8D':200,'Honor Magic 8 Lite 5G':180,'Moto Edge 70 Fusión':350,'Moto G77':230,'Oppo Find X9 Pro':310,'Oppo Reno14 BDL Headphones':190,'Oppo Reno 14F':155,'Oppo A6k':70,'Oppo A5 Pro 5G':45,'Xiaomi 15T':250,'Redmi Note 15 Pro 5G':210,'Redmi Note 15':120};
+var EQUIP_INC={'Pixel 10':250,'Pixel 10 Pro':400,'Pixel 10 Pro XL':400,'Honor 400':300,'Honor 400 + Balón':300,'Honor X8D':180,'Honor Magic 8 Lite 5G':160,'Moto Edge 70 Fusión':350,'Oppo Find X9 Pro':310,'Oppo Reno14 BDL Headphones':190,'Oppo Reno 14F':155,'Oppo A6k':70,'Oppo A5 Pro 5G':45,'Xiaomi 17T':150,'Xiaomi 15T':250,'Redmi Note 15 Pro 5G':210,'Redmi Note 15':120};
 var EQUIP_INC_BY_PLAN={'Honor 600':{'Oro':200,'Black':1000,'Platino':1000,'Diamante':1000}};
 function incentivoEquipo(modelo,plan){var bp=EQUIP_INC_BY_PLAN[modelo];if(bp)return bp[plan]||0;return EQUIP_INC[modelo]||0;}
 var MIX_TIENDA=0;   // mix real de equipo nuevo de la tienda (se carga de Firestore en cargarAlcanceTienda)
