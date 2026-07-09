@@ -201,17 +201,17 @@ body{background:var(--bg);color:var(--label);font-family:var(--fd);min-height:10
 const fmt=n=>Math.round(n).toLocaleString('es-MX');
 const MET=[{k:'po',label:'Pospago',e:'📱'},{k:'re',label:'Renovaciones',e:'🔄'},{k:'ac',label:'Accesorios',e:'🎧'},{k:'se',label:'Seguros',e:'🛡️'},{k:'pr',label:'Prepago',e:'💳'}];
 
-var PLAN_ARPU={'Azul 1':330,'Azul 2':435,'Azul 3':550,'Plata':650,'Oro':725,'Black':825,'Platino':1035,'Diamante':1300,'Titanio':799};
+var PLAN_ARPU={'Azul 1':330,'Azul 2':435,'Azul 3':550,'Plata':650,'Oro':725,'Black':825,'Platino':1035,'Diamante':1300,'Titanio':799,'Titanio Trade In':799};
 /* Titanio: renta real $799 para el ARPU (la comisión sí paga como Black). */
 function arpuOf(v){let u=0,s=0;for(const p in v){u+=v[p];s+=v[p]*(PLAN_ARPU[p]||0);}return u>0?Math.round(s/u):0;}
 /* ===== comisión real del asesor — MISMO motor que el ejecutivo (recalcHero): candado tienda 80% + 2 pospago, escalado por alcance (100% con 6+ ventas), incentivos equipo/mix/seguros ===== */
 var METRIC_ALC={pospago:'pospago',migra:'pospago',renov:'renov',seguro:'seguro',addon:'seguro',acces:'acces',prepago:'prepago'};
-var PLAN_ORDER=['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Diamante','Titanio'];
+var PLAN_ORDER=['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Diamante','Titanio','Titanio Trade In'];
 function isAzul3plus(p){return PLAN_ORDER.indexOf(p)>=2;}
 function isPlataPlus(p){return PLAN_ORDER.indexOf(p)>=3;}
 var EQUIP_INC={'Pixel 10':250,'Pixel 10 Pro':400,'Pixel 10 Pro XL':400,'Honor 400':300,'Honor 400 + Balón':300,'Honor X8D':180,'Honor Magic 8 Lite 5G':160,'Moto Edge 70 Fusión':350,'Oppo Find X9 Pro':310,'Oppo Reno14 BDL Headphones':190,'Oppo Reno 14F':155,'Oppo A6k':70,'Oppo A5 Pro 5G':45,'Xiaomi 17T':150,'Xiaomi 15T':250,'Redmi Note 15 Pro 5G':210,'Redmi Note 15':120};
 var EQUIP_INC_BY_PLAN={'Honor 600':{'Oro':200,'Black':1000,'Platino':1000,'Diamante':1000}};
-function incentivoEquipo(modelo,plan){var bp=EQUIP_INC_BY_PLAN[modelo];if(bp)return bp[plan]||0;return EQUIP_INC[modelo]||0;}
+function incentivoEquipo(modelo,plan){var bp=EQUIP_INC_BY_PLAN[modelo];var m=bp?(bp[plan]||0):(EQUIP_INC[modelo]||0);if(plan==='Titanio Trade In')m=Math.min(Math.round(m*0.5),150);return m;}
 var MIX_TIENDA=0; /* mix real de la tienda; se asigna antes de calcular comisiones */
 function comisionAsesor(L,ALC,esGte){
   L=Array.isArray(L)?L:[];
@@ -228,7 +228,7 @@ function comisionAsesor(L,ALC,esGte){
   if(MIX_TIENDA>=55&&(po>=1.00||re>=1.00))incMix+=lin.length*100;
   if(po>=1.00&&re>=1.00&&ac>=1.00&&MIX_TIENDA>=60)incMix+=linP.length*200;
   const segSum=L.filter(function(v){return v.seg;}).reduce(function(s,v){return s+(v.com||0);},0);
-  const inc7=lines>=7?Math.round(segSum*0.10):0;
+  const inc7=(lines>=7&&(ALC.seguro||0)>=0.80)?Math.round(segSum*0.10):0; /* +10% requiere 7+ ventas Y seguros >=80% (solo gatea el extra, no la comision base del seguro) */
   return {pay:base+incEq+incMix+inc7,base:base,incEq:incEq,incMix:incMix,inc7:inc7,accede:true};
 }
 
@@ -236,7 +236,7 @@ function comisionAsesor(L,ALC,esGte){
 let TIENDA={id:'PRM TDA LEON CENTRO',n:'León Centro',ini:'LC',
   cuota:{po:0,re:0,ac:0,se:0,pr:0},
   real:{po:0,re:0,ac:0,se:0,pr:0},
-  mix:0,accAlpha:0,opsNuevo:0,
+  mix:0,accAlpha:0,accTot:0,opsNuevo:0,
   ventasPo:{},
   ventasRe:{}};
 /* ARPU se calcula del desglose por plan (PLAN_ARPU); Titanio cuenta con su renta real $799. */
@@ -279,7 +279,7 @@ function calcBono(){
   const base=ko?(basePo+baseRe):0;
   // incentivo ARPU-Mix gerente (sobre el ARPU general de la tienda)
   let arpuMix=0,arpuMixTxt='no aplica';
-  if(ko){
+  if(ko&&TIENDA.mix>=60){ /* candado global: cualquier incentivo requiere mix >=60% */
     if(A.po>=1.00&&arpuGen>=660){arpuMix=1100;arpuMixTxt='pospago ≥100% · ARPU ≥$660';}
     else if(A.po>=0.80&&arpuGen>=630){arpuMix=600;arpuMixTxt='pospago ≥80% · ARPU ≥$630';}
     if(A.po>=1.00&&A.re>=1.00&&TIENDA.mix>=65){
@@ -288,9 +288,9 @@ function calcBono(){
     }
   }
   // incentivo accesorios gerente
-  const attach=TIENDA.opsNuevo>0?TIENDA.accAlpha/TIENDA.opsNuevo:0;
+  const attach=TIENDA.opsNuevo>0?TIENDA.accTot/TIENDA.opsNuevo:0; /* PDF jul26: TODOS los accesorios / (pospago nuevo + renov) */
   let incAcc=0;
-  if(ko&&attach>=0.65) incAcc=attach>=0.80?2000:attach>=0.70?800:500;
+  if(ko&&TIENDA.mix>=60&&attach>=0.55) incAcc=attach>=0.70?2000:attach>=0.60?800:500;
   const subtotal=base+arpuMix+incAcc;
   const desbloqueo=(A.po+A.re)>=2.00&&TIENDA.mix>=60;
   const total=ko?(desbloqueo?subtotal:Math.min(subtotal,20000)):0;
@@ -312,7 +312,7 @@ function openBono(){
   if(!b.Z) html+=`<div class="brow"><span class="bk" style="color:var(--t-amber)">Z apagado<small>Seguros va en ${Math.round(b.A.se*100)}% — abajo del 80%</small></span><span class="bv" style="color:var(--label4)">—</span></div>`;
   html+=`<p class="bsec">Incentivos</p>`;
   html+=`<div class="brow"><span class="bk">ARPU-Mix<small>${b.arpuMixTxt}</small></span><span class="bv ${b.arpuMix?'':'off'}" style="color:${b.arpuMix?'var(--t-orange)':'var(--label4)'}">${b.arpuMix?'+$'+fmt(b.arpuMix):'—'}</span></div>`;
-  html+=`<div class="brow"><span class="bk">Accesorios<small>attach rate ${Math.round(b.attach*100)}% (ALPHACOMM ÷ nuevos + renov)</small></span><span class="bv" style="color:${b.incAcc?'var(--t-orange)':'var(--label4)'}">${b.incAcc?'+$'+fmt(b.incAcc):'—'}</span></div>`;
+  html+=`<div class="brow"><span class="bk">Accesorios<small>attach rate ${Math.round(b.attach*100)}% (accesorios ÷ nuevos + renov)</small></span><span class="bv" style="color:${b.incAcc?'var(--t-orange)':'var(--label4)'}">${b.incAcc?'+$'+fmt(b.incAcc):'—'}</span></div>`;
   html+=`<div class="btot"><span class="btl">Suma${b.topado?' (antes del tope)':''}</span><span class="btv">$${fmt(b.subtotal)}</span></div>`;
   if(b.topado){
     const falta=200-Math.round((b.A.po+b.A.re)*100);
@@ -417,7 +417,7 @@ async function hidratarFirebase(){
     const v=await window.TG_DASH.loadVentasTienda(TIENDA.id,periodoActivo());
     TIENDA.real={po:v.po,re:v.re,ac:v.ac,se:v.se,pr:v.pr};
     TIENDA.ventasPo=v.ventasPo||{};TIENDA.ventasRe=v.ventasRe||{};
-    TIENDA.opsNuevo=(v.nuevos||0)+(v.re||0);TIENDA.accAlpha=v.acAlpha||0;
+    TIENDA.opsNuevo=(v.nuevos||0)+(v.re||0);TIENDA.accAlpha=v.acAlpha||0;TIENDA.accTot=v.ac||0;
     TIENDA.mix=v.po>0?Math.round((v.nuevos/v.po)*100):0;MIX_TIENDA=TIENDA.mix;
     const nombres=await window.TG_DASH.asesoresDeTienda(TIENDA.id),pa=v.porAsesor||{};
     const ids=new Set([...Object.keys(nombres),...Object.keys(pa)]);if(ses&&ses.attuid)ids.delete(ses.attuid);

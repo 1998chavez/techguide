@@ -302,7 +302,7 @@ select:focus,input:focus{border-color:var(--att-blue)}
 
 <script>
 const T={
-  Premium:{nuevo:{'Azul 1':100,'Azul 2':180,'Azul 3':440,'Plata':530,'Oro':590,'Black':670,'Platino':800,'Diamante':800,'Titanio':670},
+  Premium:{nuevo:{'Azul 1':100,'Azul 2':180,'Azul 3':440,'Plata':530,'Oro':590,'Black':670,'Platino':800,'Diamante':800,'Titanio':670,'Titanio Trade In':335},
            propio:{'Azul 1':90,'Azul 2':110,'Azul 3':230,'Plata':265,'Oro':295,'Black':335,'Platino':400,'Diamante':400,'Titanio':335}},
   Lite:{nuevo:{'Lite':40,'Lite 1':95,'Lite 2':115,'Lite 3':220,'Lite 4':265,'Lite 5':315}},
   'A Negocios':{nuevo:{'239':50,'299':87,'399':200,'499':419,'599':503,'699':587,'799':671,'899':755,'999':839,'1299':1091,'1499':1259},
@@ -340,14 +340,14 @@ const GRUPOS=[{k:'pospago',label:'Pospagos'},{k:'renov',label:'Renovaciones'},{k
 const EXP=new Set();   // grupos expandidos
 
 /* ---------- Incentivos del ejecutivo ---------- */
-var PLAN_ORDER=['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Diamante','Titanio'];
+var PLAN_ORDER=['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Diamante','Titanio','Titanio Trade In'];
 const planRank=p=>PLAN_ORDER.indexOf(p);
 const isAzul3plus=p=>planRank(p)>=2;
 const isPlataPlus=p=>planRank(p)>=3;
 /* Bono por equipo (de marca) — del EQUIPMENT_INCENTIVE de la app. Solo equipo nuevo + plan Azul 3+. */
 var EQUIP_INC={'Pixel 10':250,'Pixel 10 Pro':400,'Pixel 10 Pro XL':400,'Honor 400':300,'Honor 400 + Balón':300,'Honor X8D':180,'Honor Magic 8 Lite 5G':160,'Moto Edge 70 Fusión':350,'Oppo Find X9 Pro':310,'Oppo Reno14 BDL Headphones':190,'Oppo Reno 14F':155,'Oppo A6k':70,'Oppo A5 Pro 5G':45,'Xiaomi 17T':150,'Xiaomi 15T':250,'Redmi Note 15 Pro 5G':210,'Redmi Note 15':120};
 var EQUIP_INC_BY_PLAN={'Honor 600':{'Oro':200,'Black':1000,'Platino':1000,'Diamante':1000}};
-function incentivoEquipo(modelo,plan){var bp=EQUIP_INC_BY_PLAN[modelo];if(bp)return bp[plan]||0;return EQUIP_INC[modelo]||0;}
+function incentivoEquipo(modelo,plan){var bp=EQUIP_INC_BY_PLAN[modelo];var m=bp?(bp[plan]||0):(EQUIP_INC[modelo]||0);if(plan==='Titanio Trade In')m=Math.min(Math.round(m*0.5),150);return m;}
 var MIX_TIENDA=0;   // mix real de equipo nuevo de la tienda (se carga de Firestore en cargarAlcanceTienda)
 function incEquipoList(){
   return ventas.filter(v=>{
@@ -436,10 +436,10 @@ function recalcHero(){
   const incEq=accede?incEquipoList().reduce((s,e)=>s+e.monto,0):0;  // todo requiere acceder a comisión
   const incMixM=accede?incMixCalc().monto:0;
   const segSum=ventas.filter(v=>v.seg).reduce((s,v)=>s+v.com,0);
-  const inc7=(accede&&lines>=7)?Math.round(segSum*0.10):0;
+  const inc7=(accede&&lines>=7&&(ALCANCE.seguro||0)>=0.80)?Math.round(segSum*0.10):0; /* +10% requiere 7+ ventas Y seguros >=80% */
   const pay=base+incEq+incMixM+inc7;
   document.getElementById('payAmt').textContent=fmt(pay);
-  const incEqFull=incEquipoList().reduce((s,e)=>s+e.monto,0),incMixFull=incMixCalc().monto,inc7Full=lines>=7?Math.round(segSum*0.10):0;
+  const incEqFull=incEquipoList().reduce((s,e)=>s+e.monto,0),incMixFull=incMixCalc().monto,inc7Full=(lines>=7&&(ALCANCE.seguro||0)>=0.80)?Math.round(segSum*0.10):0;
   const genPot=gen+incEqFull+incMixFull+inc7Full,bloq=Math.max(0,genPot-pay);
   const acumTag=genPot<=0?'':(bloq>0?'<span class="acbloq">🔒 $'+fmt(bloq)+' sin liberar</span>':'<span class="acok">✓ liberado</span>');
   document.getElementById('acumRow').innerHTML=`<span class="acl">Generado en total ${acumTag}</span><span class="acv">$${fmt(genPot)}</span>`;
