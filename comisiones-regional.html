@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <title>Comisiones · Regional — TechGuide</title>
 <style>
 :root{
@@ -357,8 +357,8 @@ var METRIC_ALC={pospago:'pospago',migra:'pospago',renov:'renov',seguro:'seguro',
 var PLAN_ORDER=['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Diamante','Titanio','Titanio Trade In'];
 function isAzul3plus(p){return PLAN_ORDER.indexOf(p)>=2;}
 function isPlataPlus(p){return PLAN_ORDER.indexOf(p)>=3;}
-var EQUIP_INC={'Pixel 10':250,'Pixel 10 Pro':400,'Pixel 10 Pro XL':400,'Honor 400':300,'Honor 400 + Balón':300,'Honor X8D':180,'Honor Magic 8 Lite 5G':160,'Moto Edge 70 Fusión':350,'Oppo Find X9 Pro':310,'Oppo Reno14 BDL Headphones':190,'Oppo Reno 14F':155,'Oppo A6k':70,'Oppo A5 Pro 5G':45,'Xiaomi 17T':150,'Xiaomi 15T':250,'Redmi Note 15 Pro 5G':210,'Redmi Note 15':120};
-var EQUIP_INC_BY_PLAN={'Honor 600':{'Oro':200,'Black':1000,'Platino':1000,'Diamante':1000}};
+var EQUIP_INC={'Pixel 10':250,'Pixel 10 Pro':400,'Pixel 10 Pro XL':400,'Honor 400':300,'Honor 400 + Balón':300,'Honor X8D':180,'Honor Magic 8 Lite 5G':160,'Oppo Find X9 Pro':310,'Oppo Reno14 BDL Headphones':190,'Oppo Reno 14F':155,'Oppo A6k':70,'Oppo A5 Pro 5G':45,'Xiaomi 17T':150,'Xiaomi 15T':250,'Redmi Note 15 Pro 5G':210,'Redmi Note 15':120};
+var EQUIP_INC_BY_PLAN={'Honor 600':{'Black':680,'Platino':680,'Diamante':680},'Oppo Reno 16F':{'Oro':200,'Black':500,'Platino':500,'Diamante':500}};var EQUIP_INC_MIN_UNITS={'Oppo Reno 16F':2};
 function incentivoEquipo(modelo,plan){var bp=EQUIP_INC_BY_PLAN[modelo];var m=bp?(bp[plan]||0):(EQUIP_INC[modelo]||0);if(plan==='Titanio Trade In')m=Math.min(Math.round(m*0.5),150);return m;}
 var MIX_TIENDA=0; /* mix real de la tienda; se asigna antes de calcular comisiones */
 function comisionAsesor(L,ALC,esGte){
@@ -369,7 +369,7 @@ function comisionAsesor(L,ALC,esGte){
   const accede=(po>=0.80)&&(esGte||pos>=2);
   if(!accede)return {pay:0,base:0,incEq:0,incMix:0,inc7:0,accede:false};
   let base=0;L.forEach(function(v){var a=ALC[METRIC_ALC[v.tipo]]||0;if(a>=0.80)base+=incInd?(v.com||0):(v.com||0)*Math.min(a,1);});base=Math.round(base);
-  const incEq=L.filter(function(v){return (v.tipo==='pospago'||v.tipo==='renov'||v.tipo==='migra')&&v.modelo&&incentivoEquipo(v.modelo,v.plan)>0&&isAzul3plus(v.plan)&&(v.tipo==='renov'?v.tag!=='zero':v.tag==='nuevo');}).reduce(function(s,v){return s+incentivoEquipo(v.modelo,v.plan);},0);
+  const incEqL=L.filter(function(v){return (v.tipo==='pospago'||v.tipo==='renov'||v.tipo==='migra')&&v.modelo&&incentivoEquipo(v.modelo,v.plan)>0&&isAzul3plus(v.plan)&&(v.tipo==='renov'?v.tag!=='zero':v.tag==='nuevo');});const incEq=incEqL.filter(function(v){var mn=EQUIP_INC_MIN_UNITS[v.modelo]||0;return mn<=1||incEqL.filter(function(x){return x.modelo===v.modelo;}).length>=mn;}).reduce(function(s,v){return s+incentivoEquipo(v.modelo,v.plan);},0);
   const lin=L.filter(function(v){return (v.tipo==='pospago'||v.tipo==='renov'||v.tipo==='migra')&&v.line&&isAzul3plus(v.plan);});
   const linP=lin.filter(function(v){return isPlataPlus(v.plan);});
   let incMix=0;

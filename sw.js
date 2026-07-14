@@ -1,19 +1,20 @@
 // =============================================================================
 // TechGuide Service Worker — v5-roles (v1.7)
-// Strategy: network-first for HTML/JS/CSS so updates ship instantly.
-// Cache is only used as offline fallback.
+// Strategy: stale-while-revalidate para HTML/CSS (apertura instantánea desde
+// caché + revalidación en segundo plano; updates llegan vía SW_UPDATED/BUILD_ID).
+// Bundles pesados (catalog/vendors/catalog-img) cache-first con ?v=BUILD_ID.
 // On activate, ALL previous caches are deleted so old monolithic index.html
 // can never resurrect from disk.
 // Firebase SDK modules from gstatic.com are cached on first successful fetch
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v1155-nuevos12jul-jul12';
+const CACHE_NAME = 'techguide-v1156-incentivos-perf-jul14';
 const SCOPE = '/techguide/';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1785600001';
+const BUILD_ID = '1785700001';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la
@@ -23,6 +24,11 @@ const BUILD_ID = '1785600001';
 const OFFLINE_ASSETS = [
   SCOPE,
   SCOPE + 'index.html',
+  SCOPE + 'comisiones-ejecutivo.html',
+  SCOPE + 'comisiones-gerente.html',
+  SCOPE + 'comisiones-regional.html',
+  SCOPE + 'comisiones-director.html',
+  SCOPE + 'comisiones-dn.html',
   SCOPE + 'vendors.js?v=' + BUILD_ID,
   SCOPE + 'catalog.js?v=' + BUILD_ID,
   SCOPE + 'catalog-img.js?v=' + BUILD_ID,
@@ -182,23 +188,32 @@ self.addEventListener('fetch', function(event){
                      url.pathname === SCOPE + '';
 
   if(isAppAsset){
-    // Network-first: always try the network, fall back to cache if offline.
+    // [v1.11.56] Stale-while-revalidate: sirve caché al instante y revalida en
+    // segundo plano. ANTES era network-first puro → cada apertura esperaba la
+    // descarga completa del HTML (~722KB el index) aun con buena señal; en red
+    // móvil floja eso era TODO el "tarda en abrir". La frescura NO se pierde:
+    // (1) el fetch en segundo plano deja la versión nueva en caché,
+    // (2) el navegador revisa sw.js en cada navegación; si hay versión nueva,
+    //     el SW se activa, borra cachés viejos y manda SW_UPDATED → auto-reload,
+    // (3) el handshake GET_BUILD_ID del HTML fuerza recarga si HTML ≠ SW.
+    // Peor caso tras un deploy: se ve la versión anterior unos segundos y se
+    // recarga sola — mismo UX del banner de actualización que ya existía.
     event.respondWith(
-      fetch(req).then(function(response){
-        // Clone and stash a copy in cache for offline fallback.
-        if(response && response.status === 200 && response.type === 'basic'){
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(function(cache){
-            return cache.put(req, clone);
-          }).catch(function(err){
-            console.warn('[SW] cache.put falló:', err && err.message);
-          });
-        }
-        return response;
-      }).catch(function(){
-        return caches.match(req).then(function(cached){
+      caches.match(req).then(function(cached){
+        const fetchPromise = fetch(req).then(function(response){
+          if(response && response.status === 200 && response.type === 'basic'){
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(function(cache){
+              return cache.put(req, clone);
+            }).catch(function(err){
+              console.warn('[SW] cache.put falló:', err && err.message);
+            });
+          }
+          return response;
+        }).catch(function(){
           return cached || caches.match(SCOPE + 'index.html');
         });
+        return cached || fetchPromise;
       })
     );
   } else {

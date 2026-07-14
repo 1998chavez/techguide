@@ -200,8 +200,7 @@ var EQUIPMENT_INCENTIVE = {
   'h400': 300, 'h400bal': 300,
   'hx8d': 180,
   'hmagic8lite': 160,
-  // Flyer Motorola (08 jun-12 jul): solo Edge 70 Fusion
-  'medge70f_npi': 350,   // Moto Edge 70 Fusion (ambas versiones)
+  // Flyer Motorola Edge 70 Fusión venció 12-jul — retirado 14-jul (se restaura si llega renovación)
   // Flyer OPPO (06 jul-02 ago) — Reno 12 y Reno 13F no existen en catálogo
   'opfindx9pro': 310,    // X9 Pro
   'opreno14': 190,       // Reno 14
@@ -220,7 +219,10 @@ var EQUIPMENT_INCENTIVE = {
 // en cualquier otro plan el incentivo es 0 (no usa INCENTIVE_ELIGIBLE_PLANS).
 // Honor 600: $1,000 en Black/Platino/Diamante, $200 en Oro (Flyer Honor 600).
 var EQUIPMENT_INCENTIVE_BY_PLAN = {
-  'honor600': { 'Oro': 200, 'Black': 1000, 'Platino': 1000, 'Diamante': 1000 }
+  // Flyer Honor 600 (13 jul-23 ago): Black y superiores $680 ejecutivo (acumulable). Gerente $85/equipo NO modelado (regla: solo incentivos nivel ejecutivo).
+  'honor600': { 'Black': 680, 'Platino': 680, 'Diamante': 680 },
+  // Flyer Oppo Reno 16F (13 jul-09 ago): Oro $200 / Black y sup $500 ejecutivo, aplica a partir de 2 unidades. Gerente $50/equipo NO modelado.
+  'opreno16f': { 'Oro': 200, 'Black': 500, 'Platino': 500, 'Diamante': 500 }
 };
 
 // ── INCENTIVE CONSTANTS ─────────────────────────────────────────────────────

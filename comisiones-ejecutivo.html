@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <title>Comisiones · Ejecutivo — TechGuide</title>
 <style>
 :root{
@@ -345,8 +345,8 @@ const planRank=p=>PLAN_ORDER.indexOf(p);
 const isAzul3plus=p=>planRank(p)>=2;
 const isPlataPlus=p=>planRank(p)>=3;
 /* Bono por equipo (de marca) — del EQUIPMENT_INCENTIVE de la app. Solo equipo nuevo + plan Azul 3+. */
-var EQUIP_INC={'Pixel 10':250,'Pixel 10 Pro':400,'Pixel 10 Pro XL':400,'Honor 400':300,'Honor 400 + Balón':300,'Honor X8D':180,'Honor Magic 8 Lite 5G':160,'Moto Edge 70 Fusión':350,'Oppo Find X9 Pro':310,'Oppo Reno14 BDL Headphones':190,'Oppo Reno 14F':155,'Oppo A6k':70,'Oppo A5 Pro 5G':45,'Xiaomi 17T':150,'Xiaomi 15T':250,'Redmi Note 15 Pro 5G':210,'Redmi Note 15':120};
-var EQUIP_INC_BY_PLAN={'Honor 600':{'Oro':200,'Black':1000,'Platino':1000,'Diamante':1000}};
+var EQUIP_INC={'Pixel 10':250,'Pixel 10 Pro':400,'Pixel 10 Pro XL':400,'Honor 400':300,'Honor 400 + Balón':300,'Honor X8D':180,'Honor Magic 8 Lite 5G':160,'Oppo Find X9 Pro':310,'Oppo Reno14 BDL Headphones':190,'Oppo Reno 14F':155,'Oppo A6k':70,'Oppo A5 Pro 5G':45,'Xiaomi 17T':150,'Xiaomi 15T':250,'Redmi Note 15 Pro 5G':210,'Redmi Note 15':120};
+var EQUIP_INC_BY_PLAN={'Honor 600':{'Black':680,'Platino':680,'Diamante':680},'Oppo Reno 16F':{'Oro':200,'Black':500,'Platino':500,'Diamante':500}};var EQUIP_INC_MIN_UNITS={'Oppo Reno 16F':2};
 function incentivoEquipo(modelo,plan){var bp=EQUIP_INC_BY_PLAN[modelo];var m=bp?(bp[plan]||0):(EQUIP_INC[modelo]||0);if(plan==='Titanio Trade In')m=Math.min(Math.round(m*0.5),150);return m;}
 var MIX_TIENDA=0;   // mix real de equipo nuevo de la tienda (se carga de Firestore en cargarAlcanceTienda)
 function incEquipoList(){
@@ -354,7 +354,8 @@ function incEquipoList(){
     if(!(v.tipo==='pospago'||v.tipo==='renov'||v.tipo==='migra'))return false;
     if(!v.modelo||!(incentivoEquipo(v.modelo,v.plan)>0)||!isAzul3plus(v.plan))return false;
     return v.tipo==='renov'?(v.tag!=='zero'):(v.tag==='nuevo');   // equipo nuevo
-  }).map(v=>({modelo:v.modelo,monto:incentivoEquipo(v.modelo,v.plan)}));
+  }).map(v=>({modelo:v.modelo,monto:incentivoEquipo(v.modelo,v.plan)}))
+  .filter((e,_,L)=>{const mn=EQUIP_INC_MIN_UNITS[e.modelo]||0;return mn<=1||L.filter(x=>x.modelo===e.modelo).length>=mn;});
 }
 function incMixCalc(){
   const po=ALCANCE.pospago,re=ALCANCE.renov,ac=ALCANCE.acces;
