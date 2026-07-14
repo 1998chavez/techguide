@@ -28,6 +28,7 @@
 html,body{margin:0;padding:0}
 body{background:var(--bg);color:var(--label);font-family:var(--fd);min-height:100vh;-webkit-font-smoothing:antialiased}
 .phone{width:100%;background:var(--bg);color:var(--label);overflow:hidden;position:relative;min-height:100vh;display:flex;flex-direction:column}
+[data-desktop="1"] .phone{max-width:1180px;margin:0 auto}
 .statusbar{height:14px}
 .hdr{padding:14px 20px 8px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:linear-gradient(180deg,var(--bg) 70%,transparent);z-index:20}
 .hdr .back{color:var(--t-blue);font-size:15px;font-weight:500;cursor:pointer}.hdr .back:active{opacity:.6}
@@ -551,6 +552,23 @@ function renderMain(){
 }
 let SCOPE,MAINTYPE,SCOPE_PREFIX='',AGG=null,CAN_EDIT_CUOTA=false;
 function initDashboard(scope,maintype,prefix,agg,canEdit){SCOPE=scope;MAINTYPE=maintype;SCOPE_PREFIX=prefix||'';AGG=agg||null;CAN_EDIT_CUOTA=!!canEdit;renderTiles();renderMain();}
+
+/* [v1.11.60] MODO ESCRITORIO — mismo patrón que el tema: atributo en <html>,
+   persistencia en localStorage y switch sincronizado en el drawer. Solo layout. */
+function toggleDesktop(){
+  const on=document.documentElement.getAttribute('data-desktop')==='1';
+  if(on){document.documentElement.removeAttribute('data-desktop');}
+  else{document.documentElement.setAttribute('data-desktop','1');}
+  if(typeof pmdSyncDesktop==='function')pmdSyncDesktop();
+  try{localStorage.setItem('desktopMode',on?'0':'1');}catch(e){}
+}
+window.pmdSyncDesktop=function(){var sw=document.getElementById('pmd-desktop-sw');if(!sw)return;sw.classList.toggle('on',document.documentElement.getAttribute('data-desktop')==='1');};
+(function initDesktop(){
+  let saved='0';
+  try{saved=localStorage.getItem('desktopMode')||'0';}catch(e){}
+  if(saved==='1')document.documentElement.setAttribute('data-desktop','1');
+})();
+
 function toggleTheme(){const el=document.documentElement;const isLight=el.getAttribute('data-theme')==='light';el.setAttribute('data-theme',isLight?'dark':'light');var _tb=document.getElementById('themeBtn');if(_tb)_tb.textContent=isLight?'☀️':'🌙';if(typeof pmdSyncTheme==='function')pmdSyncTheme();}
 function irInicio(){if(history.length>1){history.back();}else{location.href='index.html';}}
 /* ── Firebase: cuota mensual + nombres reales de gerentes ── */
@@ -730,6 +748,7 @@ if(window.hidratarFirebase)window.hidratarFirebase();
     <button class="pmd-item" id="pmd-accesos" style="display:none" onclick="pmdGo('accesos')"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4.5"/><path d="M11 12l8-8 2 2M16 7l2 2"/></svg>Accesos</button>
     <div class="pmd-sep"></div>
     <button class="pmd-item" id="pmd-theme" onclick="toggleTheme()"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span style="flex:1">Modo oscuro</span><span class="pmd-switch" id="pmd-theme-sw"></span></button>
+    <button class="pmd-item" id="pmd-desktop" onclick="toggleDesktop()"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span style="flex:1">Modo escritorio</span><span class="pmd-switch" id="pmd-desktop-sw"></span></button>
     <button class="pmd-item" onclick="pmdGo('refresh')"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Actualizar datos</button>
     <button class="pmd-item pmd-danger" onclick="pmdGo('logout')"><svg viewBox="0 0 24 24"><path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10"/><path d="M17 8l4 4-4 4M9 12h12"/></svg>Cerrar sesión</button>
   </nav>
@@ -755,7 +774,7 @@ if(window.hidratarFirebase)window.hidratarFirebase();
         if(acc){var rl=String(s.rol||'').toLowerCase();acc.style.display=(s.attuid==='DC499W'||['regional','director','director_nacional'].indexOf(rl)>=0)?'flex':'none';}
       }
     }catch(e){}
-    if(window.pmdSyncTheme)pmdSyncTheme();
+    if(window.pmdSyncTheme)pmdSyncTheme(); if(window.pmdSyncDesktop)pmdSyncDesktop();
     d.classList.add('on'); ov.classList.add('on'); document.body.style.overflow='hidden';
   };
   window.pmdClose=function(){ d.classList.remove('on'); ov.classList.remove('on'); document.body.style.overflow=''; };

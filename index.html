@@ -11,7 +11,7 @@
      otro script, porque catalog.js/vendors.js la usan para el cache-busting y
      el registro del SW la compara. Si HTML y SW no coinciden → recarga forzada.
      Al empacar cada versión, este número se actualiza igual que el cache del SW. -->
-<script>window.BUILD_ID = '1786000001';</script>
+<script>window.BUILD_ID = '1786100001';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -730,6 +730,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 .cmp-tbl td{padding:7px 8px;font-size:11px;color:var(--label);border-bottom:0.5px solid var(--sep);text-align:center;vertical-align:top;line-height:1.4;background:var(--surface)}
 .cmp-tbl td:first-child{font-size:10px;color:var(--label3);text-transform:uppercase;letter-spacing:.3px;font-weight:500;text-align:left;background:#FAFAFA}
 .no-r{text-align:center;padding:50px 20px;color:var(--label3);font-size:14px}
+
+/* ===== [v1.11.60] MODO ESCRITORIO — solo layout, cero lógica ===== */
+[data-desktop="1"] .scroll-area{max-width:1180px;margin:0 auto;width:100%}
+[data-desktop="1"] .nav{padding-left:max(16px,calc(50vw - 574px));padding-right:max(16px,calc(50vw - 574px))}
+[data-desktop="1"] .d-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
 
 /* INSTALL PROMPT */
 /* install banner removed */
@@ -4727,6 +4732,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
     <button class="pmd-item" id="admin-home-card" style="display:none" onclick="pmdGo('accesos')"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4.5"/><path d="M11 12l8-8 2 2M16 7l2 2"/></svg>Accesos</button>
     <div class="pmd-sep"></div>
     <button class="pmd-item" id="pmd-theme" onclick="toggleTheme()"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span style="flex:1">Modo oscuro</span><span class="pmd-switch" id="pmd-theme-sw"></span></button>
+    <button class="pmd-item" id="pmd-desktop" onclick="toggleDesktop()"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span style="flex:1">Modo escritorio</span><span class="pmd-switch" id="pmd-desktop-sw"></span></button>
     <button class="pmd-item" onclick="pmdGo('refresh')"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Actualizar app</button>
     <button class="pmd-item pmd-danger" onclick="pmdGo('logout')"><svg viewBox="0 0 24 24"><path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10"/><path d="M17 8l4 4-4 4M9 12h12"/></svg>Cerrar sesión</button>
   </nav>
@@ -5835,6 +5841,23 @@ document.getElementById('st-lim').textContent=all.filter(d=>d.status==='INV. LIM
 
 
 // ── DARK MODE ────────────────────────────────────────────────────────────────
+
+/* [v1.11.60] MODO ESCRITORIO — mismo patrón que el tema: atributo en <html>,
+   persistencia en localStorage y switch sincronizado en el drawer. Solo layout. */
+function toggleDesktop(){
+  const on=document.documentElement.getAttribute('data-desktop')==='1';
+  if(on){document.documentElement.removeAttribute('data-desktop');}
+  else{document.documentElement.setAttribute('data-desktop','1');}
+  if(typeof pmdSyncDesktop==='function')pmdSyncDesktop();
+  try{localStorage.setItem('desktopMode',on?'0':'1');}catch(e){}
+}
+window.pmdSyncDesktop=function(){var sw=document.getElementById('pmd-desktop-sw');if(!sw)return;sw.classList.toggle('on',document.documentElement.getAttribute('data-desktop')==='1');};
+(function initDesktop(){
+  let saved='0';
+  try{saved=localStorage.getItem('desktopMode')||'0';}catch(e){}
+  if(saved==='1')document.documentElement.setAttribute('data-desktop','1');
+})();
+
 function toggleTheme(){
   const cur=document.documentElement.getAttribute('data-theme');
   const next=cur==='dark'?'light':'dark';
@@ -8498,7 +8521,7 @@ document.addEventListener('keydown',function(e){
 // asesor, estado de Firestore, cotizaciones en cola pendiente. El asesor manda
 // un screenshot y el equipo de soporte ve todo de un vistazo, sin necesidad de
 // abrir la consola del navegador.
-const APP_VERSION = 'v1.11.59';
+const APP_VERSION = 'v1.11.60';
 
 function openDiagnostico(){
   // Quitar modal previo si existe
@@ -16279,7 +16302,7 @@ document.addEventListener('visibilitychange', function(){
         if(eA){var p=String(nm).trim().split(/\s+/); eA.textContent=(((p[0]||'')[0]||'')+((p[1]||'')[0]||''))||(String(nm)[0]||'P');}
       }
     }catch(e){}
-    if(window.pmdSyncTheme)pmdSyncTheme();
+    if(window.pmdSyncTheme)pmdSyncTheme(); if(window.pmdSyncDesktop)pmdSyncDesktop();
     d.classList.add('on'); ov.classList.add('on'); document.body.style.overflow='hidden';
   };
   window.pmdClose=function(){ d.classList.remove('on'); ov.classList.remove('on'); document.body.style.overflow=''; };
