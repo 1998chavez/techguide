@@ -83,30 +83,50 @@ function daysLeft(id){
   return Math.ceil((end-now)/(1000*60*60*24));
 }
 
-// ── [v1.11.61] ALERTAS DE VIGENCIA ──────────────────────────────────────────
+// ── [v1.11.62] ALERTAS DE VIGENCIA ──────────────────────────────────────────
 // Problema que resuelve: las vigencias vencen sin avisar. Un equipo vencido se
 // oculta solo del catálogo (isVigent), pero si trae bono activo el asesor lo
-// sigue viendo en el flyer de incentivos y nadie se entera de que ya no se puede
-// cotizar hasta que alguien lo reporta. Esto lo hace visible sin depender de eso.
-// Solo lectura sobre VIGENCY / EQUIPMENT_INCENTIVE: no cambia ninguna regla.
-function _vigBono(id){
+// sigue viendo en incentivos y nadie se entera de que ya no se puede cotizar.
+// Y al revés: un bono cuyo flyer ya venció SIGUE PAGANDO hasta que alguien lo
+// borra a mano de incentivos.js — pasó con el G77 y con el Edge 70 Fusión.
+// Este panel hace visible ambas cosas sin depender de que alguien se acuerde.
+//
+// Solo lectura sobre VIGENCY (equipos) y EQUIP_INC_VIGENCY (bonos): NO cambia
+// ninguna regla de pago. Un bono vencido sigue pagando; aquí solo se avisa.
+// Gate: exclusivo DC499W.
+function _vigPuedeVer(){
+  return (typeof _meEsSuper === 'function') && _meEsSuper();
+}
+// Bono por NOMBRE de modelo — la llave de incentivos.js, la misma que usan los
+// 5 tableros para pagar. Devuelve el monto máximo cuando el bono es por plan.
+function _vigBono(name){
   var b = 0;
-  try{ b = (typeof EQUIPMENT_INCENTIVE!=='undefined' && EQUIPMENT_INCENTIVE[id]) || 0; }catch(e){}
+  try{ b = (typeof EQUIP_INC !== 'undefined' && EQUIP_INC[name]) || 0; }catch(e){}
   if(!b){
     try{
-      var bp = (typeof EQUIPMENT_INCENTIVE_BY_PLAN!=='undefined') ? EQUIPMENT_INCENTIVE_BY_PLAN[id] : null;
-      if(bp){ var vals = Object.keys(bp).map(function(k){return bp[k];}); if(vals.length) b = Math.max.apply(null, vals); }
+      var bp = (typeof EQUIP_INC_BY_PLAN !== 'undefined') ? EQUIP_INC_BY_PLAN[name] : null;
+      if(bp){ var vals = Object.keys(bp).map(function(k){ return bp[k]; }); if(vals.length) b = Math.max.apply(null, vals); }
     }catch(e){}
   }
   return b;
 }
+// Días que le quedan al FLYER del bono (distinto de la vigencia del equipo).
+// 999 = sin fecha registrada en incentivos.js.
+function _bonoDias(name){
+  var v = null;
+  try{ v = (typeof EQUIP_INC_VIGENCY !== 'undefined') ? EQUIP_INC_VIGENCY[name] : null; }catch(e){}
+  if(!v || !v.end) return 999;
+  var now = new Date(); now.setHours(0,0,0,0);
+  return Math.ceil((new Date(v.end + 'T00:00:00') - now) / (1000*60*60*24));
+}
 function vigenciasResumen(){
+  // ── Equipos (precios) ──
   var all = CAT.ios.concat(CAT.android);
   var porVencer=[], vencidosBono=[], vencidos=[];
   all.forEach(function(d){
     var dias = daysLeft(d.id);
-    if(dias === 999) return;               // sin vigencia / indefinido
-    var bono = _vigBono(d.id);
+    if(dias === 999) return;                 // sin vigencia / indefinido
+    var bono = _vigBono(d.name);
     var row = {id:d.id, name:d.name, fecha:VIGENCY[d.id], dias:dias, bono:bono};
     if(dias < 0){ if(bono) vencidosBono.push(row); else vencidos.push(row); }
     else if(dias <= 3){ porVencer.push(row); }
@@ -114,27 +134,49 @@ function vigenciasResumen(){
   porVencer.sort(function(a,b){ return a.dias-b.dias || (a.name<b.name?-1:1); });
   vencidosBono.sort(function(a,b){ return b.bono-a.bono; });
   vencidos.sort(function(a,b){ return a.dias-b.dias; });
-  return {porVencer:porVencer, vencidosBono:vencidosBono, vencidos:vencidos};
+
+  // ── Bonos (flyers de incentivo) ──
+  // Se recorren las llaves de incentivos.js, no el catálogo: puede haber bono de
+  // un modelo que todavía no tiene ficha.
+  var llaves = {};
+  try{ Object.keys(EQUIP_INC || {}).forEach(function(k){ llaves[k]=1; }); }catch(e){}
+  try{ Object.keys(EQUIP_INC_BY_PLAN || {}).forEach(function(k){ llaves[k]=1; }); }catch(e){}
+  var bonos = Object.keys(llaves).map(function(name){
+    var v=null; try{ v = EQUIP_INC_VIGENCY[name]; }catch(e){}
+    return { name:name, monto:_vigBono(name), fin:(v && v.end) || null, dias:_bonoDias(name) };
+  });
+  bonos.sort(function(a,b){ return a.dias-b.dias || (a.name<b.name?-1:1); });
+  var bonosVencidos  = bonos.filter(function(b){ return b.dias < 0; });
+  var bonosPorVencer = bonos.filter(function(b){ return b.dias >= 0 && b.dias <= 3; });
+  var bonosSinFecha  = bonos.filter(function(b){ return b.dias === 999; });
+  return { porVencer:porVencer, vencidosBono:vencidosBono, vencidos:vencidos,
+           bonos:bonos, bonosVencidos:bonosVencidos, bonosPorVencer:bonosPorVencer,
+           bonosSinFecha:bonosSinFecha };
 }
 function updateVigenciasCard(){
   var card = document.getElementById('vig-home-card');
   if(!card) return;
-  var puede = (typeof esAdminAccesos==='function') && esAdminAccesos();
+  var puede = _vigPuedeVer();
   card.style.display = puede ? 'flex' : 'none';
   var dot = document.getElementById('pmd-vig-dot');
   if(!dot) return;
   var n = 0;
-  if(puede){ try{ var r = vigenciasResumen(); n = r.porVencer.length + r.vencidosBono.length; }catch(e){ n = 0; } }
+  if(puede){
+    try{
+      var r = vigenciasResumen();
+      n = r.porVencer.length + r.vencidosBono.length + r.bonosVencidos.length + r.bonosPorVencer.length + r.bonosSinFecha.length;
+    }catch(e){ n = 0; }
+  }
   dot.style.display = n > 0 ? 'block' : 'none';
 }
 function openVigencias(){
-  if(typeof esAdminAccesos==='function' && !esAdminAccesos()) return;
+  if(!_vigPuedeVer()) return;
   var previo = document.getElementById('vig-overlay');
   if(previo) previo.remove();
   var r = vigenciasResumen();
-  var fdia = function(n){ return n===0?'vence hoy':(n===1?'1 día':n+' días'); };
+  var fdia  = function(n){ return n===0?'vence hoy':(n===1?'1 día':n+' días'); };
   var fvenc = function(n){ var d=Math.abs(n); return 'vencido hace '+(d===1?'1 día':d+' días'); };
-  var esc = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+  var esc   = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
 
   var ov = document.createElement('div');
   ov.id = 'vig-overlay';
@@ -151,26 +193,47 @@ function openVigencias(){
     items.forEach(function(it){
       h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(128,128,128,0.14)">'
         +  '<div style="min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(it.name)+'</div>'
-        +  '<div style="font-size:11px;color:var(--label3)">'+esc(it.fecha||'—')+'</div></div>'
+        +  '<div style="font-size:11px;color:var(--label3)">'+esc(it.sub||'')+'</div></div>'
         +  '<div style="text-align:right;flex-shrink:0">'+render(it)+'</div></div>';
     });
     return h;
   }
+  var conSub = function(arr, f){ return arr.map(function(x){ var y={}; for(var k in x) y[k]=x[k]; y.sub=f(x); return y; }); };
 
   var body = '';
-  body += bloque('Por vencer (≤3 días)', r.porVencer, '#FF9500', function(it){
+  // ── Lo urgente: dinero que se está pagando sin flyer que lo respalde ──
+  body += bloque('⚠️ Bonos vencidos — siguen pagando', conSub(r.bonosVencidos, function(b){ return 'terminó '+(b.fin||'—'); }), '#FF3B30', function(b){
+    return '<div style="font-size:13px;font-weight:700;color:#FF3B30">$'+b.monto+'</div>'
+         + '<div style="font-size:11px;color:var(--label3)">'+fvenc(b.dias)+'</div>';
+  });
+  body += bloque('Equipos vencidos CON bono activo', conSub(r.vencidosBono, function(x){ return 'precio venció '+(x.fecha||'—'); }), '#FF3B30', function(it){
+    return '<div style="font-size:13px;font-weight:700;color:#FF3B30">bono $'+it.bono+'</div>'
+         + '<div style="font-size:11px;color:var(--label3)">'+fvenc(it.dias)+'</div>';
+  });
+  // ── Lo que hay que atender esta semana ──
+  body += bloque('Precios por vencer (≤3 días)', conSub(r.porVencer, function(x){ return x.fecha||'—'; }), '#FF9500', function(it){
     var c = it.dias<=1 ? '#FF3B30' : '#FF9500';
     return '<div style="font-size:13px;font-weight:700;color:'+c+'">'+fdia(it.dias)+'</div>'
          + (it.bono?'<div style="font-size:11px;color:var(--label3)">bono $'+it.bono+'</div>':'');
   });
-  body += bloque('Vencidos CON bono activo', r.vencidosBono, '#FF3B30', function(it){
-    return '<div style="font-size:13px;font-weight:700;color:#FF3B30">bono $'+it.bono+'</div>'
-         + '<div style="font-size:11px;color:var(--label3)">'+fvenc(it.dias)+'</div>';
+  body += bloque('Bonos por vencer (≤3 días)', conSub(r.bonosPorVencer, function(b){ return 'termina '+(b.fin||'—'); }), '#FF9500', function(b){
+    var c = b.dias<=1 ? '#FF3B30' : '#FF9500';
+    return '<div style="font-size:13px;font-weight:700;color:'+c+'">'+fdia(b.dias)+'</div>'
+         + '<div style="font-size:11px;color:var(--label3)">$'+b.monto+'</div>';
   });
-  body += bloque('Vencidos sin bono', r.vencidos, 'var(--label3)', function(it){
+  body += bloque('Bonos sin vigencia registrada', conSub(r.bonosSinFecha, function(){ return 'falta fecha en incentivos.js'; }), '#FF9500', function(b){
+    return '<div style="font-size:13px;font-weight:700;color:var(--label3)">$'+b.monto+'</div>';
+  });
+  body += bloque('Equipos vencidos sin bono', conSub(r.vencidos, function(x){ return x.fecha||'—'; }), 'var(--label3)', function(it){
     return '<div style="font-size:12px;color:var(--label3)">'+fvenc(it.dias)+'</div>';
   });
-  if(!body) body = '<div style="text-align:center;padding:26px 10px;color:var(--label3);font-size:13px">Todo en orden ✓<br><span style="font-size:11px">Ninguna vigencia vence en los próximos 3 días.</span></div>';
+  // ── Monitoreo: todos los bonos vivos y hasta cuándo ──
+  var vivos = r.bonos.filter(function(b){ return b.dias >= 0 && b.dias !== 999; });
+  body += bloque('Bonos vigentes', conSub(vivos, function(b){ return 'hasta '+(b.fin||'—'); }), 'var(--label3)', function(b){
+    return '<div style="font-size:13px;font-weight:600">$'+b.monto+'</div>'
+         + '<div style="font-size:11px;color:var(--label3)">'+fdia(b.dias)+'</div>';
+  });
+  if(!body) body = '<div style="text-align:center;padding:26px 10px;color:var(--label3);font-size:13px">Todo en orden ✓<br><span style="font-size:11px">Nada vence en los próximos 3 días.</span></div>';
 
   modal.innerHTML =
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
@@ -178,10 +241,10 @@ function openVigencias(){
     +   '<button id="vig-close" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--label3);padding:0 4px;line-height:1">✕</button>'
     + '</div>'
     + '<div style="font-size:11px;color:var(--label3);background:rgba(255,149,0,0.10);border-radius:8px;padding:8px 10px;margin-bottom:6px;line-height:1.4">'
-    +   'Equipos <b>vencidos con bono activo</b> ya no se pueden cotizar pero siguen apareciendo en incentivos: hay que pedir flyer de precios o retirar el bono.'
+    +   'Un <b>bono vencido sigue pagando</b> hasta que se edite incentivos.js, y un <b>equipo vencido con bono activo</b> ya no se puede cotizar pero sigue en el flyer. Ambos casos se atienden aquí.'
     + '</div>'
     + body
-    + '<div style="font-size:10px;color:var(--label3);text-align:center;margin-top:14px">Catálogo '+APP_VERSION+' · '+(CAT.ios.length+CAT.android.length)+' equipos</div>';
+    + '<div style="font-size:10px;color:var(--label3);text-align:center;margin-top:14px">Catálogo '+APP_VERSION+' · '+(CAT.ios.length+CAT.android.length)+' equipos · '+r.bonos.length+' bonos</div>';
 
   ov.appendChild(modal);
   document.body.appendChild(ov);
@@ -190,8 +253,157 @@ function openVigencias(){
   if(cb) cb.onclick = function(){ ov.remove(); document.body.style.overflow=''; };
 }
 
+// ── [v1.11.62] TELEMETRÍA DE ADOPCIÓN ───────────────────────────────────────
+// Por qué existe: la app la usan ~2,000 asesores y no había NINGUNA forma de
+// saber quién la abre. Sin ese dato no se puede distinguir "la tienda no vende
+// porque la app no le sirve" de "la tienda no vende porque nadie la abrió" —
+// y son dos problemas con soluciones opuestas.
+//
+// QUÉ SE GUARDA (3 campos en el doc del propio empleado, sin colección nueva):
+//   uso_ultima  — fecha (YYYY-MM-DD) de la última apertura
+//   uso_dias    — cuántos días distintos ha abierto la app
+//   uso_version — versión con la que abrió la última vez (detecta gente atorada)
+//
+// QUÉ NO SE GUARDA, A PROPÓSITO: qué equipos consultó, a qué hora, cuántas veces
+// al día, ni desde dónde. El objetivo es medir ADOPCIÓN por tienda para saber
+// dónde falta acompañamiento. En cuanto una herramienta se siente como
+// vigilancia, la gente deja de usarla y se pierden las dos cosas: el dato y la
+// herramienta. Un contador de días alcanza para lo que se necesita decidir.
+//
+// COSTO: 1 escritura por asesor por día (~2,000/día). El candado vive en
+// localStorage, así que si ya se registró hoy ni siquiera se intenta la red.
+const USO_KEY = 'primemx_uso_dia';
+const USO_DESDE = '2026-07-16';   // fecha en que arrancó el registro (v1.11.62)
 
+async function registrarUso(){
+  try{
+    if(!asesorData || !asesorData.attuid) return;
+    const hoy = new Date().toISOString().slice(0,10);
+    let ultimo = null;
+    try{ ultimo = localStorage.getItem(USO_KEY); }catch(e){}
+    if(ultimo === hoy) return;              // ya quedó registrado hoy
+    if(!navigator.onLine) return;           // sin red: se registra el próximo día que abra
+    await loadFirebase();
+    const ref = firestoreFns.doc(firestoreDB, 'empleados', String(asesorData.attuid).toUpperCase());
+    await firestoreFns.setDoc(ref, {
+      uso_ultima: hoy,
+      uso_dias: firestoreFns.increment(1),
+      uso_version: APP_VERSION
+    }, { merge: true });
+    try{ localStorage.setItem(USO_KEY, hoy); }catch(e){}
+  }catch(e){
+    // Nunca romper la app por telemetría: si falla, se pierde el dato del día.
+    console.warn('[uso] no se registró:', e && e.message);
+  }
+}
 
+// Carga la gente en alcance con la MISMA lógica que la pantalla de Accesos
+// (por tiendas asignadas, o por regiones si es director). No inventa consultas.
+async function _usoCargarGente(){
+  await loadFirebase();
+  const col = firestoreFns.collection(firestoreDB, 'empleados');
+  const arr = [];
+  const tiendas = _meTiendas();
+  const regs = _misRegiones();
+  const push = function(qs){ qs.forEach(function(s){ const d = s.data()||{}; d.attuid = s.id; arr.push(d); }); };
+  if(tiendas.length){
+    for(let i=0;i<tiendas.length;i+=10){
+      const ch = tiendas.slice(i,i+10);
+      push(await firestoreFns.getDocs(firestoreFns.query(col, firestoreFns.where('tienda','in',ch))));
+    }
+  } else if(regs.length){
+    for(let i=0;i<regs.length;i+=10){
+      const ch = regs.slice(i,i+10);
+      push(await firestoreFns.getDocs(firestoreFns.query(col, firestoreFns.where('region','in',ch))));
+    }
+  }
+  return arr;
+}
+
+function _usoDiasDesde(fecha){
+  if(!fecha) return null;
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.round((now - new Date(String(fecha).slice(0,10) + 'T00:00:00')) / (1000*60*60*24));
+}
+
+function updateAdopcionCard(){
+  const card = document.getElementById('uso-home-card');
+  if(card) card.style.display = _vigPuedeVer() ? 'flex' : 'none';
+}
+
+async function openAdopcion(){
+  if(!_vigPuedeVer()) return;
+  const previo = document.getElementById('uso-overlay');
+  if(previo) previo.remove();
+
+  const ov = document.createElement('div');
+  ov.id = 'uso-overlay';
+  ov.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;overflow:hidden';
+  ov.onclick = function(){ ov.remove(); document.body.style.overflow=''; };
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--surface);color:var(--label);border-radius:18px 18px 0 0;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;padding:20px;box-shadow:0 -4px 20px rgba(0,0,0,0.3)';
+  modal.onclick = function(e){ e.stopPropagation(); };
+  modal.innerHTML = '<div style="text-align:center;padding:30px;color:var(--label3);font-size:13px">Cargando equipo…</div>';
+  ov.appendChild(modal);
+  document.body.appendChild(ov);
+  document.body.style.overflow = 'hidden';
+
+  let gente = [];
+  try{ gente = await _usoCargarGente(); }
+  catch(e){
+    modal.innerHTML = '<div style="text-align:center;padding:30px;color:#FF3B30;font-size:13px">No se pudo cargar el equipo.<br><span style="font-size:11px;color:var(--label3)">'+(e&&e.message||'')+'</span></div>';
+    return;
+  }
+  gente = gente.filter(function(d){ return d.activo !== false; });
+
+  const esc = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+  const tiendas = {};
+  gente.forEach(function(d){
+    const t = d.tienda || '(sin tienda)';
+    if(!tiendas[t]) tiendas[t] = { nombre:t, total:0, a7:0, a30:0, nunca:0 };
+    const g = tiendas[t];
+    g.total++;
+    const dias = _usoDiasDesde(d.uso_ultima);
+    if(dias === null) g.nunca++;
+    else { if(dias <= 7) g.a7++; if(dias <= 30) g.a30++; }
+  });
+  const lista = Object.keys(tiendas).map(function(k){ return tiendas[k]; });
+  // Peor adopción primero: es donde hay que actuar.
+  lista.sort(function(a,b){ return (a.a7/a.total) - (b.a7/b.total) || b.total-a.total; });
+  const tot = gente.length;
+  const totA7 = lista.reduce(function(s,g){ return s+g.a7; }, 0);
+  const pct = tot ? Math.round(totA7*100/tot) : 0;
+
+  let h = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+        +   '<div style="font-size:18px;font-weight:700">📊 Adopción</div>'
+        +   '<button id="uso-close" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--label3);padding:0 4px;line-height:1">✕</button>'
+        + '</div>';
+  h += '<div style="font-size:11px;color:var(--label3);background:rgba(0,122,255,0.08);border-radius:8px;padding:8px 10px;margin-bottom:12px;line-height:1.4">'
+     +   'El registro arrancó el <b>'+USO_DESDE+'</b> con v1.11.62. Todos aparecen como <b>sin registro</b> hasta que abran esta versión — el dato se vuelve confiable en una o dos semanas.'
+     + '</div>';
+  h += '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px">'
+     +   '<div style="font-size:32px;font-weight:800;color:'+(pct>=60?'#34C759':pct>=30?'#FF9500':'#FF3B30')+'">'+pct+'%</div>'
+     +   '<div style="font-size:12px;color:var(--label3)">'+totA7+' de '+tot+' asesores abrieron la app en los últimos 7 días</div>'
+     + '</div>';
+  h += '<div style="font-size:11px;font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:.6px;margin:18px 0 4px">Por tienda ('+lista.length+')</div>';
+  lista.forEach(function(g){
+    const p = g.total ? Math.round(g.a7*100/g.total) : 0;
+    const c = p>=60?'#34C759':p>=30?'#FF9500':'#FF3B30';
+    h += '<div style="padding:10px 0;border-bottom:1px solid rgba(128,128,128,0.14)">'
+      +    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">'
+      +      '<div style="font-size:13px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(g.nombre)+'</div>'
+      +      '<div style="font-size:13px;font-weight:700;color:'+c+';flex-shrink:0">'+p+'%</div>'
+      +    '</div>'
+      +    '<div style="height:5px;border-radius:3px;background:rgba(128,128,128,0.18);margin:6px 0 4px;overflow:hidden"><div style="height:100%;width:'+p+'%;background:'+c+'"></div></div>'
+      +    '<div style="font-size:11px;color:var(--label3)">'+g.a7+' activos 7d · '+g.a30+' activos 30d · '+g.total+' asesores'+(g.nunca?' · <span style="color:#FF9500">'+g.nunca+' sin registro</span>':'')+'</div>'
+      +  '</div>';
+  });
+  if(!lista.length) h += '<div style="text-align:center;padding:26px;color:var(--label3);font-size:13px">No hay tiendas en tu alcance.</div>';
+  h += '<div style="font-size:10px;color:var(--label3);text-align:center;margin-top:14px;line-height:1.5">Mide <b>adopción</b>, no productividad ni horario.<br>Solo se registra el día de apertura, nunca qué se consultó.</div>';
+  modal.innerHTML = h;
+  const cb = document.getElementById('uso-close');
+  if(cb) cb.onclick = function(){ ov.remove(); document.body.style.overflow=''; };
+}
 
 
 // ── EQUIPOS DEL MOMENTO V2 ──────────────────────────────────────────────────
@@ -9331,6 +9543,11 @@ function updateAdminHomeCard(){
   // [v1.11.61] Vigencias usa el MISMO gate que Accesos y el mismo ciclo de vida
   // (login / logout / revalidación), por eso se actualiza aquí y no en 6 lados.
   if(typeof updateVigenciasCard==='function') updateVigenciasCard();
+  if(typeof updateAdopcionCard==='function') updateAdopcionCard();
+  // [v1.11.62] Esta función corre exactamente cuando una sesión queda activa
+  // (login y restauración), así que es el punto natural para el registro de uso.
+  // registrarUso() se auto-limita a 1 escritura por día y nunca lanza.
+  if(typeof registrarUso==='function') registrarUso();
 }
 
 // Cierra la sesión por acceso revocado y manda al login con un mensaje.

@@ -11,10 +11,10 @@
      otro script, porque catalog.js/vendors.js la usan para el cache-busting y
      el registro del SW la compara. Si HTML y SW no coinciden → recarga forzada.
      Al empacar cada versión, este número se actualiza igual que el cache del SW. -->
-<script>window.BUILD_ID = '1786200001';
+<script>window.BUILD_ID = '1786300001';
 // [v1.11.61] APP_VERSION vive aquí desde que el bloque principal salió a app.js.
 // El ritual de release NO cambia: 2 constantes aquí + 2 en sw.js.
-const APP_VERSION = 'v1.11.61';</script>
+const APP_VERSION = 'v1.11.62';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -4735,6 +4735,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
     <button class="pmd-item" onclick="pmdGo('diag')"><svg viewBox="0 0 24 24"><path d="M3.5 13a8.5 8.5 0 0 1 17 0"/><path d="M12 13l4-3.5"/><circle cx="12" cy="13" r="1.4" fill="currentColor" stroke="none"/></svg>Diagnóstico</button>
     <button class="pmd-item" id="admin-home-card" style="display:none" onclick="pmdGo('accesos')"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4.5"/><path d="M11 12l8-8 2 2M16 7l2 2"/></svg>Accesos</button>
     <button class="pmd-item" id="vig-home-card" style="display:none" onclick="pmdGo('vigencias')"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span style="flex:1">Vigencias</span><span class="pmd-dot" id="pmd-vig-dot" style="display:none"></span></button>
+    <button class="pmd-item" id="uso-home-card" style="display:none" onclick="pmdGo('adopcion')"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Adopción</button>
     <div class="pmd-sep"></div>
     <button class="pmd-item" id="pmd-theme" onclick="toggleTheme()"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span style="flex:1">Modo oscuro</span><span class="pmd-switch" id="pmd-theme-sw"></span></button>
     <button class="pmd-item" id="pmd-desktop" onclick="toggleDesktop()"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span style="flex:1">Modo escritorio</span><span class="pmd-switch" id="pmd-desktop-sw"></span></button>
@@ -4922,6 +4923,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 <!-- [v1.10.30] catalog.js con cache-busting por BUILD_ID.
      Se escribe con document.write (sincrono) para conservar el orden de carga:
      catalog.js debe estar listo antes del bloque principal de abajo. -->
+<!-- [v1.11.62] incentivos.js — fuente única de los bonos de equipo, compartida
+     con los 5 tableros de comisiones. Sin ?v=BUILD_ID a propósito: pesa ~3KB y
+     va stale-while-revalidate, así los tableros lo consumen sin BUILD_ID propio. -->
+<script src="incentivos.js"></script>
 <script>
 document.write('<scr'+'ipt src="catalog.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt>');
 </script>
@@ -5433,6 +5438,7 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
       case 'diag':    run(function(){ if(typeof openDiagnostico==='function')openDiagnostico(); }); break;
       case 'accesos': run(function(){ if(typeof showAccesos==='function')showAccesos(); }); break;
       case 'vigencias': run(function(){ if(typeof openVigencias==='function')openVigencias(); }); break;
+      case 'adopcion': run(function(){ if(typeof openAdopcion==='function')openAdopcion(); }); break;
       case 'perfil':  run(function(){ if(typeof openAsesorEdit==='function')openAsesorEdit(); }); break;
       case 'refresh': if(typeof hardRefresh==='function')hardRefresh(); break;
       case 'logout':  run(function(){ if(typeof doLogout==='function')doLogout(); }); break;

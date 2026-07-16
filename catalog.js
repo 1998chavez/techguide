@@ -190,40 +190,15 @@ var PLAN_COMMISSION = {
   'Titanio': 670
 };
 
-// ── EQUIPMENT INCENTIVE ─────────────────────────────────────────────────────
-var EQUIPMENT_INCENTIVE = {
-  // Flyer Pixel (06 jul-02 ago): 9a y 10 $250 / 10 Pro y Pro XL $400 (Pixel 9a sin ficha en catálogo)
-  'px10': 250, 'px10_256': 250,
-  'px10pro': 400, 'px10pro_512': 400,
-  'px10proxl': 400, 'px10proxl_512': 400,
-  // Flyer Honor (06 jul-09 ago): H400 512GB / X8D / Magic 8 Lite
-  'h400': 300, 'h400bal': 300,
-  'hx8d': 180,
-  'hmagic8lite': 160,
-  // Flyer Motorola Edge 70 Fusión venció 12-jul — retirado 14-jul (se restaura si llega renovación)
-  // Flyer OPPO (06 jul-02 ago) — Reno 12 y Reno 13F no existen en catálogo
-  'opfindx9pro': 310,    // X9 Pro
-  'opreno14': 190,       // Reno 14
-  'opreno14f': 155,      // Reno 14F
-  'opa6k': 70,           // A6K
-  'opa5pro5g': 45,       // A5 Pro 5G
-  // Flyer Xiaomi (06 jul-02 ago)
-  'x17t': 150,           // 17T + Bundle Sound Outdoor
-  'x15t': 250,           // 15T + Bundle Bocina Sound Party
-  'xrn15pro': 210,       // Redmi Note 15 Pro + doble bundle
-  'xrn15': 120           // Redmi Note 15
-};
 
-// [v1.10.78] Incentivo POR PLAN (casos especiales que pagan distinto según el plan).
-// Tiene prioridad sobre EQUIPMENT_INCENTIVE. Solo aplica en los planes listados;
-// en cualquier otro plan el incentivo es 0 (no usa INCENTIVE_ELIGIBLE_PLANS).
-// Honor 600: $1,000 en Black/Platino/Diamante, $200 en Oro (Flyer Honor 600).
-var EQUIPMENT_INCENTIVE_BY_PLAN = {
-  // Flyer Honor 600 (13 jul-23 ago): Black y superiores $680 ejecutivo (acumulable). Gerente $85/equipo NO modelado (regla: solo incentivos nivel ejecutivo).
-  'honor600': { 'Black': 680, 'Platino': 680, 'Diamante': 680 },
-  // Flyer Oppo Reno 16F (13 jul-09 ago): Oro $200 / Black y sup $500 ejecutivo, aplica a partir de 2 unidades. Gerente $50/equipo NO modelado.
-  'opreno16f': { 'Oro': 200, 'Black': 500, 'Platino': 500, 'Diamante': 500 }
-};
+// ── EQUIPMENT INCENTIVE ─────────────────────────────────────────────────────
+// [v1.11.62] Los incentivos de equipo se MUDARON a incentivos.js — fuente única
+// compartida entre index.html y los 5 comisiones-*.html. Lo que vivía aquí
+// (EQUIPMENT_INCENTIVE y EQUIPMENT_INCENTIVE_BY_PLAN, indexados por ID) era una
+// copia decorativa: quien realmente pagaba era el EQUIP_INC de los tableros,
+// indexado por nombre de modelo. Mantener las dos sincronizadas a mano era el
+// riesgo. NO volver a declararlas aquí.
+
 
 // ── INCENTIVE CONSTANTS ─────────────────────────────────────────────────────
 var INCENTIVE_ELIGIBLE_PLANS = ['Azul 3','Plata','Oro','Black','Platino','Diamante','Titanio'];
