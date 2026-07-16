@@ -73,6 +73,27 @@ body{background:var(--bg);color:var(--label);font-family:var(--fd);min-height:10
 .bhsub{font-size:11.5px;color:var(--label3);font-weight:500}
 
 .gwrap{display:flex;flex-direction:column;gap:9px}
+/* [v1.11.63] tarjetas de "qué falta para cobrar" */
+.gapcard{background:var(--surface);border:1px solid var(--sep);border-radius:14px;padding:13px 14px}
+.gapok{border-color:rgba(52,199,89,.45)}
+.gapwarn{border-color:rgba(255,149,0,.5)}
+.gaptop{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.gaplab{font-size:13.5px;font-weight:700}
+.gapdelta{font-size:15px;font-weight:800;color:var(--t-orange,#FF6F00);flex-shrink:0}
+.gapdim{color:var(--label4,#8E8E93) !important;font-size:12px;font-weight:700}
+.gapnum{display:flex;align-items:baseline;gap:7px;margin-top:7px;flex-wrap:wrap}
+.gapnow{font-size:22px;font-weight:800;color:#FF3B30}
+.gaparrow{font-size:13px;color:var(--label4,#8E8E93)}
+.gapmeta{font-size:15px;font-weight:700;color:#34C759}
+.gapfalta{font-size:11.5px;color:var(--label3);margin-left:auto;background:rgba(128,128,128,.14);padding:3px 8px;border-radius:99px;font-weight:600}
+.gapsub{font-size:11.5px;color:var(--label3);line-height:1.45;margin-top:6px}
+.gapcoach{margin-top:10px;padding-top:9px;border-top:1px solid var(--sep)}
+.gapcoachlab{font-size:10px;font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.gapcrow{display:flex;align-items:center;gap:8px;padding:3px 0}
+.gapcn{font-size:12.5px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gapcd{font-size:11px;color:var(--label3);flex-shrink:0}
+.gapcp{font-size:12.5px;font-weight:700;color:#FF9500;flex-shrink:0;min-width:34px;text-align:right}
+.gapbtn{margin-top:9px;font-size:12px;font-weight:700;color:var(--t-orange,#FF6F00);cursor:pointer}
 .abtn{display:flex;align-items:center;gap:12px;width:100%;cursor:pointer;border:none;font-family:var(--fd);background:var(--surface);border-radius:14px;padding:12px 15px;transition:.15s;text-align:left}
 .abtn:active{transform:scale(.99)}
 .aava{width:38px;height:38px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;font-size:13px;font-weight:800;font-family:var(--fm);background:rgba(0,168,224,.16);color:var(--t-blue)}
@@ -162,6 +183,9 @@ body{background:var(--bg);color:var(--label);font-family:var(--fd);min-height:10
 
     <div class="slab">Avance de tu tienda por indicador <button class="cbtn" onclick="openCuota()">Ajustar cuota ›</button></div>
     <div class="tiles" id="tiles"></div>
+
+  <div class="slab">Qué falta para cobrar</div>
+  <div id="gapWrap" class="gwrap"></div>
 
     <div class="teamhero"><span class="thlab">El equipo cobra</span><span class="thval" id="teamTot">$0</span></div>
     <div class="slab">Tu equipo <span class="cnt">6 asesores</span></div>
@@ -326,6 +350,128 @@ function openBono(){
   document.getElementById('bBody').innerHTML=html;
   document.getElementById('scrim').classList.add('on');document.getElementById('sheetBono').classList.add('on');document.getElementById('sheetBono').scrollTop=0;
 }
+/* ---- [v1.11.63] QUÉ FALTA PARA COBRAR ----------------------------------- */
+/* El esquema del gerente es de acantilados: mix ≥60%, attach 55/60/70%,
+   alcances ≥80%. A 59% de mix el bono se cae COMPLETO y dos ventas lo arreglan
+   — pero hoy eso se descubre cuando cierra el mes. Esto convierte cada candado
+   en "faltan N de X → +$Y", y para los que no dependen de cuota, dice a quién
+   coachear.
+
+   NO duplica ninguna regla del esquema: simula sobre calcBono() —el motor real—
+   y mide la diferencia. Si mañana cambia el esquema, este bloque se mueve solo.
+   Solo lee lo ya cargado (TIENDA + ASESORES): cero consultas nuevas. */
+function _bonoSi(cambios){
+  const bak = {mix:TIENDA.mix, accTot:TIENDA.accTot, real:Object.assign({},TIENDA.real)};
+  if(cambios.mix    !== undefined) TIENDA.mix = cambios.mix;
+  if(cambios.accTot !== undefined) TIENDA.accTot = cambios.accTot;
+  if(cambios.po     !== undefined) TIENDA.real.po = cambios.po;
+  if(cambios.re     !== undefined) TIENDA.real.re = cambios.re;
+  let r;
+  try{ r = calcBono(); }
+  finally { TIENDA.mix=bak.mix; TIENDA.accTot=bak.accTot; TIENDA.real=bak.real; }
+  return r;
+}
+/* Asesores que arrastran el mix de la tienda (su % de pospago con equipo). */
+function _coachMix(){
+  return ASESORES.map(a=>{
+    const L=a.lineas||[];
+    const p=L.filter(l=>l.k==='po').length;
+    const n=L.filter(l=>l.k==='po'&&l.tag==='nuevo').length;
+    return {n:a.n, pct:p>0?Math.round(n/p*100):null, det:n+' de '+p+' con equipo'};
+  }).filter(x=>x.pct!==null && x.pct<60).sort((a,b)=>a.pct-b.pct).slice(0,3);
+}
+/* Asesores con attach de accesorios bajo (accesorios ÷ sus nuevos + renov). */
+function _coachAcc(){
+  return ASESORES.map(a=>{
+    const L=a.lineas||[];
+    const ops=L.filter(l=>l.k==='po'&&l.tag==='nuevo').length + L.filter(l=>l.k==='re').length;
+    return {n:a.n, pct:ops>0?Math.round((a.ac||0)/ops*100):null, det:(a.ac||0)+' de '+ops+' ventas'};
+  }).filter(x=>x.pct!==null && x.pct<55).sort((a,b)=>a.pct-b.pct).slice(0,3);
+}
+function calcGaps(){
+  const act=calcBono();
+  const po=TIENDA.real.po, re=TIENDA.real.re;
+  const nuevos=Math.max(0,(TIENDA.opsNuevo||0)-re);   /* opsNuevo = nuevos + renov */
+  const ops=TIENDA.opsNuevo||0;
+  const gaps=[];
+
+  /* 1) Candado maestro: pospago ≥80% de cuota. Sin esto el bono es $0. */
+  if(TIENDA.cuota.po>0 && act.A.po!==null && act.A.po<0.80){
+    const x=Math.max(1,Math.ceil(0.80*TIENDA.cuota.po)-po);
+    gaps.push({lab:'Pospago vs cuota',act:Math.round(act.A.po*100)+'%',meta:'80%',
+      falta:x+' pospago'+(x>1?'s':''),delta:_bonoSi({po:po+x}).total-act.total,coach:[],
+      nota:'Candado maestro: sin esto todo tu bono es $0.'});
+  }
+  /* 2) Mix ≥60%: candado de TODOS los incentivos gerenciales. */
+  if(po>0 && TIENDA.mix<60){
+    const x=Math.max(1,Math.ceil((0.6*po-nuevos)/0.4));
+    gaps.push({lab:'Mix equipo nuevo',act:TIENDA.mix+'%',meta:'60%',
+      falta:x+' pospago'+(x>1?'s':'')+' con equipo',delta:_bonoSi({mix:60}).total-act.total,coach:_coachMix(),
+      nota:'No pide vender más: pide que el pospago salga con equipo.'});
+  }
+  /* 3) Renovaciones ≥80% de cuota. */
+  if(TIENDA.cuota.re>0 && act.A.re!==null && act.A.re<0.80){
+    const x=Math.max(1,Math.ceil(0.80*TIENDA.cuota.re)-re);
+    gaps.push({lab:'Renovaciones vs cuota',act:Math.round(act.A.re*100)+'%',meta:'80%',
+      falta:x+' renovacion'+(x>1?'es':''),delta:_bonoSi({re:re+x}).total-act.total,coach:[]});
+  }
+  /* 4) Accesorios: escalones 55→$500, 60→$800, 70→$2,000. */
+  const attach=ops>0?TIENDA.accTot/ops:0;
+  const esc=[[0.55,500],[0.60,800],[0.70,2000]].find(e=>attach<e[0]);
+  if(esc && ops>0){
+    const x=Math.max(1,Math.ceil(esc[0]*ops)-TIENDA.accTot);
+    const dAcc=_bonoSi({accTot:TIENDA.accTot+x}).total-act.total;
+    /* Los incentivos gerenciales están encadenados: accesorios solo paga si
+       mix≥60 y pospago≥80. Si el escalón vale $0 hoy es porque un candado de
+       arriba está cerrado — decirlo así vale más que un "+$0" a secas, porque
+       además te da el ORDEN en que hay que atacar. */
+    let dCond=0;
+    if(dAcc<=0){
+      const abierto={mix:Math.max(TIENDA.mix,60)};
+      if(TIENDA.cuota.po>0 && act.A.po!==null && act.A.po<0.80) abierto.po=Math.ceil(0.80*TIENDA.cuota.po);
+      const conTodo=_bonoSi(Object.assign({accTot:TIENDA.accTot+x},abierto)).total;
+      dCond=conTodo-_bonoSi(abierto).total;
+    }
+    gaps.push({lab:'Accesorios (attach)',act:Math.round(attach*100)+'%',meta:Math.round(esc[0]*100)+'%',
+      falta:x+' accesorio'+(x>1?'s':''),delta:dAcc,deltaCond:dCond,coach:_coachAcc(),
+      nota:dCond>0?'Vale $'+fmt(Math.round(dCond))+' en cuanto abras los candados de arriba. Hoy paga $0 aunque llegues al escalón.'
+                  :'El escalón no depende de vender más equipos, solo de adjuntar.'});
+  }
+  return {gaps,sinCuota:!(TIENDA.cuota.po>0)};
+}
+function renderGaps(){
+  const el=document.getElementById('gapWrap');
+  if(!el) return;
+  const {gaps,sinCuota}=calcGaps();
+  let h='';
+  if(sinCuota){
+    h+='<div class="gapcard gapwarn"><div class="gaptop"><span class="gaplab">Sin cuota cargada</span></div>'
+     + '<div class="gapsub">Los indicadores contra cuota (pospago, renovaciones, seguros) no se pueden calcular. '
+     + 'Mix y accesorios sí, porque no dependen de cuota.</div>'
+     + '<div class="gapbtn" onclick="openCuota()">Ajustar cuota ›</div></div>';
+  }
+  if(!gaps.length && !sinCuota){
+    h+='<div class="gapcard gapok"><div class="gaptop"><span class="gaplab">Todos los candados abiertos ✓</span></div>'
+     + '<div class="gapsub">Tu tienda cumple mix, attach y alcances. Lo que sigue es subir ARPU y llegar a 100%.</div></div>';
+  }
+  gaps.forEach(g=>{
+    h+='<div class="gapcard">';
+    const _d = g.delta>0 ? '<span class="gapdelta">+$'+fmt(Math.round(g.delta))+'</span>'
+             : (g.deltaCond>0 ? '<span class="gapdelta gapdim">+$'+fmt(Math.round(g.deltaCond))+' bloqueado</span>' : '<span class="gapdelta gapdim">—</span>');
+    h+= '<div class="gaptop"><span class="gaplab">'+g.lab+'</span>'+_d+'</div>';
+    h+= '<div class="gapnum"><span class="gapnow">'+g.act+'</span><span class="gaparrow">→</span>'
+      + '<span class="gapmeta">'+g.meta+'</span><span class="gapfalta">faltan '+g.falta+'</span></div>';
+    if(g.nota) h+='<div class="gapsub">'+g.nota+'</div>';
+    if(g.coach && g.coach.length){
+      h+='<div class="gapcoach"><div class="gapcoachlab">A quién coachear</div>';
+      g.coach.forEach(c=>{ h+='<div class="gapcrow"><span class="gapcn">'+c.n+'</span><span class="gapcd">'+c.det+'</span><span class="gapcp">'+c.pct+'%</span></div>'; });
+      h+='</div>';
+    }
+    h+='</div>';
+  });
+  el.innerHTML=h;
+}
+
 function renderAsesores(){
   const A={po:alc(TIENDA.real.po,TIENDA.cuota.po),re:alc(TIENDA.real.re,TIENDA.cuota.re),ac:alc(TIENDA.real.ac,TIENDA.cuota.ac),pr:alc(TIENDA.real.pr,TIENDA.cuota.pr),se:alc(TIENDA.real.se,TIENDA.cuota.se)};
   const koPo=A.po!=null&&A.po>=0.80;
@@ -431,7 +577,7 @@ async function hidratarFirebase(){
     if(elR)elR.textContent='Gerente · '+TIENDA.n;
     if(elA&&ses.name)elA.textContent=iniDe(ses.name);
   }
-  if(!window.TG_DASH){renderStore();renderBono();renderAsesores();return;}
+  if(!window.TG_DASH){renderStore();renderBono();renderGaps();renderAsesores();return;}
   try{
     const cm=await window.TG_DASH.loadCuota(TIENDA.id,periodoActivo());
     if(cm){TIENDA.cuotaMensual=cm;TIENDA.cuota=cm;}
@@ -444,7 +590,7 @@ async function hidratarFirebase(){
     const ids=new Set([...Object.keys(nombres),...Object.keys(pa)]);if(ses&&ses.attuid)ids.delete(ses.attuid);
     ASESORES=[...ids].map(aid=>{const c=pa[aid]||{po:0,re:0,ac:0,se:0,pr:0,com:0},nm=_titulo(nombres[aid]||aid);return {id:aid,n:nm,ini:iniDe(nm),po:c.po,re:c.re,ac:c.ac,se:c.se,pr:c.pr,com:Math.round(c.com),lineas:c.lineas||[]};}).sort((a,b)=>b.com-a.com||b.po-a.po);
   }catch(e){console.error('hidratarFirebase',e);}
-  renderStore();renderBono();renderAsesores();
+  renderStore();renderBono();renderGaps();renderAsesores();
 }
 window.hidratarFirebase=hidratarFirebase;
 function isoWeek(d){d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-day);const ys=new Date(Date.UTC(d.getUTCFullYear(),0,1));return Math.ceil((((d-ys)/86400000)+1)/7);}

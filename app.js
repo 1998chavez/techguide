@@ -100,7 +100,7 @@ function _vigPuedeVer(){
 // Bono por NOMBRE de modelo — la llave de incentivos.js, la misma que usan los
 // 5 tableros para pagar. Devuelve el monto máximo cuando el bono es por plan.
 function _vigBono(name){
-  var b = 0;
+  var b = 0;   // recibe NOMBRE de modelo (llave de incentivos.js)
   try{ b = (typeof EQUIP_INC !== 'undefined' && EQUIP_INC[name]) || 0; }catch(e){}
   if(!b){
     try{
@@ -1775,6 +1775,26 @@ function _bloqueSugerenciaPlan(){
   h += '<div class="plan-upsell-box-label">Mensualidad</div>';
   h += '<div class="plan-upsell-box-val">$'+fmx0(s.mensualActual)+' <span class="pu-arrow">→ $'+fmx0(s.mensual)+'</span></div>';
   h += '</div>';
+  // [v1.11.63] Tercera caja: lo que el cambio de plan le deja AL ASESOR.
+  // Antes el bloque solo argumentaba a favor del cliente; quien tiene que hacer
+  // el esfuerzo de proponer el cambio no veía su propio número. Ojo con el
+  // detalle grande: el incentivo de equipo NO paga abajo de Azul 3, así que
+  // subir de Azul 2 a Azul 3 no solo mejora la comisión de plan — desbloquea el
+  // bono de marca completo. Eso es justo lo que este bloque hace visible.
+  const _cAct = getPlanCommission(cotState.plan) + getEquipmentIncentive(cotState.device.id, cotState.plan);
+  const _cNew = getPlanCommission(s.plan) + getEquipmentIncentive(cotState.device.id, s.plan);
+  const _dif = _cNew - _cAct;
+  if(_dif > 0){
+    const _incAct = getEquipmentIncentive(cotState.device.id, cotState.plan);
+    const _incNew = getEquipmentIncentive(cotState.device.id, s.plan);
+    h += '<div class="plan-upsell-box pu-mio">';
+    h += '<div class="plan-upsell-box-label">Tu comisión</div>';
+    h += '<div class="plan-upsell-box-val">$'+fmx0(_cAct)+' <span class="pu-arrow">→ $'+fmx0(_cNew)+'</span> <span class="pu-gain">+$'+fmx0(_dif)+'</span></div>';
+    if(_incNew > 0 && _incAct === 0){
+      h += '<div class="pu-unlock">Desbloquea el bono de '+cotState.device.brand.toLowerCase()+' (+$'+fmx0(_incNew)+')</div>';
+    }
+    h += '</div>';
+  }
   h += '</div>';
   // botón cambiar
   h += '<div class="plan-upsell-btn" onclick="aplicarSugerenciaPlan(\''+s.plan.replace(/'/g,"\\'")+'\')">Cambiar a '+s.plan+'</div>';
@@ -2348,25 +2368,42 @@ function getPlanCommission(planName){
   return PLAN_COMMISSION[planName] || 0;
 }
 
-function getEquipmentIncentive(deviceId, planName){
-  let bid = deviceId;
+// [v1.11.63] Resuelve id de equipo → NOMBRE de modelo, que es la llave de
+// incentivos.js. Si el id es una variante de almacenamiento sin ficha propia,
+// cae al modelo base vía STORAGE_VARIANTS (mismo comportamiento de siempre:
+// las variantes comparten bono).
+function _incNombreDe(deviceId){
+  const all = CAT.ios.concat(CAT.android);
+  let d = all.find(function(x){ return x.id === deviceId; });
+  if(d) return d.name;
   if(typeof STORAGE_VARIANTS !== 'undefined'){
     for(const b in STORAGE_VARIANTS){
-      if(STORAGE_VARIANTS[b].some(function(v){return v[1]===deviceId})){
-        bid = b; break;
+      if(STORAGE_VARIANTS[b].some(function(v){ return v[1] === deviceId; })){
+        d = all.find(function(x){ return x.id === b; });
+        if(d) return d.name;
+        break;
       }
     }
   }
-  const incentive = EQUIPMENT_INCENTIVE[bid] || EQUIPMENT_INCENTIVE[deviceId] || 0;
-  // [v1.10.78] Incentivo POR PLAN (ej. Honor 600): tiene prioridad y solo aplica
-  // en los planes que define su tabla; en cualquier otro plan, $0.
-  if(typeof EQUIPMENT_INCENTIVE_BY_PLAN !== 'undefined'){
-    const byPlan = EQUIPMENT_INCENTIVE_BY_PLAN[bid] || EQUIPMENT_INCENTIVE_BY_PLAN[deviceId];
+  return null;
+}
+// [v1.11.63] ANTES leía EQUIPMENT_INCENTIVE de catalog.js — una tabla paralela,
+// indexada por id, que había que mantener a mano en sincronía con el EQUIP_INC
+// (indexado por nombre) de los 5 tableros. Ahora ambos leen incentivos.js.
+// La lógica de prioridades y planes elegibles es idéntica a la de siempre.
+function getEquipmentIncentive(deviceId, planName){
+  const nombre = _incNombreDe(deviceId);
+  if(!nombre) return 0;
+  // Incentivo POR PLAN (ej. Honor 600): tiene prioridad y solo aplica en los
+  // planes que define su tabla; en cualquier otro plan, $0.
+  if(typeof EQUIP_INC_BY_PLAN !== 'undefined'){
+    const byPlan = EQUIP_INC_BY_PLAN[nombre];
     if(byPlan){
       if(!planName) return 0;            // sin plan no se puede determinar
       return byPlan[planName] || 0;      // monto del plan o 0 si ese plan no aplica
     }
   }
+  const incentive = (typeof EQUIP_INC !== 'undefined' && EQUIP_INC[nombre]) || 0;
   if(incentive === 0) return 0;
   if(!planName) return incentive;
   if(INCENTIVE_ELIGIBLE_PLANS.indexOf(planName) >= 0) return incentive;
