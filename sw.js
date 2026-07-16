@@ -9,12 +9,12 @@
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v1160-modo-escritorio-jul14';
+const CACHE_NAME = 'techguide-v1161-appjs-vigencias-jul16';
 const SCOPE = '/techguide/';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1786100001';
+const BUILD_ID = '1786200001';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la
@@ -29,6 +29,7 @@ const OFFLINE_ASSETS = [
   SCOPE + 'comisiones-regional.html',
   SCOPE + 'comisiones-director.html',
   SCOPE + 'comisiones-dn.html',
+  SCOPE + 'app.js?v=' + BUILD_ID,
   SCOPE + 'vendors.js?v=' + BUILD_ID,
   SCOPE + 'catalog.js?v=' + BUILD_ID,
   SCOPE + 'catalog-img.js?v=' + BUILD_ID,
@@ -159,8 +160,9 @@ self.addEventListener('fetch', function(event){
   // instantáneo desde caché en vez de bajar ~1.8MB de la red en cada arranque.
   // ANTES eran network-first → se descargaban completos en cada apertura.
   // [v1.10.38] catalog-img.js (imágenes del catálogo, ~699KB) también entra aquí.
-  const esBundlePesado = /\/(catalog|catalog-img|vendors)\.js(\?.*)?$/i.test(url.pathname + url.search) ||
-                         /\/(catalog|catalog-img|vendors)\.js$/i.test(url.pathname);
+  // [v1.11.61] app.js (~485KB, el bloque principal que salió del index) entra aquí.
+  const esBundlePesado = /\/(app|catalog|catalog-img|vendors)\.js(\?.*)?$/i.test(url.pathname + url.search) ||
+                         /\/(app|catalog|catalog-img|vendors)\.js$/i.test(url.pathname);
   if(esBundlePesado){
     event.respondWith(
       caches.match(req).then(function(cached){
