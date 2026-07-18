@@ -334,9 +334,36 @@ function bonoGerente(t,m){
   const desbloqueo=(m.po+m.re)>=2.00&&m.mix>=0.60;
   const total=desbloqueo?subtotal:Math.min(subtotal,20000);
   const falta=[];
-  if(m.arpu<630) falta.push('ARPU a $630 para el incentivo (+$600)');
-  else if(m.po<1||m.arpu<660) falta.push('Pospago 100% y ARPU $660 para el incentivo mayor (+$1,100)');
-  if(m.attach<0.65) falta.push('Attach de accesorios a 65% (+$500 a $2,000)');
+  /* [v1.11.69] Incentivo ARPU-Mix — 4 escalones del PDF GT jul26 pág.6, no 2.
+     BASE POR LOGRO:      pospago>=80% y ARPU>=$630 => $600 · pospago>=100% y ARPU>=$660 => $1,100
+     ADICIONAL (se suma cuando logro pospago+renov >=100% Y mix>=65%):
+                          ARPU>=$630 => total $1,400 (+$800) · ARPU>=$660 => total $2,800 (+$1,700)
+     La lista apunta al SIGUIENTE escalón real y dice el salto (lo que ganas de más),
+     no el monto total del incentivo. Se calcula desde r.arpuMix, el mismo que paga
+     el bono, para que no pueda contradecirlo. */
+  {
+    const _am=m.arpu, _po=(m.po||0), _re=(m.re||0), _mx=(m.mix*100);
+    const _adic=(_po>=1.00&&_re>=1.00&&_mx>=65); /* llave del bono adicional */
+    if(_am<630){
+      falta.push('ARPU a $630 para activar el incentivo (+$600)');
+    } else if(!_adic){
+      /* ya cobra el base ($600 o $1,100); el gran salto es el adicional */
+      if(_po<1.00||_re<1.00) falta.push('Pospago y renovaciones al 100% para el bono adicional de ARPU-Mix (+$800)');
+      else if(_mx<65) falta.push('Mix de tienda a 65% para el bono adicional de ARPU-Mix (+$800)');
+      else if(_am<660) falta.push('ARPU a $660 para subir el incentivo base (+$500)');
+    } else {
+      /* ya trae el adicional: solo falta el peldaño de ARPU $660 */
+      if(_am<660) falta.push('ARPU a $660 para el incentivo máximo de $2,800 (+$1,400)');
+    }
+  }
+  /* [v1.11.68] Escalones reales del PDF GT jul26 pág.7: 55-59% = $500 · 60-69% = $800
+     · >=70% = $2,000. Antes esto decía "a 65%", que no corresponde a ningún escalón:
+     al que iba en 56% le pedía 9 puntos de más, y al que iba en 66% le escondía que con
+     4 puntos más pasaba de $800 a $2,000. Ahora la línea apunta al siguiente escalón real
+     y dice lo que ese salto paga. */
+  if(m.attach<0.55) falta.push('Attach de accesorios a 55% para el incentivo (+$500)');
+  else if(m.attach<0.60) falta.push('Attach de accesorios a 60% para subir el incentivo a $800 (+$300)');
+  else if(m.attach<0.70) falta.push('Attach de accesorios a 70% para el incentivo máximo de $2,000 (+$1,200)');
   if(m.re<0.80) falta.push('Renovaciones a 80%');
   if(m.mix<0.60) falta.push('Mix de equipo nuevo a 60%');
   if(m.se<0.80||m.ac<0.80||m.pre<0.80) falta.push('Accesorios, seguros y prepago todos al 80%');
