@@ -3225,7 +3225,7 @@ async function loadFirebase(){
 // administración de accesos. APAGADO por defecto: la app funciona igual que hoy
 // hasta que despliegues las Functions, corras la migración de contraseñas y lo
 // pongas en true. Ver INSTRUCCIONES del backend.
-const USAR_BACKEND = false;
+const USAR_BACKEND = true;
 let _fbFunctions = null;
 async function callBackend(nombre, data){
   await loadFirebase();
