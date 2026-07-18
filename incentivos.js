@@ -89,3 +89,30 @@ window.EQUIP_INC_VIGENCY = {
   'Honor 600':                  { start: '2026-07-13', end: '2026-08-23' },
   'Oppo Reno 16F':              { start: '2026-07-13', end: '2026-08-09' }
 };
+
+
+// ── [v1.11.64] RENTA MENSUAL POR PLAN — insumo del ARPU de los tableros ─────
+// POR QUÉ VIVE AQUÍ: estaba duplicada a mano en los 4 tableros que calculan ARPU
+// (gerente, regional, director, dn). Mismo problema que tenían los incentivos.
+//
+// EL BUG QUE ESTO CIERRA (v1.11.63 y antes): la tabla SOLO tenía los planes
+// Premium. arpuOf() hace `s += v[p] * (PLAN_ARPU[p] || 0)` — o sea, una venta de
+// un plan ausente contaba en el DENOMINADOR y aportaba $0 al numerador. Cada
+// venta Lite o A Negocios hundía el ARPU de la tienda.
+// Caso real (Paseo del Moral, semana 29): 7 ventas con 2 Lite → $378 en TechGuide
+// contra $523 del Portal. Con las rentas reales de abajo: 3,663/7 = $523. Exacto.
+//
+// Las rentas salen de los flyers oficiales de Prime MX. Nota: para 'Titanio' se
+// usa $799 y no la renta de catálogo ($1,599) — decisión de negocio de Diego
+// (v1.11.x): el ARPU corre con $799 aunque la comisión pague como Black.
+window.PLAN_ARPU = {
+  // Premium
+  'Azul 1': 330, 'Azul 2': 435, 'Azul 3': 550, 'Plata': 650, 'Oro': 725,
+  'Black': 825, 'Platino': 1035, 'Diamante': 1300,
+  'Titanio': 799, 'Titanio Trade In': 799,
+  // Lite (flyer AT&T Lite)
+  'Lite': 299, 'Lite 1': 349, 'Lite 2': 449, 'Lite 3': 549, 'Lite 4': 669, 'Lite 5': 999,
+  // A Negocios — la llave ES el monto de la renta (así lo guarda el form)
+  '239': 239, '299': 299, '399': 399, '499': 499, '599': 599, '699': 699,
+  '799': 799, '899': 899, '999': 999, '1299': 1299, '1499': 1499
+};

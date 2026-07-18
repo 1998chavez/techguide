@@ -229,7 +229,7 @@ body{background:var(--bg);color:var(--label);font-family:var(--fd);min-height:10
 const fmt=n=>Math.round(n).toLocaleString('es-MX');
 const MET=[{k:'po',label:'Pospago',e:'📱'},{k:'re',label:'Renovaciones',e:'🔄'},{k:'ac',label:'Accesorios',e:'🎧'},{k:'se',label:'Seguros',e:'🛡️'},{k:'pr',label:'Prepago',e:'💳'}];
 
-var PLAN_ARPU={'Azul 1':330,'Azul 2':435,'Azul 3':550,'Plata':650,'Oro':725,'Black':825,'Platino':1035,'Diamante':1300,'Titanio':799,'Titanio Trade In':799};
+/* [v1.11.64] PLAN_ARPU se mudó a incentivos.js (fuente única, ya incluye Lite y A Negocios). */
 /* Titanio: renta real $799 para el ARPU (la comisión sí paga como Black). */
 function arpuOf(v){let u=0,s=0;for(const p in v){u+=v[p];s+=v[p]*(PLAN_ARPU[p]||0);}return u>0?Math.round(s/u):0;}
 /* ===== comisión real del asesor — MISMO motor que el ejecutivo (recalcHero): candado tienda 80% + 2 pospago, escalado por alcance (100% con 6+ ventas), incentivos equipo/mix/seguros ===== */
@@ -375,7 +375,8 @@ function _bonoSi(cambios){
 function _coachMix(){
   return ASESORES.map(a=>{
     const L=a.lineas||[];
-    const p=L.filter(l=>l.k==='po').length;
+    /* misma regla que el mix de la tienda: empresarial sin equipo no cuenta */
+    const p=L.filter(l=>l.k==='po'&&!(/^[0-9]+$/.test(String(l.plan||''))&&l.tag!=='nuevo')).length;
     const n=L.filter(l=>l.k==='po'&&l.tag==='nuevo').length;
     return {n:a.n, pct:p>0?Math.round(n/p*100):null, det:n+' de '+p+' con equipo'};
   }).filter(x=>x.pct!==null && x.pct<60).sort((a,b)=>a.pct-b.pct).slice(0,3);
@@ -585,7 +586,7 @@ async function hidratarFirebase(){
     TIENDA.real={po:v.po,re:v.re,ac:v.ac,se:v.se,pr:v.pr};
     TIENDA.ventasPo=v.ventasPo||{};TIENDA.ventasRe=v.ventasRe||{};
     TIENDA.opsNuevo=(v.nuevos||0)+(v.re||0);TIENDA.accAlpha=v.acAlpha||0;TIENDA.accTot=v.ac||0;
-    TIENDA.mix=v.po>0?Math.round((v.nuevos/v.po)*100):0;MIX_TIENDA=TIENDA.mix;
+    TIENDA.mix=(v.mixDen||0)>0?Math.round((v.nuevos/v.mixDen)*100):0;MIX_TIENDA=TIENDA.mix;
     const nombres=await window.TG_DASH.asesoresDeTienda(TIENDA.id),pa=v.porAsesor||{};
     const ids=new Set([...Object.keys(nombres),...Object.keys(pa)]);if(ses&&ses.attuid)ids.delete(ses.attuid);
     ASESORES=[...ids].map(aid=>{const c=pa[aid]||{po:0,re:0,ac:0,se:0,pr:0,com:0},nm=_titulo(nombres[aid]||aid);return {id:aid,n:nm,ini:iniDe(nm),po:c.po,re:c.re,ac:c.ac,se:c.se,pr:c.pr,com:Math.round(c.com),lineas:c.lineas||[]};}).sort((a,b)=>b.com-a.com||b.po-a.po);
@@ -608,7 +609,7 @@ const db=getFirestore(initializeApp(cfg));
 window.TG_DASH={
   async loadCuota(tienda,mes){try{const s=await getDoc(doc(db,'comisiones_cuotas',tienda+'__'+mes));return (s.exists()&&s.data().cuota)?s.data().cuota:null;}catch(e){console.error('loadCuota',e);return null;}},
   async saveCuota(tienda,mes,cuota,by){await setDoc(doc(db,'comisiones_cuotas',tienda+'__'+mes),{tienda,mes,cuota,by:by||'',ts:serverTimestamp()},{merge:true});},
-  async loadVentasTienda(tienda,periodo){const r={po:0,re:0,ac:0,acAlpha:0,se:0,pr:0,ventasPo:{},ventasRe:{},nuevos:0,porAsesor:{}};try{const snap=await getDocs(query(collection(db,'comisiones_ventas'),where('tienda','==',tienda)));const MM={pospago:'po',migra:'po',renov:'re',seguro:'se',addon:'se',acces:'ac',prepago:'pr'};snap.forEach(d=>{const o=d.data();if(!o||o.periodo!==periodo)return;const k=MM[o.tipo];if(!k)return;const esAddon=(o.tipo==='addon');if(!esAddon)r[k]++;if(k==='ac'&&o.sub&&o.sub.indexOf('ALPHACOMM')>-1)r.acAlpha++;if(k==='po'){if(o.plan)r.ventasPo[o.plan]=(r.ventasPo[o.plan]||0)+1;if(o.tag==='nuevo')r.nuevos++;}if(k==='re'&&o.plan)r.ventasRe[o.plan]=(r.ventasRe[o.plan]||0)+1;const aid=o.attuid||'?';if(!r.porAsesor[aid])r.porAsesor[aid]={po:0,re:0,ac:0,se:0,pr:0,com:0,lineas:[]};if(!esAddon)r.porAsesor[aid][k]++;r.porAsesor[aid].com+=(o.com||0);r.porAsesor[aid].lineas.push({k:k,tipo:o.tipo,title:o.title||'',sub:o.sub||'',plan:o.plan||'',modelo:o.modelo||'',com:o.com||0,tag:o.tag||'',pos:!!o.pos,line:!!o.line,seg:!!o.seg});});}catch(e){console.error('loadVentasTienda',e);}return r;},
+  async loadVentasTienda(tienda,periodo){const r={po:0,re:0,ac:0,acAlpha:0,se:0,pr:0,ventasPo:{},ventasRe:{},nuevos:0,mixDen:0,porAsesor:{}};try{const snap=await getDocs(query(collection(db,'comisiones_ventas'),where('tienda','==',tienda)));const MM={pospago:'po',migra:'po',renov:'re',seguro:'se',addon:'se',acces:'ac',prepago:'pr'};snap.forEach(d=>{const o=d.data();if(!o||o.periodo!==periodo)return;const k=MM[o.tipo];if(!k)return;const esAddon=(o.tipo==='addon');if(!esAddon)r[k]++;if(k==='ac'&&o.sub&&o.sub.indexOf('ALPHACOMM')>-1)r.acAlpha++;if(k==='po'){if(o.plan)r.ventasPo[o.plan]=(r.ventasPo[o.plan]||0)+1;if(o.tag==='nuevo')r.nuevos++;/* [v1.11.64] Mix = equipo nuevo / pospago, PERO los planes empresariales (A Negocios) sin equipo no entran al denominador: son altas de linea, no oportunidades de vender equipo. La llave del plan de A Negocios es numerica ('239','499'...); tag!=='nuevo' es sin equipo. */if(!(/^[0-9]+$/.test(String(o.plan||''))&&o.tag!=='nuevo'))r.mixDen++;}if(k==='re'&&o.plan)r.ventasRe[o.plan]=(r.ventasRe[o.plan]||0)+1;const aid=o.attuid||'?';if(!r.porAsesor[aid])r.porAsesor[aid]={po:0,re:0,ac:0,se:0,pr:0,com:0,lineas:[]};if(!esAddon)r.porAsesor[aid][k]++;r.porAsesor[aid].com+=(o.com||0);r.porAsesor[aid].lineas.push({k:k,tipo:o.tipo,title:o.title||'',sub:o.sub||'',plan:o.plan||'',modelo:o.modelo||'',com:o.com||0,tag:o.tag||'',pos:!!o.pos,line:!!o.line,seg:!!o.seg});});}catch(e){console.error('loadVentasTienda',e);}return r;},
   async asesoresDeTienda(tienda){const out={};try{const snap=await getDocs(query(collection(db,'empleados'),where('tienda','==',tienda)));snap.forEach(d=>{const o=d.data();if(o&&String(o.rol||'').toLowerCase()==='asesor')out[d.id]=o.nombre||d.id;});}catch(e){console.error('asesoresDeTienda',e);}return out;}
 };
 if(window.hidratarFirebase)window.hidratarFirebase();
