@@ -81,6 +81,13 @@ body{background:var(--bg);color:var(--label);font-family:var(--fd);min-height:10
 .gaplab{font-size:13.5px;font-weight:700}
 .gapdelta{font-size:15px;font-weight:800;color:var(--t-orange,#FF6F00);flex-shrink:0}
 .gapdim{color:var(--label4,#8E8E93) !important;font-size:12px;font-weight:700}
+/* [v1.11.65] lista "para cobrar todo te falta" dentro del sheet del bono */
+.fltwrap{display:flex;flex-direction:column;gap:7px;margin-top:2px}
+.fltrow{display:flex;align-items:center;gap:9px;background:rgba(128,128,128,.10);border-radius:10px;padding:11px 12px}
+.fltdot{width:7px;height:7px;border-radius:50%;background:var(--t-amber,#FFD60A);flex-shrink:0}
+.fltdot.ok{background:#34C759}
+.flttx{font-size:12.5px;line-height:1.4;color:var(--label2,#C7C7CC)}
+.fltok .flttx{color:#34C759}
 .gapnum{display:flex;align-items:baseline;gap:7px;margin-top:7px;flex-wrap:wrap}
 .gapnow{font-size:22px;font-weight:800;color:#FF3B30}
 .gaparrow{font-size:13px;color:var(--label4,#8E8E93)}
@@ -231,7 +238,9 @@ const MET=[{k:'po',label:'Pospago',e:'📱'},{k:'re',label:'Renovaciones',e:'�
 
 /* [v1.11.64] PLAN_ARPU se mudó a incentivos.js (fuente única, ya incluye Lite y A Negocios). */
 /* Titanio: renta real $799 para el ARPU (la comisión sí paga como Black). */
-function arpuOf(v){let u=0,s=0;for(const p in v){u+=v[p];s+=v[p]*(PLAN_ARPU[p]||0);}return u>0?Math.round(s/u):0;}
+/* [v1.11.67] PDF jul26: el ARPU solo considera Premium y Lite. cuentaParaArpuMix()
+   deja fuera A Negocios y cualquier plan sin renta registrada (ver incentivos.js). */
+function arpuOf(v){let u=0,s=0;for(const p in v){if(!cuentaParaArpuMix(p))continue;u+=v[p];s+=v[p]*(PLAN_ARPU[p]||0);}return u>0?Math.round(s/u):0;}
 /* ===== comisión real del asesor — MISMO motor que el ejecutivo (recalcHero): candado tienda 80% + 2 pospago, escalado por alcance (100% con 6+ ventas), incentivos equipo/mix/seguros ===== */
 var METRIC_ALC={pospago:'pospago',migra:'pospago',renov:'renov',seguro:'seguro',addon:'seguro',acces:'acces',prepago:'prepago'};
 var PLAN_ORDER=['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Diamante','Titanio','Titanio Trade In'];
@@ -316,13 +325,37 @@ function calcBono(){
     }
   }
   // incentivo accesorios gerente
-  const attach=TIENDA.opsNuevo>0?TIENDA.accTot/TIENDA.opsNuevo:0; /* PDF jul26: TODOS los accesorios / (pospago nuevo + renov) */
+  const attach=TIENDA.opsNuevo>0?TIENDA.accTot/TIENDA.opsNuevo:0; /* PDF GT jul26 pág.7: TODOS los accesorios / OPS equipo nuevo (pospago nuevo + renov) */
   let incAcc=0;
-  if(ko&&TIENDA.mix>=60&&attach>=0.55) incAcc=attach>=0.70?2000:attach>=0.60?800:500;
+  /* [v1.11.66] BUG CORREGIDO: faltaba el candado de renovaciones. El PDF de gerentes
+     (pág. 7) dice textual: "Solo necesitas cumplir con tu cuota SEMANAL de pospago
+     >=80%, renovación >= 80% y un mix >= 60%". El tablero del regional sí lo exigía
+     (bonoGerente) y este no, así que el gerente veía hasta $2,000 de más que su jefe.
+     Escalones del PDF: 55-59% = $500 · 60-69% = $800 · >=70% = $2,000. */
+  if(ko&&A.re>=0.80&&TIENDA.mix>=60&&attach>=0.55) incAcc=attach>=0.70?2000:attach>=0.60?800:500;
   const subtotal=base+arpuMix+incAcc;
   const desbloqueo=(A.po+A.re)>=2.00&&TIENDA.mix>=60;
   const total=ko?(desbloqueo?subtotal:Math.min(subtotal,20000)):0;
   return {A,ko,X,Z,Y,M,otras,arpuPo,arpuRe,arpuGen,basePo,baseRe,base,arpuMix,arpuMixTxt,attach,incAcc,subtotal,desbloqueo,total,topado:!desbloqueo&&subtotal>20000};
+}
+/* ---- [v1.11.65] "Para cobrar todo te falta" ------------------------------ */
+/* Es la MISMA lista que el regional ve de cada tienda (bonoGerente().falta en
+   comisiones-regional/director/dn). Hasta ahora el gerente era el único que no
+   la veía: el mando sabía qué le faltaba y el dueño del número no.
+   Se genera desde calcBono() —el motor del propio gerente— para que el sheet no
+   pueda contradecir al monto que muestra arriba. Textos idénticos a los del
+   regional, en segunda persona. */
+function faltaGerente(b){
+  if(b.A.po==null) return ['Asignar cuota a la tienda'];
+  if(!b.ko) return ['Subir pospago al 80% — es el candado principal, sin él no se libera nada'];
+  const f=[];
+  if(b.arpuGen<630) f.push('ARPU a $630 para el incentivo (+$600)');
+  else if(b.A.po<1||b.arpuGen<660) f.push('Pospago 100% y ARPU $660 para el incentivo mayor (+$1,100)');
+  if(b.attach<0.65) f.push('Attach de accesorios a 65% (+$500 a $2,000)');
+  if(b.A.re<0.80) f.push('Renovaciones a 80%');
+  if(TIENDA.mix<60) f.push('Mix de equipo nuevo a 60%');
+  if(b.A.se<0.80||b.A.ac<0.80||b.A.pr<0.80) f.push('Accesorios, seguros y prepago todos al 80%');
+  return f;
 }
 function renderBono(){
   const b=calcBono();
@@ -346,6 +379,15 @@ function openBono(){
     const falta=200-Math.round((b.A.po+b.A.re)*100);
     html+=`<div class="bnote"><span class="e">🔒</span><span>El tope es $20,000. Para cobrar arriba necesitas pospago + renov ≥200% (vas ${Math.round((b.A.po+b.A.re)*100)}%, faltan ${falta} pts) y mix ≥60%.</span></div>`;
     html+=`<div class="btot" style="background:rgba(255,159,10,.12)"><span class="btl">Total a cobrar</span><span class="btv">$${fmt(b.total)}</span></div>`;
+  }
+  const _falta=faltaGerente(b);
+  if(_falta.length){
+    html+=`<p class="bsec">Para cobrar todo te falta</p>`;
+    html+=`<div class="fltwrap">`;
+    _falta.forEach(x=>{ html+=`<div class="fltrow"><span class="fltdot"></span><span class="flttx">${x}</span></div>`; });
+    html+=`</div>`;
+  } else {
+    html+=`<p class="bsec">Para cobrar todo te falta</p><div class="fltwrap"><div class="fltrow fltok"><span class="fltdot ok"></span><span class="flttx">Nada. Estás cobrando todo lo que el esquema permite esta semana.</span></div></div>`;
   }
   document.getElementById('bBody').innerHTML=html;
   document.getElementById('scrim').classList.add('on');document.getElementById('sheetBono').classList.add('on');document.getElementById('sheetBono').scrollTop=0;
@@ -375,9 +417,9 @@ function _bonoSi(cambios){
 function _coachMix(){
   return ASESORES.map(a=>{
     const L=a.lineas||[];
-    /* misma regla que el mix de la tienda: empresarial sin equipo no cuenta */
-    const p=L.filter(l=>l.k==='po'&&!(/^[0-9]+$/.test(String(l.plan||''))&&l.tag!=='nuevo')).length;
-    const n=L.filter(l=>l.k==='po'&&l.tag==='nuevo').length;
+    /* [v1.11.67] misma regla que el mix de la tienda: solo Premium y Lite */
+    const p=L.filter(l=>l.k==='po'&&cuentaParaArpuMix(l.plan)).length;
+    const n=L.filter(l=>l.k==='po'&&cuentaParaArpuMix(l.plan)&&l.tag==='nuevo').length;
     return {n:a.n, pct:p>0?Math.round(n/p*100):null, det:n+' de '+p+' con equipo'};
   }).filter(x=>x.pct!==null && x.pct<60).sort((a,b)=>a.pct-b.pct).slice(0,3);
 }
@@ -586,7 +628,7 @@ async function hidratarFirebase(){
     TIENDA.real={po:v.po,re:v.re,ac:v.ac,se:v.se,pr:v.pr};
     TIENDA.ventasPo=v.ventasPo||{};TIENDA.ventasRe=v.ventasRe||{};
     TIENDA.opsNuevo=(v.nuevos||0)+(v.re||0);TIENDA.accAlpha=v.acAlpha||0;TIENDA.accTot=v.ac||0;
-    TIENDA.mix=(v.mixDen||0)>0?Math.round((v.nuevos/v.mixDen)*100):0;MIX_TIENDA=TIENDA.mix;
+    TIENDA.mix=(v.mixDen||0)>0?Math.round((v.mixNum/v.mixDen)*100):0;MIX_TIENDA=TIENDA.mix;
     const nombres=await window.TG_DASH.asesoresDeTienda(TIENDA.id),pa=v.porAsesor||{};
     const ids=new Set([...Object.keys(nombres),...Object.keys(pa)]);if(ses&&ses.attuid)ids.delete(ses.attuid);
     ASESORES=[...ids].map(aid=>{const c=pa[aid]||{po:0,re:0,ac:0,se:0,pr:0,com:0},nm=_titulo(nombres[aid]||aid);return {id:aid,n:nm,ini:iniDe(nm),po:c.po,re:c.re,ac:c.ac,se:c.se,pr:c.pr,com:Math.round(c.com),lineas:c.lineas||[]};}).sort((a,b)=>b.com-a.com||b.po-a.po);
@@ -609,7 +651,7 @@ const db=getFirestore(initializeApp(cfg));
 window.TG_DASH={
   async loadCuota(tienda,mes){try{const s=await getDoc(doc(db,'comisiones_cuotas',tienda+'__'+mes));return (s.exists()&&s.data().cuota)?s.data().cuota:null;}catch(e){console.error('loadCuota',e);return null;}},
   async saveCuota(tienda,mes,cuota,by){await setDoc(doc(db,'comisiones_cuotas',tienda+'__'+mes),{tienda,mes,cuota,by:by||'',ts:serverTimestamp()},{merge:true});},
-  async loadVentasTienda(tienda,periodo){const r={po:0,re:0,ac:0,acAlpha:0,se:0,pr:0,ventasPo:{},ventasRe:{},nuevos:0,mixDen:0,porAsesor:{}};try{const snap=await getDocs(query(collection(db,'comisiones_ventas'),where('tienda','==',tienda)));const MM={pospago:'po',migra:'po',renov:'re',seguro:'se',addon:'se',acces:'ac',prepago:'pr'};snap.forEach(d=>{const o=d.data();if(!o||o.periodo!==periodo)return;const k=MM[o.tipo];if(!k)return;const esAddon=(o.tipo==='addon');if(!esAddon)r[k]++;if(k==='ac'&&o.sub&&o.sub.indexOf('ALPHACOMM')>-1)r.acAlpha++;if(k==='po'){if(o.plan)r.ventasPo[o.plan]=(r.ventasPo[o.plan]||0)+1;if(o.tag==='nuevo')r.nuevos++;/* [v1.11.64] Mix = equipo nuevo / pospago, PERO los planes empresariales (A Negocios) sin equipo no entran al denominador: son altas de linea, no oportunidades de vender equipo. La llave del plan de A Negocios es numerica ('239','499'...); tag!=='nuevo' es sin equipo. */if(!(/^[0-9]+$/.test(String(o.plan||''))&&o.tag!=='nuevo'))r.mixDen++;}if(k==='re'&&o.plan)r.ventasRe[o.plan]=(r.ventasRe[o.plan]||0)+1;const aid=o.attuid||'?';if(!r.porAsesor[aid])r.porAsesor[aid]={po:0,re:0,ac:0,se:0,pr:0,com:0,lineas:[]};if(!esAddon)r.porAsesor[aid][k]++;r.porAsesor[aid].com+=(o.com||0);r.porAsesor[aid].lineas.push({k:k,tipo:o.tipo,title:o.title||'',sub:o.sub||'',plan:o.plan||'',modelo:o.modelo||'',com:o.com||0,tag:o.tag||'',pos:!!o.pos,line:!!o.line,seg:!!o.seg});});}catch(e){console.error('loadVentasTienda',e);}return r;},
+  async loadVentasTienda(tienda,periodo){const r={po:0,re:0,ac:0,acAlpha:0,se:0,pr:0,ventasPo:{},ventasRe:{},nuevos:0,mixNum:0,mixDen:0,porAsesor:{}};try{const snap=await getDocs(query(collection(db,'comisiones_ventas'),where('tienda','==',tienda)));const MM={pospago:'po',migra:'po',renov:'re',seguro:'se',addon:'se',acces:'ac',prepago:'pr'};snap.forEach(d=>{const o=d.data();if(!o||o.periodo!==periodo)return;const k=MM[o.tipo];if(!k)return;const esAddon=(o.tipo==='addon');if(!esAddon)r[k]++;if(k==='ac'&&o.sub&&o.sub.indexOf('ALPHACOMM')>-1)r.acAlpha++;if(k==='po'){if(o.plan)r.ventasPo[o.plan]=(r.ventasPo[o.plan]||0)+1;/* r.nuevos = TODA venta con equipo nuevo, sin importar familia. Alimenta opsNuevo y por tanto el attach rate de accesorios, que el PDF (GT pag.7) define como 'Accesorios / OPS equipo nuevo = Pospago con equipo nuevo + Renovaciones', sin excluir familias. */if(o.tag==='nuevo')r.nuevos++;/* [v1.11.67] El MIX es otra cuenta: PDF jul26 dice que solo Premium y Lite se consideran para mix y ARPU. A Negocios suma al avance (r.po) pero no al mix, con equipo o sin el. */if(cuentaParaArpuMix(o.plan)){r.mixDen++;if(o.tag==='nuevo')r.mixNum++;}}if(k==='re'&&o.plan)r.ventasRe[o.plan]=(r.ventasRe[o.plan]||0)+1;const aid=o.attuid||'?';if(!r.porAsesor[aid])r.porAsesor[aid]={po:0,re:0,ac:0,se:0,pr:0,com:0,lineas:[]};if(!esAddon)r.porAsesor[aid][k]++;r.porAsesor[aid].com+=(o.com||0);r.porAsesor[aid].lineas.push({k:k,tipo:o.tipo,title:o.title||'',sub:o.sub||'',plan:o.plan||'',modelo:o.modelo||'',com:o.com||0,tag:o.tag||'',pos:!!o.pos,line:!!o.line,seg:!!o.seg});});}catch(e){console.error('loadVentasTienda',e);}return r;},
   async asesoresDeTienda(tienda){const out={};try{const snap=await getDocs(query(collection(db,'empleados'),where('tienda','==',tienda)));snap.forEach(d=>{const o=d.data();if(o&&String(o.rol||'').toLowerCase()==='asesor')out[d.id]=o.nombre||d.id;});}catch(e){console.error('asesoresDeTienda',e);}return out;}
 };
 if(window.hidratarFirebase)window.hidratarFirebase();

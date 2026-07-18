@@ -116,3 +116,31 @@ window.PLAN_ARPU = {
   '239': 239, '299': 299, '399': 399, '499': 499, '599': 599, '699': 699,
   '799': 799, '899': 899, '999': 999, '1299': 1299, '1499': 1499
 };
+
+
+// ── [v1.11.67] QUÉ CUENTA PARA ARPU Y MIX ──────────────────────────────────
+// PDF jul26, textual — Gerentes pág.2 y Ejecutivos pág.4:
+//   "Para el cálculo de mix y ARPU solamente se consideran planes de la familia
+//    PREMIUM y LITE."
+// Los planes A Negocios SÍ suman al avance de cuota de la tienda (r.po) y SÍ
+// comisionan; simplemente no entran ni al ARPU ni al mix. Confirmado por Diego.
+//
+// La familia se deduce de la llave del plan, no de un campo aparte: el form de
+// captura guarda 'Oro'/'Azul 1' (Premium), 'Lite 3' (Lite) y '499'/'1299'
+// (A Negocios — la llave ES el monto de la renta). Es la señal más confiable que
+// hay en el documento guardado: `sub` no sirve porque en migraciones arranca con
+// 'Migración' y pierde la familia.
+window.esPlanNegocios = function(plan){ return /^[0-9]+$/.test(String(plan||'')); };
+
+// Además excluye —en vez de contar como $0— cualquier plan sin renta registrada.
+// Esto es el candado contra el bug de v1.11.63: arpuOf hacía `PLAN_ARPU[p]||0`, y
+// un plan ausente contaba en el denominador aportando cero, hundiendo el ARPU de
+// la tienda en silencio. Ahora un plan desconocido se sale de la cuenta y avisa.
+window.cuentaParaArpuMix = function(plan){
+  if(window.esPlanNegocios(plan)) return false;
+  if(!(plan in window.PLAN_ARPU)){
+    try{ console.warn('[ARPU/mix] plan sin renta registrada, queda fuera del cálculo:', plan); }catch(e){}
+    return false;
+  }
+  return true;
+};
