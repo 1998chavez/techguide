@@ -363,17 +363,30 @@ function incEquipoList(){
 }
 function incMixCalc(){
   const po=ALCANCE.pospago,re=ALCANCE.renov,ac=ALCANCE.acces;
-  const lineas=ventas.filter(v=>(v.tipo==='pospago'||v.tipo==='renov'||v.tipo==='migra')&&v.line&&isAzul3plus(v.plan));
-  const lineasP=lineas.filter(v=>isPlataPlus(v.plan));
+  /* [v1.11.71] BUG CORREGIDO. Antes: un solo candado (pospago O renov >=100%)
+     pagaba $100 por TODAS las líneas juntas (pospago + renov). Eso pagaba de más:
+     si renov llegaba a 100% pero pospago no, igual pagaba las líneas de pospago.
+     Caso real (Diego, sem 29): tienda pospago 83% / renov 100%, asesor con 1 Plata
+     nueva + 5 renovaciones → el código daba $600; lo correcto son $500.
+     REGLA (confirmada por Diego): el incentivo aplica POR INDICADOR que llega al
+     100%, y cada uno paga SUS propias líneas. Pospago 100% paga las líneas de
+     pospago; renov 100% paga las renovaciones; los dos, los dos. Todas Azul 3+. */
+  const lineasPos=ventas.filter(v=>(v.tipo==='pospago'||v.tipo==='migra')&&v.line&&isAzul3plus(v.plan));
+  const lineasRen=ventas.filter(v=>v.tipo==='renov'&&v.line&&isAzul3plus(v.plan));
   let monto=0;
-  if(MIX_TIENDA>=55&&(po>=1.00||re>=1.00))monto+=lineas.length*100;
+  if(MIX_TIENDA>=55&&po>=1.00)monto+=lineasPos.length*100;   /* pospago paga pospago */
+  if(MIX_TIENDA>=55&&re>=1.00)monto+=lineasRen.length*100;   /* renov paga renov */
+  /* Bonus adicional $200/línea Plata+: requiere AMBOS al 100% + acc 100% + mix >=60%
+     (PDF pág.12-13). Sobre las líneas Plata+ de equipo nuevo. */
+  const lineasP=lineasPos.filter(v=>isPlataPlus(v.plan));
   if(po>=1.00&&re>=1.00&&ac>=1.00&&MIX_TIENDA>=60)monto+=lineasP.length*200;
+  const nTotal=lineasPos.length+lineasRen.length;
   let estado;
   if(monto>0)estado='+$'+fmt(monto);
-  else if(!lineas.length)estado='sin líneas Premium Azul 3+';
+  else if(!nTotal)estado='sin líneas Premium Azul 3+';
   else if(MIX_TIENDA<55)estado='falta mix ≥55%';
   else estado='falta llegar a 100% en pospago o renov';
-  return {monto,estado,n:lineas.length};
+  return {monto,estado,n:nTotal};
 }
 function incCard(o){
   return `<div class="inc ${o.on?'on':''}">`
