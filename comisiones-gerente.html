@@ -259,10 +259,17 @@ function comisionAsesor(L,ALC,esGte){
   if(!accede)return {pay:0,base:0,incEq:0,incMix:0,inc7:0,accede:false};
   let base=0;L.forEach(function(v){var a=ALC[METRIC_ALC[v.tipo]]||0;if(a>=0.80)base+=incInd?(v.com||0):(v.com||0)*Math.min(a,1);});base=Math.round(base);
   const incEqL=L.filter(function(v){return (v.tipo==='pospago'||v.tipo==='renov'||v.tipo==='migra')&&v.modelo&&incentivoEquipo(v.modelo,v.plan)>0&&isAzul3plus(v.plan)&&(v.tipo==='renov'?v.tag!=='zero':v.tag==='nuevo');});const incEq=incEqL.filter(function(v){var mn=EQUIP_INC_MIN_UNITS[v.modelo]||0;return mn<=1||incEqL.filter(function(x){return x.modelo===v.modelo;}).length>=mn;}).reduce(function(s,v){return s+incentivoEquipo(v.modelo,v.plan);},0);
-  const lin=L.filter(function(v){return (v.tipo==='pospago'||v.tipo==='renov'||v.tipo==='migra')&&v.line&&isAzul3plus(v.plan);});
-  const linP=lin.filter(function(v){return isPlataPlus(v.plan);});
+  /* [v1.11.72] MISMO fix que comisiones-ejecutivo (v1.11.71): el incentivo mix
+     de $100/línea aplica POR INDICADOR que llega al 100%, no con un candado único
+     (pospago O renov) que pagaba todas las líneas juntas. Este tablero calculaba
+     la comisión del asesor con el bug viejo, por eso el gerente veía un número y
+     el asesor otro. Ahora coinciden. */
+  const linPos=L.filter(function(v){return (v.tipo==='pospago'||v.tipo==='migra')&&v.line&&isAzul3plus(v.plan);});
+  const linRen=L.filter(function(v){return v.tipo==='renov'&&v.line&&isAzul3plus(v.plan);});
+  const linP=linPos.filter(function(v){return isPlataPlus(v.plan);});
   let incMix=0;
-  if(MIX_TIENDA>=55&&(po>=1.00||re>=1.00))incMix+=lin.length*100;
+  if(MIX_TIENDA>=55&&po>=1.00)incMix+=linPos.length*100;   /* pospago paga pospago */
+  if(MIX_TIENDA>=55&&re>=1.00)incMix+=linRen.length*100;   /* renov paga renov */
   if(po>=1.00&&re>=1.00&&ac>=1.00&&MIX_TIENDA>=60)incMix+=linP.length*200;
   const segSum=L.filter(function(v){return v.seg;}).reduce(function(s,v){return s+(v.com||0);},0);
   const inc7=(lines>=7&&(ALC.seguro||0)>=0.80)?Math.round(segSum*0.10):0; /* +10% requiere 7+ ventas Y seguros >=80% (solo gatea el extra, no la comision base del seguro) */
