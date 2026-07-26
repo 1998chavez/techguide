@@ -11,10 +11,10 @@
      otro script, porque catalog.js/vendors.js la usan para el cache-busting y
      el registro del SW la compara. Si HTML y SW no coinciden → recarga forzada.
      Al empacar cada versión, este número se actualiza igual que el cache del SW. -->
-<script>window.BUILD_ID = '1787800001';
+<script>window.BUILD_ID = '1787900001';
 // [v1.11.61] APP_VERSION vive aquí desde que el bloque principal salió a app.js.
 // El ritual de release NO cambia: 2 constantes aquí + 2 en sw.js.
-const APP_VERSION = 'v1.11.77';</script>
+const APP_VERSION = 'v1.11.78';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -2027,6 +2027,58 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
   font-size:9px;color:#86868B;line-height:1.5;
   padding-top:10px;border-top:1px solid #ECECEC;
   margin-top:10px
+}
+/* [v1.11.78] Comparador de planes — MISMA piel que el resto del flyer.
+   Solo aparece cuando el asesor eligió planes a comparar.
+   540px de ancho - 56 de padding = 484; con 2 gaps de 10 dan ~155px por
+   columna. Por eso el tope son 3 planes. */
+.flyer-v3-cmp-lbl{
+  padding:0 28px 10px;
+  font-size:11px;color:#86868B;text-transform:uppercase;
+  letter-spacing:0.1em;font-weight:600
+}
+.flyer-v3-cmp{
+  padding:0 28px;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px
+}
+.flyer-v3-cmp.c2{grid-template-columns:repeat(2,1fr)}
+.flyer-v3-cmpcard{
+  background:#fff;border:1px solid #ECECEC;
+  border-radius:10px;overflow:hidden
+}
+.flyer-v3-cmpcard-bar{height:4px}
+.flyer-v3-cmpcard-in{padding:12px 12px 14px}
+.flyer-v3-cmp-plan{
+  font-size:16px;font-weight:700;color:#1D1D1F;letter-spacing:-0.02em
+}
+.flyer-v3-cmp-renta{font-size:11px;color:#86868B;margin-bottom:12px}
+.flyer-v3-cmp-k{
+  font-size:10px;color:#86868B;text-transform:uppercase;
+  letter-spacing:0.08em;font-weight:600
+}
+.flyer-v3-cmp-v{
+  font-size:17px;font-weight:700;color:#1D1D1F;
+  letter-spacing:-0.02em;margin-bottom:12px
+}
+.flyer-v3-cmp-v .ast,.flyer-v3-cmp-free .ast{
+  font-size:11px;color:#86868B;vertical-align:super;
+  margin-left:1px;font-weight:500
+}
+.flyer-v3-cmp-free{
+  font-size:15px;font-weight:700;color:#16A34A;
+  letter-spacing:-0.02em;margin-bottom:12px;line-height:1.2
+}
+.flyer-v3-cmp-big{
+  font-size:24px;font-weight:800;color:#1D1D1F;
+  letter-spacing:-0.03em;line-height:1.1
+}
+.flyer-v3-cmp-port{
+  font-size:10px;color:#1A8038;font-weight:600;margin-top:4px;line-height:1.3
+}
+.flyer-v3-cmp-note{
+  margin:12px 28px 0;background:#F5F5F7;border-radius:10px;
+  padding:11px 14px;font-size:10px;color:#515154;
+  line-height:1.5;font-style:italic
 }
 
 .flyer-v2{
@@ -5081,6 +5133,11 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
           <span class="cot-custom-prefix">$</span>
           <input class="cot-custom-input" id="cot-deposito-input" type="number" placeholder="Monto del depósito" oninput="cotRender()" />
         </div>
+      </div>
+      
+      <div class="cot-section">
+        <div class="cot-section-label">⚖️ Comparar planes</div>
+        <div class="cot-pills" id="cot-cmp-pills"></div>
       </div>
       
       <div class="cot-section">

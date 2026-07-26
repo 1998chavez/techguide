@@ -1431,7 +1431,8 @@ function openCotModal(){
     isHighDisc:desc>=70, descPct:Math.round(desc), planRenta:rentaPlan,
     isUpcoming:isUpcoming, futStart:fp?fp.start:null,
     cliente:'', // [v1.9.25] Reset del nombre del cliente al abrir modal
-    tipo:null   // [v1.10.25] Reset tipo de operación — obligatorio elegir
+    tipo:null,  // [v1.10.25] Reset tipo de operación — obligatorio elegir
+    comparar:[] // [v1.11.78] Planes extra a comparar. Vacío = cotización normal.
   };
   
   // [v1.9.25] Limpiar input del cliente
@@ -1470,6 +1471,7 @@ function openCotModal(){
   });
   rentasHtml += '<button class="cot-pill cot-pill-custom" onclick="cotSetDeposito()" id="cot-deposito-pill">💰 Depósito de garantía</button>';
   rentasPills.innerHTML = rentasHtml;
+  cotBuildCmpPills(); // [v1.11.78] comparador de planes (opcional)
   // Reset depósito al abrir cotización
   cotState.deposito = 0;
   const depWrap = document.getElementById('cot-deposito-custom-wrap');
@@ -10638,6 +10640,273 @@ function hardRefresh(){
 // ── FLYER GENERATOR ────────────────────────────────────────────────────────
 let lastGeneratedBlob=null;
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   [v1.11.78] PIEZAS COMPARTIDAS DEL FLYER
+   ---------------------------------------------------------------------------
+   Estos bloques los usan TANTO buildFlyerHTML (cotización de un plan) COMO
+   buildFlyerMultiHTML (comparativa de 2-3 planes). Viven aquí y NO duplicados
+   dentro de cada una a propósito: si mañana cambia el pie legal, el encabezado,
+   los colores de plan o el bloque de accesorios, se toca en UN solo lugar y las
+   dos cotizaciones quedan iguales.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+var FLYER_PLAN_ACCENTS = {
+  'Azul 1':'#0288D1','Azul 2':'#0288D1','Azul 3':'#0288D1',
+  'Plata':'#546E7A','Oro':'#F9A825','Black':'#1C1C1E',
+  'Platino':'#185FA5','Diamante':'#5856D6','Titanio':'#878681'
+};
+
+function _flyerFmx(n){ return n.toLocaleString('es-MX'); }
+
+function _flyerHead(){
+  const _hoy=new Date();
+  const _meses=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  let h='<div class="flyer-v3-head">';
+  h+='<div class="flyer-v3-brand"><span class="a">PR</span><span class="sep">|</span><span class="a">ME</span><span class="mx">MX</span></div>';
+  h+='<div class="flyer-v3-date">'+_hoy.getDate()+' '+_meses[_hoy.getMonth()]+' '+_hoy.getFullYear()+'</div>';
+  h+='</div>';
+  return h;
+}
+
+function _flyerGreet(state){
+  const nombre=(state.cliente||'').trim().split(/\s+/)[0]||'';
+  let h='<div class="flyer-v3-greet">';
+  if(nombre){
+    h+='<div class="flyer-v3-greet-sub">Hola '+nombre+',</div>';
+    h+='<div class="flyer-v3-greet-main">esta es tu cotización.</div>';
+  } else {
+    h+='<div class="flyer-v3-greet-main">Tu cotización personalizada</div>';
+  }
+  h+='</div>';
+  return h;
+}
+
+/* subExtra: texto extra en la línea del almacenamiento. La comparativa lo usa
+   para meter contado y plazo, que ahí no tienen sección propia. */
+function _flyerProducto(state, subExtra){
+  const dev=state.device;
+  const img=IMG[dev.id]
+    ? '<img src="'+IMG[dev.id]+'" alt="" class="flyer-v3-img">'
+    : '<div class="flyer-v3-img-fallback">📱</div>';
+  let h='<div class="flyer-v3-product">';
+  h+='<div class="flyer-v3-img-wrap">'+img+'</div>';
+  h+='<div class="flyer-v3-brand-name">'+dev.brand+'</div>';
+  h+='<div class="flyer-v3-prod-name">'+dev.name+'</div>';
+  h+='<div class="flyer-v3-prod-storage">'+dev.storage+(subExtra||'')+'</div>';
+  h+='</div>';
+  return h;
+}
+
+/* Accesorios: son del equipo, no del plan → idénticos en ambas cotizaciones. */
+function _flyerAccesorios(){
+  if(typeof cartAcc === 'undefined' || !cartAcc || !cartAcc.length) return '';
+  const accTotal=cartAcc.reduce(function(s,a){return s+a.price;},0);
+  let h='<div class="flyer-v3-accs">';
+  h+='<div class="flyer-v3-accs-head">';
+  h+='<div class="flyer-v3-accs-title">Accesorios sugeridos</div>';
+  h+='<div class="flyer-v3-accs-total">$'+_flyerFmx(accTotal)+'</div>';
+  h+='</div>';
+  cartAcc.forEach(function(a){
+    h+='<div class="flyer-v3-acc">';
+    h+='<div class="flyer-v3-acc-name">'+a.name+'</div>';
+    h+='<div class="flyer-v3-acc-price">$'+_flyerFmx(a.price)+'</div>';
+    h+='</div>';
+  });
+  h+='<div class="flyer-v3-accs-note">Pago de contado · No incluido en mensualidad</div>';
+  h+='</div>';
+  return h;
+}
+
+function _flyerTitanio(restoExtra){
+  let h='<div class="flyer-v3-titanio">';
+  h+='<div class="flyer-v3-titanio-icon">✓</div>';
+  h+='<div class="flyer-v3-titanio-info">';
+  h+='<div class="flyer-v3-titanio-title">Beneficio Titanio</div>';
+  h+='<div class="flyer-v3-titanio-desc">Cámbialo al año. Factura 13 por uno nuevo de la misma familia. <span class="rest">'+(restoExtra||'Sujeto a disponibilidad')+'</span></div>';
+  h+='</div>';
+  h+='</div>';
+  return h;
+}
+
+/* discExtra: cláusula extra en la leyenda legal. La comparativa agrega
+   "Sujeto a vigencias y disponibilidades". Si un día la quieres también en la
+   cotización de un plan, se pasa el mismo texto desde buildFlyerHTML. */
+function _flyerFooter(discExtra){
+  let h='<div class="flyer-v3-foot">';
+  if(typeof asesorData !== 'undefined' && asesorData && asesorData.name){
+    const _p=(typeof getPerfilEfectivo==='function')?getPerfilEfectivo():{
+      name:asesorData.name, phone:asesorData.phone||'', sucursal:asesorData.sucursal||''
+    };
+    const initial=_p.name.charAt(0).toUpperCase();
+    h+='<div class="flyer-v3-asesor">';
+    if(_p.foto){
+      h+='<div class="flyer-v3-asesor-avatar flyer-v3-asesor-avatar-foto"><img src="'+_p.foto+'" alt=""></div>';
+    } else {
+      h+='<div class="flyer-v3-asesor-avatar">'+initial+'</div>';
+    }
+    h+='<div class="flyer-v3-asesor-info">';
+    h+='<div class="flyer-v3-asesor-lbl">Atendido por</div>';
+    h+='<div class="flyer-v3-asesor-name">'+_p.name+'</div>';
+    if(_p.phone||_p.sucursal){
+      let extra='';
+      if(_p.sucursal) extra=_p.sucursal;
+      if(_p.phone) extra=(extra?extra+' · ':'')+_p.phone;
+      h+='<div class="flyer-v3-asesor-extra">'+extra+'</div>';
+    }
+    h+='</div></div>';
+  }
+  h+='<div class="flyer-v3-disc">* Pago inicial sujeto a aprobación crediticia · '+(discExtra?discExtra+' · ':'')+'Cotización generada por Prime MX · Precios sujetos a cambio sin previo aviso</div>';
+  h+='</div>';
+  return h;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   [v1.11.78] COMPARADOR DE PLANES — opcional
+   ---------------------------------------------------------------------------
+   El asesor puede elegir hasta 2 planes extra y la imagen sale comparando el
+   MISMO equipo en 2 o 3 planes. Si no elige nada, generateFlyerImage llama a
+   buildFlyerHTML como siempre y el flyer sale idéntico al de antes.
+
+   POR QUÉ resolvePrice Y NO PRICES[...] DIRECTO: en este catálogo un `null` NO
+   siempre significa "el plan no aplica". resolvePrice implementa la regla de
+   auto-rellenado: en Android, si hay precio en un plan/plazo inferior, ese null
+   se resuelve como $0 (equipo incluido). Solo los iPhone (ids 'ip*') y el plan
+   Titanio conservan el null como "no aplica".
+
+   TOPE DE 3 COLUMNAS: el flyer mide 540px y html2canvas lo captura con ese
+   ancho fijo. 540 - 56 de padding = 484px; con 2 gaps de 10px quedan ~155px por
+   columna. Con 4 bajaría a 106px y los montos se romperían.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function cotPlanAplica(deviceId, planName, plazo){
+  if(typeof resolvePrice !== 'function') return false;
+  return resolvePrice(deviceId, planName, String(plazo)) !== null;
+}
+
+function cotBuildCmpPills(){
+  const wrap=document.getElementById('cot-cmp-pills');
+  if(!wrap) return;
+  if(!cotState || !cotState.device){ wrap.innerHTML=''; return; }
+  if(!cotState.comparar) cotState.comparar=[];
+  const dev=cotState.device;
+  let html='', disponibles=0;
+  if(typeof PLANS_DATA !== 'undefined'){
+    PLANS_DATA.forEach(function(p){
+      if(p.name===cotState.plan) return;                        /* el actual ya es columna */
+      if(!cotPlanAplica(dev.id,p.name,cotState.plazo)) return;   /* sin precio en ese plazo */
+      disponibles++;
+      const on=cotState.comparar.indexOf(p.name)>=0;
+      html+='<button class="cot-pill'+(on?' on':'')+'" onclick="cotToggleCmp(\''+p.name.replace(/'/g,"\\'")+'\')">'+p.name+'</button>';
+    });
+  }
+  wrap.innerHTML=html;
+  wrap.style.display = disponibles ? '' : 'none';
+}
+
+function cotToggleCmp(plan){
+  if(!cotState) return;
+  if(!cotState.comparar) cotState.comparar=[];
+  const i=cotState.comparar.indexOf(plan);
+  if(i>=0){
+    cotState.comparar.splice(i,1);
+  } else {
+    /* Tope de 2 extra = 3 columnas. Sin leyenda: el tap simplemente no prende. */
+    if(cotState.comparar.length>=2) return;
+    cotState.comparar.push(plan);
+  }
+  cotBuildCmpPills();
+}
+
+/* Calcula, para UN plan, los mismos montos que buildFlyerHTML calcula para el
+   plan único. Misma aritmética, mismos redondeos. */
+function cotCalcPlan(state, planName){
+  const dev=state.device;
+  const promo=resolvePrice(dev.id, planName, String(state.plazo));
+  if(promo===null || promo===undefined) return null;
+  let renta=0;
+  if(typeof PLANS_DATA !== 'undefined'){
+    for(let i=0;i<PLANS_DATA.length;i++){
+      if(PLANS_DATA[i].name===planName){ renta=PLANS_DATA[i].renta; break; }
+    }
+  }
+  const engPay=(state.engPct!==null)?Math.round(promo*state.engPct/100):(state.engCustom||0);
+  const rentasGarantia=(state.rentas||0)*renta;
+  const deposito=state.deposito||0;
+  const totalInicial=engPay+rentasGarantia+deposito;
+  const remanente=Math.max(0, promo-engPay);
+  const equipoMensual=Math.round(remanente/state.plazo);
+  const seguroPrice=state.seguro?getSeguroPrice(state.contado):0;
+  const controlPrice=state.control?50:0;
+  const totalMensual=renta+equipoMensual+seguroPrice+controlPrice;
+  /* Portabilidad: 10% en Titanio, 20% en el resto — igual que buildFlyerHTML */
+  const portPct=(planName==='Titanio')?0.10:0.20;
+  const totalMensualPort=Math.round(renta*(1-portPct))+equipoMensual+seguroPrice+controlPrice;
+  return { plan:planName, renta:renta, promo:promo, totalInicial:totalInicial,
+           totalMensual:totalMensual, totalMensualPort:totalMensualPort };
+}
+
+function buildFlyerMultiHTML(state){
+  /* Columnas: el plan elegido + los comparados, en orden de PLAN_ORDER para que
+     se lean como escalera. Se descarta cualquiera sin precio en ese plazo. */
+  const nombres=[state.plan].concat(state.comparar||[]);
+  const cols=[];
+  nombres.forEach(function(p){
+    if(cols.some(function(c){return c.plan===p;})) return;
+    const c=cotCalcPlan(state,p);
+    if(c) cols.push(c);
+  });
+  if(typeof PLAN_ORDER !== 'undefined'){
+    cols.sort(function(x,y){ return PLAN_ORDER.indexOf(x.plan)-PLAN_ORDER.indexOf(y.plan); });
+  }
+  /* Salvavidas: si quedó una sola columna, cae al flyer normal */
+  if(cols.length<2) return buildFlyerHTML(state);
+
+  let h='<div class="flyer-v3">';
+  h+=_flyerHead();
+  h+=_flyerGreet(state);
+  h+=_flyerProducto(state, ' · contado $'+_flyerFmx(Math.round(state.contado))+' · '+state.plazo+' meses');
+
+  h+='<div class="flyer-v3-cmp-lbl">Elige tu plan</div>';
+  h+='<div class="flyer-v3-cmp'+(cols.length===2?' c2':'')+'">';
+  let hayGratis=false;
+  cols.forEach(function(c){
+    const accent=FLYER_PLAN_ACCENTS[c.plan]||'#185FA5';
+    h+='<div class="flyer-v3-cmpcard">';
+    h+='<div class="flyer-v3-cmpcard-bar" style="background:'+accent+'"></div>';
+    h+='<div class="flyer-v3-cmpcard-in">';
+    h+='<div class="flyer-v3-cmp-plan">'+c.plan+'</div>';
+    h+='<div class="flyer-v3-cmp-renta">$'+_flyerFmx(c.renta)+' renta/mes</div>';
+    h+='<div class="flyer-v3-cmp-k">Equipo</div>';
+    if(c.promo===0){
+      hayGratis=true;
+      h+='<div class="flyer-v3-cmp-free">Sin costo<span class="ast">*</span></div>';
+    } else {
+      h+='<div class="flyer-v3-cmp-v">$'+_flyerFmx(Math.round(c.promo))+'</div>';
+    }
+    h+='<div class="flyer-v3-cmp-k">Pago inicial</div>';
+    h+='<div class="flyer-v3-cmp-v">$'+_flyerFmx(c.totalInicial)+'<span class="ast">*</span></div>';
+    h+='<div class="flyer-v3-cmp-k">Al mes</div>';
+    h+='<div class="flyer-v3-cmp-big">$'+_flyerFmx(c.totalMensual)+'</div>';
+    if(state.port){
+      h+='<div class="flyer-v3-cmp-port">Con portabilidad $'+_flyerFmx(c.totalMensualPort)+'/mes el primer año</div>';
+    }
+    h+='</div></div>';
+  });
+  h+='</div>';
+
+  if(hayGratis){
+    h+='<div class="flyer-v3-cmp-note">* Equipo sin costo sujeto a permanencia. Cancelación anticipada genera cobro del equipo.</div>';
+  }
+
+  h+=_flyerAccesorios();
+  if(cols.some(function(c){return c.plan==='Titanio';})){
+    h+=_flyerTitanio('Aplica solo al plan Titanio · Sujeto a disponibilidad');
+  }
+  h+=_flyerFooter('Sujeto a vigencias y disponibilidades');
+  h+='</div>';
+  return h;
+}
+
 function buildFlyerHTML(state){
   const dev=state.device;
   const fmx=function(n){return n.toLocaleString('es-MX');};
@@ -10661,54 +10930,14 @@ function buildFlyerHTML(state){
   const desc=Math.round((1-state.promo/state.contado)*100);
   const ahorro=state.contado-state.promo;
   
-  // [v1.9.25] Color de acento del plan (un solo color sólido, no gradiente)
-  const PLAN_ACCENTS={
-    'Azul 1':'#0288D1','Azul 2':'#0288D1','Azul 3':'#0288D1',
-    'Plata':'#546E7A','Oro':'#F9A825','Black':'#1C1C1E',
-    'Platino':'#185FA5','Diamante':'#5856D6','Titanio':'#878681'
-  };
-  const planAccent = PLAN_ACCENTS[state.plan]||'#185FA5';
+  // [v1.11.78] Colores, encabezado, saludo y producto salieron a piezas
+  // compartidas (ver arriba). La cotización comparativa usa las MISMAS.
+  const planAccent = FLYER_PLAN_ACCENTS[state.plan]||'#185FA5';
   
-  // [v1.9.25] Primer nombre del cliente para saludo personalizado
-  const clienteNombre = (state.cliente||'').trim().split(/\s+/)[0] || '';
-  
-  // [v1.9.25] Imagen del producto con tratamiento limpio
-  const productImg = IMG[dev.id]
-    ? '<img src="'+IMG[dev.id]+'" alt="" class="flyer-v3-img">'
-    : '<div class="flyer-v3-img-fallback">📱</div>';
-  
-  // ── Construir HTML ──────────────────────────────────────────────────
   let h='<div class="flyer-v3">';
-  
-  // ── Header: marca + fecha ───────────────────────────────────────────
-  h+='<div class="flyer-v3-head">';
-  h+='<div class="flyer-v3-brand"><span class="a">PR</span><span class="sep">|</span><span class="a">ME</span><span class="mx">MX</span></div>';
-  const _hoy=new Date();
-  const _meses=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
-  h+='<div class="flyer-v3-date">'+_hoy.getDate()+' '+_meses[_hoy.getMonth()]+' '+_hoy.getFullYear()+'</div>';
-  h+='</div>';
-  
-  // ── Saludo personalizado ────────────────────────────────────────────
-  if(clienteNombre){
-    h+='<div class="flyer-v3-greet">';
-    h+='<div class="flyer-v3-greet-sub">Hola '+clienteNombre+',</div>';
-    h+='<div class="flyer-v3-greet-main">esta es tu cotización.</div>';
-    h+='</div>';
-  } else {
-    h+='<div class="flyer-v3-greet">';
-    h+='<div class="flyer-v3-greet-main">Tu cotización personalizada</div>';
-    h+='</div>';
-  }
-  
-  // ── Producto: imagen + nombre ───────────────────────────────────────
-  h+='<div class="flyer-v3-product">';
-  h+='<div class="flyer-v3-img-wrap">'+productImg+'</div>';
-  h+='<div class="flyer-v3-brand-name">'+dev.brand+'</div>';
-  h+='<div class="flyer-v3-prod-name">'+dev.name+'</div>';
-  h+='<div class="flyer-v3-prod-storage">'+dev.storage+'</div>';
-  // [v1.9.25.4] Quitado el badge "Resurtible/Inv. limitado" — info interna,
-  // no relevante para el cliente final.
-  h+='</div>';
+  h+=_flyerHead();
+  h+=_flyerGreet(state);
+  h+=_flyerProducto(state);
   
   // ── Precio del equipo ───────────────────────────────────────────────
   h+='<div class="flyer-v3-price-row">';
@@ -10796,62 +11025,11 @@ function buildFlyerHTML(state){
   h+='<div class="flyer-v3-total-big">$'+fmx(totalMensual)+'<span class="mes">/mes</span></div>';
   h+='</div>';
   
-  // ── Accesorios ──────────────────────────────────────────────────────
-  if(typeof cartAcc !== 'undefined' && cartAcc && cartAcc.length > 0){
-    const accTotal = cartAcc.reduce(function(s,a){return s+a.price;},0);
-    h+='<div class="flyer-v3-accs">';
-    h+='<div class="flyer-v3-accs-head">';
-    h+='<div class="flyer-v3-accs-title">Accesorios sugeridos</div>';
-    h+='<div class="flyer-v3-accs-total">$'+fmx(accTotal)+'</div>';
-    h+='</div>';
-    cartAcc.forEach(function(a){
-      h+='<div class="flyer-v3-acc">';
-      h+='<div class="flyer-v3-acc-name">'+a.name+'</div>';
-      h+='<div class="flyer-v3-acc-price">$'+fmx(a.price)+'</div>';
-      h+='</div>';
-    });
-    h+='<div class="flyer-v3-accs-note">Pago de contado · No incluido en mensualidad</div>';
-    h+='</div>';
-  }
+  h+=_flyerAccesorios();
   
-  // ── Banner Titanio ───────────────────────────────────────────────────
-  if(state.plan==='Titanio'){
-    h+='<div class="flyer-v3-titanio">';
-    h+='<div class="flyer-v3-titanio-icon">✓</div>';
-    h+='<div class="flyer-v3-titanio-info">';
-    h+='<div class="flyer-v3-titanio-title">Beneficio Titanio</div>';
-    h+='<div class="flyer-v3-titanio-desc">Cámbialo al año. Factura 13 por uno nuevo de la misma familia. <span class="rest">Sujeto a disponibilidad</span></div>';
-    h+='</div>';
-    h+='</div>';
-  }
+  if(state.plan==='Titanio') h+=_flyerTitanio();
   
-  // ── Footer: asesor + disclaimer ─────────────────────────────────────
-  h+='<div class="flyer-v3-foot">';
-  if(typeof asesorData !== 'undefined' && asesorData && asesorData.name){
-    const _perfilCot = (typeof getPerfilEfectivo === 'function') ? getPerfilEfectivo() : {
-      name: asesorData.name, phone: asesorData.phone||'', sucursal: asesorData.sucursal||''
-    };
-    const initial=_perfilCot.name.charAt(0).toUpperCase();
-    h+='<div class="flyer-v3-asesor">';
-    // [v1.10.27] Si el asesor tiene foto, mostrarla; si no, la inicial.
-    if(_perfilCot.foto){
-      h+='<div class="flyer-v3-asesor-avatar flyer-v3-asesor-avatar-foto"><img src="'+_perfilCot.foto+'" alt=""></div>';
-    } else {
-      h+='<div class="flyer-v3-asesor-avatar">'+initial+'</div>';
-    }
-    h+='<div class="flyer-v3-asesor-info">';
-    h+='<div class="flyer-v3-asesor-lbl">Atendido por</div>';
-    h+='<div class="flyer-v3-asesor-name">'+_perfilCot.name+'</div>';
-    if(_perfilCot.phone||_perfilCot.sucursal){
-      let extra='';
-      if(_perfilCot.sucursal) extra=_perfilCot.sucursal;
-      if(_perfilCot.phone) extra=(extra?extra+' · ':'')+_perfilCot.phone;
-      h+='<div class="flyer-v3-asesor-extra">'+extra+'</div>';
-    }
-    h+='</div></div>';
-  }
-  h+='<div class="flyer-v3-disc">* Pago inicial sujeto a aprobación crediticia · Cotización generada por Prime MX · Precios sujetos a cambio sin previo aviso</div>';
-  h+='</div>';
+  h+=_flyerFooter();
   
   h+='</div>';
   return h;
@@ -10883,7 +11061,11 @@ async function generateFlyerImage(){
   const renderEl = document.getElementById('cot-flyer-render');
   // [v1.9.25.2] Wrap buildFlyerHTML por si falla con un dato faltante
   try{
-    renderEl.innerHTML = buildFlyerHTML(cotState);
+    /* [v1.11.78] Con planes comparados → flyer comparativo. Sin ellos → el de
+       siempre. Ambos devuelven raíz .flyer-v3, así que html2canvas no cambia. */
+    renderEl.innerHTML = (cotState.comparar && cotState.comparar.length)
+      ? buildFlyerMultiHTML(cotState)
+      : buildFlyerHTML(cotState);
   }catch(buildErr){
     console.error('[flyer] buildFlyerHTML falló:', buildErr);
     const previewLoading2 = document.getElementById('flyer-preview-loading');
