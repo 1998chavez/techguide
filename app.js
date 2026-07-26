@@ -10783,45 +10783,73 @@ function cotPlanAplica(deviceId, planName, plazo){
   return resolvePrice(deviceId, planName, String(plazo)) !== null;
 }
 
+/* Plazos con precio para ese plan, quitando el que ya ocupa la columna principal
+   (para no repetir la misma combinación plan+plazo). */
+function cotPlazosDe(plan){
+  if(!cotState || !cotState.device) return [];
+  const dev=cotState.device;
+  return ['24','30','36'].filter(function(z){
+    if(!cotPlanAplica(dev.id, plan, z)) return false;
+    if(plan===cotState.plan && String(z)===String(cotState.plazo)) return false;
+    return true;
+  });
+}
+
 function cotBuildCmpPills(){
   const wrap=document.getElementById('cot-cmp-pills');
   if(!wrap) return;
   if(!cotState || !cotState.device){ wrap.innerHTML=''; return; }
   if(!cotState.comparar) cotState.comparar=[];
-  const dev=cotState.device;
   let html='', disponibles=0;
   if(typeof PLANS_DATA !== 'undefined'){
     PLANS_DATA.forEach(function(p){
-      if(p.name===cotState.plan) return;                        /* el actual ya es columna */
-      if(!cotPlanAplica(dev.id,p.name,cotState.plazo)) return;   /* sin precio en ese plazo */
+      /* [v1.11.79] El plan actual TAMBIÉN se ofrece: sirve para comparar el mismo
+         plan a otro plazo (Black 24m contra Black 36m). Se descarta solo si no le
+         queda ningún plazo libre. */
+      if(!cotPlazosDe(p.name).length) return;
       disponibles++;
-      const on=cotState.comparar.indexOf(p.name)>=0;
-      html+='<button class="cot-pill'+(on?' on':'')+'" onclick="cotToggleCmp(\''+p.name.replace(/'/g,"\\'")+'\')">'+p.name+'</button>';
+      const sel=cotState.comparar.filter(function(c){return c.plan===p.name;})[0];
+      const label=sel ? p.name+' · '+sel.plazo+'m' : p.name;
+      html+='<button class="cot-pill'+(sel?' on':'')+'" onclick="cotToggleCmp(\''+p.name.replace(/'/g,"\\'")+'\')">'+label+'</button>';
     });
   }
   wrap.innerHTML=html;
   wrap.style.display = disponibles ? '' : 'none';
 }
 
+/* [v1.11.79] Un solo control, sin filas nuevas: cada toque avanza al siguiente
+   plazo con precio y en el último lo quita. La etiqueta muestra el plazo que
+   trae, así el asesor siempre ve qué va a salir en la imagen. */
 function cotToggleCmp(plan){
   if(!cotState) return;
   if(!cotState.comparar) cotState.comparar=[];
-  const i=cotState.comparar.indexOf(plan);
-  if(i>=0){
-    cotState.comparar.splice(i,1);
-  } else {
+  const disp=cotPlazosDe(plan);
+  if(!disp.length) return;
+  let i=-1;
+  for(let k=0;k<cotState.comparar.length;k++){
+    if(cotState.comparar[k].plan===plan){ i=k; break; }
+  }
+  if(i<0){
     /* Tope de 2 extra = 3 columnas. Sin leyenda: el tap simplemente no prende. */
     if(cotState.comparar.length>=2) return;
-    cotState.comparar.push(plan);
+    cotState.comparar.push({plan:plan, plazo:parseInt(disp[0],10)});
+  } else {
+    const pos=disp.indexOf(String(cotState.comparar[i].plazo));
+    if(pos>=0 && pos<disp.length-1){
+      cotState.comparar[i].plazo=parseInt(disp[pos+1],10);
+    } else {
+      cotState.comparar.splice(i,1);
+    }
   }
   cotBuildCmpPills();
 }
 
 /* Calcula, para UN plan, los mismos montos que buildFlyerHTML calcula para el
    plan único. Misma aritmética, mismos redondeos. */
-function cotCalcPlan(state, planName){
+function cotCalcPlan(state, planName, plazoOpt){
   const dev=state.device;
-  const promo=resolvePrice(dev.id, planName, String(state.plazo));
+  const plazo=plazoOpt||state.plazo;   /* [v1.11.79] cada columna trae su propio plazo */
+  const promo=resolvePrice(dev.id, planName, String(plazo));
   if(promo===null || promo===undefined) return null;
   let renta=0;
   if(typeof PLANS_DATA !== 'undefined'){
@@ -10834,29 +10862,35 @@ function cotCalcPlan(state, planName){
   const deposito=state.deposito||0;
   const totalInicial=engPay+rentasGarantia+deposito;
   const remanente=Math.max(0, promo-engPay);
-  const equipoMensual=Math.round(remanente/state.plazo);
+  const equipoMensual=Math.round(remanente/plazo);
   const seguroPrice=state.seguro?getSeguroPrice(state.contado):0;
   const controlPrice=state.control?50:0;
   const totalMensual=renta+equipoMensual+seguroPrice+controlPrice;
   /* Portabilidad: 10% en Titanio, 20% en el resto — igual que buildFlyerHTML */
   const portPct=(planName==='Titanio')?0.10:0.20;
   const totalMensualPort=Math.round(renta*(1-portPct))+equipoMensual+seguroPrice+controlPrice;
-  return { plan:planName, renta:renta, promo:promo, totalInicial:totalInicial,
+  return { plan:planName, plazo:plazo, renta:renta, promo:promo, totalInicial:totalInicial,
            totalMensual:totalMensual, totalMensualPort:totalMensualPort };
 }
 
 function buildFlyerMultiHTML(state){
-  /* Columnas: el plan elegido + los comparados, en orden de PLAN_ORDER para que
-     se lean como escalera. Se descarta cualquiera sin precio en ese plazo. */
-  const nombres=[state.plan].concat(state.comparar||[]);
+  /* [v1.11.79] Columnas = la del cotizador + las comparadas. Cada una es una
+     combinación plan+plazo, así se puede poner Black a 36m junto a Oro a 24m,
+     o el mismo plan a dos plazos. Se descarta cualquiera sin precio. */
+  const pedidas=[{plan:state.plan, plazo:state.plazo}].concat(state.comparar||[]);
   const cols=[];
-  nombres.forEach(function(p){
-    if(cols.some(function(c){return c.plan===p;})) return;
-    const c=cotCalcPlan(state,p);
+  pedidas.forEach(function(q){
+    const plan=q.plan, plazo=q.plazo||state.plazo;
+    /* dedupe por plan Y plazo, no solo por plan */
+    if(cols.some(function(c){return c.plan===plan && String(c.plazo)===String(plazo);})) return;
+    const c=cotCalcPlan(state, plan, plazo);
     if(c) cols.push(c);
   });
   if(typeof PLAN_ORDER !== 'undefined'){
-    cols.sort(function(x,y){ return PLAN_ORDER.indexOf(x.plan)-PLAN_ORDER.indexOf(y.plan); });
+    cols.sort(function(x,y){
+      const d=PLAN_ORDER.indexOf(x.plan)-PLAN_ORDER.indexOf(y.plan);
+      return d!==0 ? d : (x.plazo-y.plazo);
+    });
   }
   /* Salvavidas: si quedó una sola columna, cae al flyer normal */
   if(cols.length<2) return buildFlyerHTML(state);
@@ -10864,7 +10898,7 @@ function buildFlyerMultiHTML(state){
   let h='<div class="flyer-v3">';
   h+=_flyerHead();
   h+=_flyerGreet(state);
-  h+=_flyerProducto(state, ' · contado $'+_flyerFmx(Math.round(state.contado))+' · '+state.plazo+' meses');
+  h+=_flyerProducto(state, ' · contado $'+_flyerFmx(Math.round(state.contado)));
 
   h+='<div class="flyer-v3-cmp-lbl">Elige tu plan</div>';
   h+='<div class="flyer-v3-cmp'+(cols.length===2?' c2':'')+'">';
@@ -10875,7 +10909,7 @@ function buildFlyerMultiHTML(state){
     h+='<div class="flyer-v3-cmpcard-bar" style="background:'+accent+'"></div>';
     h+='<div class="flyer-v3-cmpcard-in">';
     h+='<div class="flyer-v3-cmp-plan">'+c.plan+'</div>';
-    h+='<div class="flyer-v3-cmp-renta">$'+_flyerFmx(c.renta)+' renta/mes</div>';
+    h+='<div class="flyer-v3-cmp-renta">$'+_flyerFmx(c.renta)+' renta · '+c.plazo+' meses</div>';
     h+='<div class="flyer-v3-cmp-k">Equipo</div>';
     if(c.promo===0){
       hayGratis=true;
