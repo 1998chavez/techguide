@@ -9,23 +9,23 @@
 <title>Comisiones · Gerente — TechGuide</title>
 <style>
 :root{
-  --bg:#000;--surface:#1C1C1E;--surface2:#2C2C2E;--surface3:#3A3A3C;
-  --label:#FFF;--label2:#EBEBF5;--label3:#8E8E93;--label4:#48484A;--sep:rgba(255,255,255,0.10);
-  --tint:rgba(255,255,255,.04);--shadow:rgba(0,0,0,.4);
-  --blue:#00A8E0;--cyan:#5BC2E7;
+  --bg:#080D16;--surface:#0F1622;--surface2:#16202E;--surface3:#1F2B3C;
+  --label:#EDF2F8;--label2:#D7E0EB;--label3:#8A97A9;--label4:#414E5F;--sep:rgba(237,242,248,0.10);
+  --tint:rgba(255,255,255,.045);--shadow:rgba(0,0,0,.45);
+  --blue:#31A5E5;--cyan:#4DB4EC;
   --green:#30D158;--red:#FF453A;--amber:#FFD60A;
-  --t-blue:#5BC2E7;--t-green:#5BE584;--t-amber:#FFD60A;--t-red:#FF8A80;--t-orange:#FF9F0A;
+  --t-blue:#4DB4EC;--t-green:#3BC292;--t-amber:#FFD60A;--t-red:#FF8A80;--t-orange:#FF9F0A;
   --r-xl:22px;--r-lg:16px;--r-md:12px;--r-sm:9px;
   --fd:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",system-ui,sans-serif;
   --fm:"SF Mono","Roboto Mono",ui-monospace,monospace;--ease:cubic-bezier(.16,1,.3,1);
 }
 :root[data-theme="light"]{
-  --bg:#F2F2F7;--surface:#FFFFFF;--surface2:#EFEFF4;--surface3:#E3E3E8;
-  --label:#000;--label2:#1C1C1E;--label3:#8E8E93;--label4:#B8B8BE;--sep:rgba(0,0,0,0.09);
-  --tint:rgba(0,0,0,.035);--shadow:rgba(0,0,0,.10);
-  --blue:#0090C4;--cyan:#0090C4;
+  --bg:#F3F5F8;--surface:#FFFFFF;--surface2:#EBEFF4;--surface3:#DFE5EC;
+  --label:#0B1524;--label2:#24303F;--label3:#6D7B8E;--label4:#B3BDC9;--sep:rgba(11,21,36,0.10);
+  --tint:rgba(11,21,36,.04);--shadow:rgba(11,21,36,.10);
+  --blue:#0E7DBE;--cyan:#0E7DBE;
   --green:#1E9E45;--red:#D0291C;--amber:#B58A00;
-  --t-blue:#0080B5;--t-green:#178A3C;--t-amber:#A57C00;--t-red:#C42818;--t-orange:#CF5A00;
+  --t-blue:#0B6AA2;--t-green:#178A66;--t-amber:#A57C00;--t-red:#C42818;--t-orange:#CF5A00;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
@@ -176,14 +176,14 @@ body{background:var(--bg);color:var(--label);font-family:var(--fd);min-height:10
   <style>#refreshBtn.spin svg{animation:tgspin .8s linear infinite}@keyframes tgspin{to{transform:rotate(360deg)}}</style><div class="hdr"><button class="themebtn" onclick="pmdOpen()" aria-label="Menú"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="htitle"><h1>Comisiones</h1></div><span class="hdr-actions" style="display:inline-flex;gap:6px;align-items:center"><button class="themebtn" id="refreshBtn" onclick="refreshDash()" title="Actualizar"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button></span></div>
   <div class="scroll">
     <div class="weeks" id="weeks"></div>
-    <button onclick="location.href='comisiones-ejecutivo.html'" style="width:100%;border:none;cursor:pointer;font-size:15.5px;font-weight:700;background:linear-gradient(180deg,#FF9F0A,#E8730C);color:#1a1000;height:50px;border-radius:15px;box-shadow:0 8px 22px -8px rgba(255,107,0,.45);display:flex;align-items:center;justify-content:center;gap:8px;margin:2px 0 14px">💰 Mis ventas y comisión personal</button>
+    <button onclick="location.href='comisiones-ejecutivo.html'" style="width:100%;border:none;cursor:pointer;font-size:15.5px;font-weight:700;background:linear-gradient(180deg,#FF9F0A,#E8730C);color:#1a1000;height:50px;border-radius:15px;box-shadow:0 8px 22px -8px rgba(255,107,0,.45);display:flex;align-items:center;justify-content:center;gap:8px;margin:2px 0 14px">Mis ventas y comisión personal</button>
 
     <div class="hero">
       <div class="idrow"><div class="idav">MS</div><div class="idmeta"><div class="idname">Mónica Salas</div><div class="idrole">Gerente · León Centro</div></div></div>
     </div>
 
     <button class="bonohero" onclick="openBono()">
-      <div class="bhtop"><span class="bhlab">💰 Tu bono gerencial</span><span class="bhchev">›</span></div>
+      <div class="bhtop"><span class="bhlab">Tu bono gerencial</span><span class="bhchev">›</span></div>
       <div class="bhval" id="bonoVal">$0</div>
       <div class="bhsub" id="bonoSub">—</div>
     </button>
@@ -224,7 +224,7 @@ body{background:var(--bg);color:var(--label);font-family:var(--fd);min-height:10
 
   <div class="sheet" id="sheetBono">
     <div class="grip"></div>
-    <div class="shead"><div class="sava" style="background:rgba(255,159,10,.18);color:var(--t-orange)">💰</div><h2>Tu bono gerencial</h2><button class="sb" onclick="closeSheet()">✕</button></div>
+    <div class="shead"><div class="sava" style="background:rgba(255,159,10,.18);color:var(--t-orange)">$</div><h2>Tu bono gerencial</h2><button class="sb" onclick="closeSheet()">✕</button></div>
     <div class="dcom"><div class="dcv" id="bTotal"><span class="cur">$</span>0</div><div class="dcl" id="bTotalSub">total de la semana</div></div>
     <div id="bBody"></div>
   </div>
@@ -234,7 +234,7 @@ body{background:var(--bg);color:var(--label);font-family:var(--fd);min-height:10
 
 <script>
 const fmt=n=>Math.round(n).toLocaleString('es-MX');
-const MET=[{k:'po',label:'Pospago',e:'📱'},{k:'re',label:'Renovaciones',e:'🔄'},{k:'ac',label:'Accesorios',e:'🎧'},{k:'se',label:'Seguros',e:'🛡️'},{k:'pr',label:'Prepago',e:'💳'}];
+const MET=[{k:'po',label:'Pospago',e:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>'},{k:'re',label:'Renovaciones',e:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>'},{k:'ac',label:'Accesorios',e:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>'},{k:'se',label:'Seguros',e:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'},{k:'pr',label:'Prepago',e:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1.5" y="4.5" width="21" height="15" rx="2.5"/><path d="M1.5 10h21"/></svg>'}];
 
 /* [v1.11.64] PLAN_ARPU se mudó a incentivos.js (fuente única, ya incluye Lite y A Negocios). */
 /* Titanio: renta real $799 para el ARPU (la comisión sí paga como Black). */
@@ -295,14 +295,14 @@ function renderStore(){
   const tile=(m,lock)=>{
     const av=alc(TIENDA.real[m.k],TIENDA.cuota[m.k]),c=cls(av),pc=av==null?0:Math.round(av*100);
     const sub=`<div class="tisub">${TIENDA.cuota[m.k]>0?TIENDA.real[m.k]+' / '+TIENDA.cuota[m.k]+(m.k==='po'?' activaciones':''):'sin cuota'}</div>`;
-    const lk=lock?'<span class="lock">🔒 desbloqueo</span>':'';
+    const lk=lock?'<span class="lock"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg> desbloqueo</span>':'';
     return `<div class="tile ${lock?'full':''}"><div class="tih"><span>${m.e}</span>${m.label}${lk}</div><div class="tiv ${c}">${av==null?'—':pc+'%'}</div><div class="tibar"><span class="tibarf ${c}" style="width:${pc}%"></span></div>${sub}</div>`;
   };
   const allV={...TIENDA.ventasPo};for(const p in TIENDA.ventasRe)allV[p]=(allV[p]||0)+TIENDA.ventasRe[p];
   const arpuG=arpuOf(TIENDA.ventasPo),arpuOk=arpuG>=630;
   const mixV=TIENDA.mix,mixc=mixV>=65?'green':mixV>=60?'amber':'red';
-  const arpuTile=`<div class="tile"><div class="tih"><span>💵</span>ARPU</div><div class="tiv ${arpuOk?'green':'amber'}">$${fmt(arpuG)}</div><div class="tisub">${arpuOk?'≥ $630 · activa incentivo':'abajo de $630'}</div></div>`;
-  const mixTile=`<div class="tile"><div class="tih"><span>🎯</span>Mix equipo nuevo</div><div class="tiv ${mixc}">${mixV}%</div><div class="tibar"><span class="tibarf ${mixc}" style="width:${mixV}%"></span></div><div class="tisub">mín 60% · óptimo 65%</div></div>`;
+  const arpuTile=`<div class="tile"><div class="tih"><span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.2v9.6M14.6 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.6 0-2.7.9-2.7 2.1s1.1 1.8 2.7 2.1 2.7.9 2.7 2.1-1.1 2.1-2.7 2.1c-1.1 0-2.1-.5-2.6-1.3"/></svg></span>ARPU</div><div class="tiv ${arpuOk?'green':'amber'}">$${fmt(arpuG)}</div><div class="tisub">${arpuOk?'≥ $630 · activa incentivo':'abajo de $630'}</div></div>`;
+  const mixTile=`<div class="tile"><div class="tih"><span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg></span>Mix equipo nuevo</div><div class="tiv ${mixc}">${mixV}%</div><div class="tibar"><span class="tibarf ${mixc}" style="width:${mixV}%"></span></div><div class="tisub">mín 60% · óptimo 65%</div></div>`;
   document.getElementById('tiles').innerHTML=tile(MET[0],true)+tile(MET[1])+tile(MET[2])+tile(MET[3])+tile(MET[4])+arpuTile+mixTile;
 }
 
@@ -411,7 +411,7 @@ function openBono(){
   html+=`<div class="btot"><span class="btl">Suma${b.topado?' (antes del tope)':''}</span><span class="btv">$${fmt(b.subtotal)}</span></div>`;
   if(b.topado){
     const falta=200-Math.round((b.A.po+b.A.re)*100);
-    html+=`<div class="bnote"><span class="e">🔒</span><span>El tope es $20,000. Para cobrar arriba necesitas pospago + renov ≥200% (vas ${Math.round((b.A.po+b.A.re)*100)}%, faltan ${falta} pts) y mix ≥60%.</span></div>`;
+    html+=`<div class="bnote"><span class="e"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg></span><span>El tope es $20,000. Para cobrar arriba necesitas pospago + renov ≥200% (vas ${Math.round((b.A.po+b.A.re)*100)}%, faltan ${falta} pts) y mix ≥60%.</span></div>`;
     html+=`<div class="btot" style="background:rgba(255,159,10,.12)"><span class="btl">Total a cobrar</span><span class="btv">$${fmt(b.total)}</span></div>`;
   }
   const _falta=faltaGerente(b);
@@ -590,7 +590,7 @@ const vrow=(ic,t,s,com)=>`<div class="vrow"><span class="vic">${ic}</span><span 
 function renderVentasAsesor(a){
   let h='';
   (a.lineas||[]).forEach(function(v){
-    var ic=v.k==='po'?'📱':v.k==='re'?'🔄':v.k==='ac'?'🎧':v.k==='se'?'🛡️':'💵';
+    var ic=v.k==='po'?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>':v.k==='re'?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>':v.k==='ac'?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>':v.k==='se'?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>':'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.2v9.6M14.6 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.6 0-2.7.9-2.7 2.1s1.1 1.8 2.7 2.1 2.7.9 2.7 2.1-1.1 2.1-2.7 2.1c-1.1 0-2.1-.5-2.6-1.3"/></svg>';
     var t=v.title||((v.k==='po'||v.k==='re')?('AT&T '+(v.plan||'')).trim():(v.tipo||'Venta'));
     var s=v.sub||v.modelo||'';
     h+=vrow(ic,t,s,v.com||0);
@@ -603,12 +603,12 @@ function openAsesor(i){
   document.getElementById('aName').textContent=a.n;
   document.getElementById('aId').textContent='ATTUID '+a.id;
   document.getElementById('aCom').textContent=fmt(a.comLib!=null?a.comLib:0);
-  const stats=[['📱','Pospago',a.po],['🔄','Renovaciones',a.re],['🎧','Accesorios',a.ac],['🛡️','Seguros',a.se]];
+  const stats=[['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>','Pospago',a.po],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>','Renovaciones',a.re],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>','Accesorios',a.ac],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>','Seguros',a.se]];
   document.getElementById('aStats').innerHTML=stats.map(([e,k,v])=>`<div class="dstat"><div class="dk"><span>${e}</span>${k}</div><div class="dv">${v}</div></div>`).join('');
   const low=a.po<2, full=(a.po+a.re)>=6, f=[];
-  f.push(low?{k:'no',e:'⚠',t:`Necesita 2 ventas de pospago para acceder a comisión. Lleva ${a.po}.`}:{k:'ok',e:'✓',t:'Cumple el mínimo de 2 ventas de pospago.'});
+  f.push(low?{k:'no',e:'!',t:`Necesita 2 ventas de pospago para acceder a comisión. Lleva ${a.po}.`}:{k:'ok',e:'✓',t:'Cumple el mínimo de 2 ventas de pospago.'});
   f.push(full?{k:'ok',e:'✓',t:'6+ ventas: ya no le baja la comisión por alcance (la tienda igual debe llegar al 80%).'}:{k:'no',e:'•',t:`Lleva ${a.po+a.re}/6 ventas para cobrar al 100% sin tope de alcance.`});
-  if(a.com>(a.comLib!=null?a.comLib:0))f.push({k:'no',e:'🔒',t:'Genera $'+fmt(a.com)+' en total; se libera cuando la tienda llegue al 80% de pospago y tenga 2+ pospago.'});
+  if(a.com>(a.comLib!=null?a.comLib:0))f.push({k:'no',e:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>',t:'Genera $'+fmt(a.com)+' en total; se libera cuando la tienda llegue al 80% de pospago y tenga 2+ pospago.'});
   document.getElementById('aFlags').innerHTML=f.map(x=>`<div class="dfl ${x.k}"><span class="e">${x.e}</span><span>${x.t}</span></div>`).join('');
   document.getElementById('scrim').classList.add('on');document.getElementById('sheetAse').classList.add('on');document.getElementById('sheetAse').scrollTop=0;
 }
@@ -631,7 +631,7 @@ window.pmdSyncDesktop=function(){var sw=document.getElementById('pmd-desktop-sw'
   if(saved==='1')document.documentElement.setAttribute('data-desktop','1');
 })();
 
-function toggleTheme(){const el=document.documentElement;const isLight=el.getAttribute('data-theme')==='light';el.setAttribute('data-theme',isLight?'dark':'light');var _tb=document.getElementById('themeBtn');if(_tb)_tb.textContent=isLight?'☀️':'🌙';if(typeof pmdSyncTheme==='function')pmdSyncTheme();}
+function toggleTheme(){const el=document.documentElement;const isLight=el.getAttribute('data-theme')==='light';el.setAttribute('data-theme',isLight?'dark':'light');var _tb=document.getElementById('themeBtn');if(_tb)_tb.innerHTML=isLight?'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.5 4.5l1.8 1.8M17.7 17.7l1.8 1.8M19.5 4.5l-1.8 1.8M6.3 17.7l-1.8 1.8"/></svg>':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';if(typeof pmdSyncTheme==='function')pmdSyncTheme();}
 function _titulo(s){return String(s||'').toLowerCase().split(/\s+/).map(function(w){return w?w.charAt(0).toUpperCase()+w.slice(1):w;}).join(' ').trim();}
 let _refreshing=false;
 async function refreshDash(){if(_refreshing)return;_refreshing=true;var b=document.getElementById('refreshBtn');if(b)b.classList.add('spin');try{await hidratarFirebase();}catch(e){console.error('refresh',e);}if(b)b.classList.remove('spin');_refreshing=false;}
@@ -690,31 +690,7 @@ window.TG_DASH={
 };
 if(window.hidratarFirebase)window.hidratarFirebase();
 </script>
-<style>
-.pmd-overlay{position:fixed;inset:0;z-index:1200;background:rgba(9,13,22,.44);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:opacity .26s cubic-bezier(.32,.72,0,1),visibility .26s}
-.pmd-overlay.on{opacity:1;visibility:visible}
-.pmd-drawer{position:fixed;top:0;left:0;bottom:0;z-index:1201;width:84%;max-width:328px;background:var(--surface);box-shadow:0 18px 60px rgba(0,0,0,.5);transform:translateX(-102%);transition:transform .28s cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0)}
-.pmd-drawer.on{transform:none}
-.pmd-head{padding:22px 20px 18px;display:flex;align-items:center;gap:13px;width:100%;background:transparent;border:none;border-bottom:1px solid var(--sep);cursor:pointer;font-family:inherit;text-align:left;transition:background .16s ease}
-.pmd-head:hover{background:var(--surface2)}
-.pmd-avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--att-blue),#0071BC);color:#fff;font-weight:700;font-size:17px;flex-shrink:0}
-.pmd-who b{display:block;font-size:16px;font-weight:800;color:var(--label);letter-spacing:-.01em}
-.pmd-who span{display:block;font-size:12.5px;color:var(--label3);margin-top:2px;font-weight:500}
-.pmd-head-chev{width:18px;height:18px;color:var(--label3);flex-shrink:0;margin-left:auto}
-.pmd-nav{padding:12px;display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto}
-.pmd-item{display:flex;align-items:center;gap:14px;padding:13px 14px;border-radius:12px;background:transparent;border:none;color:var(--label);font-size:15px;font-weight:600;letter-spacing:-.01em;width:100%;text-align:left;cursor:pointer;font-family:inherit;transition:background .16s ease,transform .1s ease}
-.pmd-item svg{width:20px;height:20px;color:var(--label3);flex-shrink:0;stroke-width:1.9;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
-.pmd-item:hover{background:var(--surface2)}
-.pmd-item:active{transform:scale(.98)}
-.pmd-sep{height:1px;background:var(--sep);margin:10px 14px}
-.pmd-danger{color:var(--red)} .pmd-danger svg{color:var(--red)}
-.pmd-switch{width:38px;height:22px;border-radius:999px;background:var(--sep);position:relative;transition:background .2s ease;flex-shrink:0}
-.pmd-switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s ease}
-.pmd-switch.on{background:var(--att-blue)}
-.pmd-switch.on::after{transform:translateX(16px)}
-.pmd-foot{padding:14px 22px calc(16px + env(safe-area-inset-bottom,0));font-size:11px;color:var(--label3);border-top:1px solid var(--sep);font-weight:600}
-.pmd-foot b{font-weight:800;color:var(--label)} .pmd-foot b span{color:var(--att-blue)}
-</style>
+<link rel="stylesheet" href="comisiones-ui.css">
 <div class="pmd-overlay" id="pmd-overlay" onclick="pmdClose()"></div>
 <aside class="pmd-drawer" id="pmd-drawer" aria-label="Menú de navegación">
   <button class="pmd-head" onclick="pmdGo('perfil')" aria-label="Editar perfil">

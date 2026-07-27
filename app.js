@@ -42,7 +42,16 @@ function loadVendors(){
   return _vendorsPromise;
 }
 
-const ICONS=['⚡','📸','🔋','🛡','🎯','💎','🚀','★'];
+const ICONS=[
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>',
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.19M15 6h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3.19"/><line x1="23" y1="13" x2="23" y2="11"/><polyline points="11 6 7 12 13 12 9 18"/></svg>',
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg>',
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9l4-6z"/><path d="M2 9h20"/></svg>',
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>',
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.5 6.8L12 16.9 5.9 20.3l1.5-6.8L2.2 8.9l6.9-.6L12 2z"/></svg>'
+];
 
 
 // ── CATALOG VIGENCY ──────────────────────────────────────────────────────────
@@ -202,7 +211,7 @@ function openVigencias(){
 
   var body = '';
   // ── Lo urgente: dinero que se está pagando sin flyer que lo respalde ──
-  body += bloque('⚠️ Bonos vencidos — siguen pagando', conSub(r.bonosVencidos, function(b){ return 'terminó '+(b.fin||'—'); }), '#FF3B30', function(b){
+  body += bloque('Bonos vencidos — siguen pagando', conSub(r.bonosVencidos, function(b){ return 'terminó '+(b.fin||'—'); }), '#FF3B30', function(b){
     return '<div style="font-size:13px;font-weight:700;color:#FF3B30">$'+b.monto+'</div>'
          + '<div style="font-size:11px;color:var(--label3)">'+fvenc(b.dias)+'</div>';
   });
@@ -237,7 +246,7 @@ function openVigencias(){
 
   modal.innerHTML =
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
-    +   '<div style="font-size:18px;font-weight:700">🗓️ Vigencias</div>'
+    +   '<div style="font-size:18px;font-weight:700">Vigencias</div>'
     +   '<button id="vig-close" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--label3);padding:0 4px;line-height:1">✕</button>'
     + '</div>'
     + '<div style="font-size:11px;color:var(--label3);background:rgba(255,149,0,0.10);border-radius:8px;padding:8px 10px;margin-bottom:6px;line-height:1.4">'
@@ -375,7 +384,7 @@ async function openAdopcion(){
   const pct = tot ? Math.round(totA7*100/tot) : 0;
 
   let h = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
-        +   '<div style="font-size:18px;font-weight:700">📊 Adopción</div>'
+        +   '<div style="font-size:18px;font-weight:700">Adopción</div>'
         +   '<button id="uso-close" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--label3);padding:0 4px;line-height:1">✕</button>'
         + '</div>';
   h += '<div style="font-size:11px;color:var(--label3);background:rgba(0,122,255,0.08);border-radius:8px;padding:8px 10px;margin-bottom:12px;line-height:1.4">'
@@ -437,7 +446,7 @@ function initMomento(){
       const dev=all.find(function(d){return d.id===m.id;});
       if(!dev) return;
       const os=CAT.ios.find(function(d){return d.id===m.id;})?'ios':'android';
-      const imgHtml=IMG[m.id]?'<img src="'+IMG[m.id]+'" alt="" style="width:84%;height:84%;object-fit:contain">':'<span style="font-size:28px">📱</span>';
+      const imgHtml=IMG[m.id]?'<img src="'+IMG[m.id]+'" alt="" style="width:84%;height:84%;object-fit:contain">':'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>';
       const descColor=m.desc>=70?'rgba(29,158,117,.16)':'rgba(56,138,221,.16)';
       const descText=m.desc>=70?'#1D9E75':'#5BA3E8';
       const onClick="showCatalog\'"+os+"\');setTimeout(function(){showFicha\'"+m.id+"\');var t=document.querySelector\'.tb[onclick*=plans]\');if(t)swTab\'plans\',t);},150)";
@@ -766,12 +775,12 @@ function showFicha(id){
   const _vc=getVigColor(VIGENCY[id]||null);
   const _vl=formatVigDate(VIGENCY[id]||null);
   const _vd=daysLeft(id);
-  const _vwarn=_vd<=7&&_vd>=0?' ⚠️ ¡Vence pronto!':'';
+  const _vwarn=_vd<=7&&_vd>=0?' — ¡Vence pronto!':'';
   h+='<div class="fh-badges">'+bsF(d.status);
   if(d.bundle) h+='<span class="fhb fhb-bun">Bundle</span>';
   const _eqInc = getEquipmentIncentive(id);
   if(_eqInc > 0){
-    h+='<span class="comm-badge-ficha" title="Incentivo extra para asesores con plan Azul 3+">💰 +$'+_eqInc+'</span>';
+    h+='<span class="comm-badge-ficha" title="Incentivo extra para asesores con plan Azul 3+">+$'+_eqInc+'</span>';
   }
   h+='</div>';
   // Storage selector if device has variants
@@ -803,7 +812,7 @@ function showFicha(id){
 
   // Bundle pill
   if(d.bundle){
-    h+='<div class="bundle-pill"><div class="bp-head">🎁 Incluye de regalo</div>';
+    h+='<div class="bundle-pill"><div class="bp-head">Incluye de regalo</div>';
     h+='<div class="bp-body">'+d.bundle+'</div></div>';
   }
 
@@ -812,9 +821,9 @@ function showFicha(id){
   // que el asesor usa en cada venta), luego Accesorios, Similares, Argumentos,
   // Especificaciones, YouTube. ANTES arrancaba en Especificaciones.
   h+='<div class="tab-bar">';
-  h+='<div class="tb on" onclick="swTab(\'plans\',this)">💲 Planes</div>';
-  h+='<div class="tb" onclick="swTab(\'acc\',this)">🎁 Accesorios</div>';
-  h+='<div class="tb" onclick="swTab(\'sim\',this)">📱 Similares</div>';
+  h+='<div class="tb on" onclick="swTab(\'plans\',this)">Planes</div>';
+  h+='<div class="tb" onclick="swTab(\'acc\',this)">Accesorios</div>';
+  h+='<div class="tb" onclick="swTab(\'sim\',this)">Similares</div>';
   h+='<div class="tb" onclick="swTab(\'sell\',this)">Argumentos</div>';
   h+='<div class="tb" onclick="swTab(\'specs\',this)">Especificaciones</div>';
   h+='<div class="tb" onclick="swTab(\'tt\',this)">▶ YouTube</div>';
@@ -837,13 +846,13 @@ function showFicha(id){
   h+='</div>';
   h+='<div class="sell-card" style="margin-top:10px"><div class="sell-card-head">Manejo de objeciones</div>';
   d.obj.forEach(function(o){
-    h+='<div class="obj-item"><div class="obj-q">❓ '+o.q+'</div><div class="obj-a">✓ '+o.a+'</div></div>';
+    h+='<div class="obj-item"><div class="obj-q">'+o.q+'</div><div class="obj-a">✓ '+o.a+'</div></div>';
   });
   h+='</div></div>';
 
   // Similar devices tab
   h+='<div id="tp-sim" class="tp">';
-  h+='<div class="sell-card"><div class="sell-card-head">📱 Dispositivos similares</div>';
+  h+='<div class="sell-card"><div class="sell-card-head">Dispositivos similares</div>';
   h+='<div class="sell-card-sub" style="font-size:11px;color:var(--label3);margin-top:-2px;margin-bottom:10px;font-weight:400">Te recomendamos estas opciones con características parecidas para que puedas comparar y elegir la mejor.</div>';
   h+='<div id="similar-grid-'+id+'" class="similar-grid"></div>';
   h+='</div></div>';
@@ -917,7 +926,7 @@ function goCompare(){
   const devs=[...cmpSet].map(id=>all.find(d=>d.id===id)).filter(Boolean);
   const keys=[...new Set(devs.flatMap(d=>Object.keys(d.specs)))];
   const headers=devs.map(d=>{
-    const imgHtml=IMG[d.id]?'<img class="cmp-th-img" src="'+IMG[d.id]+'" onerror="this.style.display=\'none\'" alt="" loading="lazy">':'<span style="font-size:26px">📱</span>';
+    const imgHtml=IMG[d.id]?'<img class="cmp-th-img" src="'+IMG[d.id]+'" onerror="this.style.display=\'none\'" alt="" loading="lazy">':'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>';
     return '<th><div>'+imgHtml+'</div><div class="cmp-th-name">'+d.name+'</div><div class="cmp-th-brand">'+d.brand+'</div></th>';
   }).join('');
   const rows=keys.map(k=>{
@@ -1103,7 +1112,7 @@ function renderPriceResult(){
       _showUpcoming = _fpStart > _today;
     }
     if(_showUpcoming){
-      _notice='<div class="future-notice future-notice-upcoming">⏳ <b>Disponible a partir del '+fmtVigShort(_fp.start)+'</b><br><span style="font-size:11px;opacity:.85">Los precios mostrados entran en vigor en esa fecha</span></div>';
+      _notice='<div class="future-notice future-notice-upcoming"><b>Disponible a partir del '+fmtVigShort(_fp.start)+'</b><br><span style="font-size:11px;opacity:.85">Los precios mostrados entran en vigor en esa fecha</span></div>';
     }
   } else if(_fp && _fp.start){
     // Only show if start is in the future
@@ -1116,7 +1125,7 @@ function renderPriceResult(){
       // Banner grande y directo: deja claro que los precios que ven entran en
       // vigor el día X y NO pueden cotizarse al cliente antes.
       _notice='<div class="future-notice future-notice-upcoming" style="background:linear-gradient(135deg,#FF9500,#FF6F00);color:#fff;padding:14px 16px;border-radius:10px;border:none">'
-        +'<div style="font-size:15px;font-weight:700;margin-bottom:6px">⚠️ Precios disponibles a partir del '+fmtVigShort(_fp.start)+'</div>'
+        +'<div style="font-size:15px;font-weight:700;margin-bottom:6px">Precios disponibles a partir del '+fmtVigShort(_fp.start)+'</div>'
         +'<div style="font-size:12px;line-height:1.4;opacity:.95">Los precios que ves en pantalla <b>aún no aplican</b>. Estarán activos para cotizar al cliente desde el <b>'+fmtVigShort(_fp.start)+'</b>.</div>'
         +'</div>';
     }
@@ -1228,7 +1237,7 @@ function toggleTheme(){
   const cur=document.documentElement.getAttribute('data-theme');
   const next=cur==='dark'?'light':'dark';
   document.documentElement.setAttribute('data-theme',next);
-  var _tt=document.getElementById('theme-toggle'); if(_tt)_tt.textContent=next==='dark'?'☀️':'🌙';
+  var _tt=document.getElementById('theme-toggle'); if(_tt)_tt.innerHTML=next==='dark'?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.5 4.5l1.8 1.8M17.7 17.7l1.8 1.8M19.5 4.5l-1.8 1.8M6.3 17.7l-1.8 1.8"/></svg>':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
   if(typeof pmdSyncTheme==='function') pmdSyncTheme();
   try{localStorage.setItem('theme',next);}catch(e){}
 }
@@ -1238,7 +1247,7 @@ function toggleTheme(){
   document.documentElement.setAttribute('data-theme',saved);
   setTimeout(function(){
     const btn=document.getElementById('theme-toggle');
-    if(btn) btn.textContent=saved==='dark'?'☀️':'🌙';
+    if(btn) btn.innerHTML=saved==='dark'?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.5 4.5l1.8 1.8M17.7 17.7l1.8 1.8M19.5 4.5l-1.8 1.8M6.3 17.7l-1.8 1.8"/></svg>':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
   },0);
 })();
 
@@ -1250,7 +1259,7 @@ function calcBudget(){
   const resultsEl=document.getElementById('calc-results');
   
   if(enganche<=0&&mensual<=0){
-    resultsEl.innerHTML='<div class="calc-empty"><div class="calc-empty-icon">💡</div><div>Ingresa el presupuesto<br>para ver equipos recomendados</div></div>';
+    resultsEl.innerHTML='<div class="calc-empty"><div>Ingresa el presupuesto<br>para ver equipos recomendados</div></div>';
     return;
   }
   
@@ -1266,7 +1275,7 @@ function calcBudget(){
   if(mensual>0) availablePlans=plans.filter(function(p){return p.renta<=mensual;});
   
   if(availablePlans.length===0){
-    resultsEl.innerHTML='<div class="calc-empty"><div class="calc-empty-icon">⚠️</div><div>Presupuesto mensual muy bajo<br>El plan mínimo es Azul 1: $330/mes</div></div>';
+    resultsEl.innerHTML='<div class="calc-empty"><div>Presupuesto mensual muy bajo<br>El plan mínimo es Azul 1: $330/mes</div></div>';
     return;
   }
   
@@ -1311,7 +1320,7 @@ function calcBudget(){
   
   const top=candidates.slice(0,20);
   if(!top.length){
-    resultsEl.innerHTML='<div class="calc-empty"><div class="calc-empty-icon">😕</div><div>No hay equipos<br>con ese presupuesto</div></div>';
+    resultsEl.innerHTML='<div class="calc-empty"><div>No hay equipos<br>con ese presupuesto</div></div>';
     return;
   }
   
@@ -1327,7 +1336,7 @@ function calcBudget(){
   top.forEach(function(item,i){
     const d=item.device;
     const deal=item.deal;
-    const imgHtml=IMG[d.id]?'<img src="'+IMG[d.id]+'" alt="">':'<span style="font-size:32px">📱</span>';
+    const imgHtml=IMG[d.id]?'<img src="'+IMG[d.id]+'" alt="">':'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>';
     const tagText=deal.type==='rentas'?'3 rentas garantía':'50% enganche';
     const tagClass=deal.type==='rentas'?'match':'eng';
     h+='<div class="calc-result-card" onclick="(function(){show(\'s-ficha\');showFicha(\''+d.id+'\');setTimeout(function(){var tabs=document.querySelectorAll(\'.tb\');tabs.forEach(function(t){if(t.textContent.indexOf(\'Planes\')>=0)swTab(\'plans\',t);});},80);})()" style="animation-delay:'+(i*25)+'ms">';
@@ -1469,7 +1478,7 @@ function openCotModal(){
   [0,1,2,3].forEach(function(n){
     rentasHtml += '<button class="cot-pill'+(n===0?' on':'')+'" onclick="cotSetRentas('+n+')" data-n="'+n+'">'+n+' renta'+(n!==1?'s':'')+'</button>';
   });
-  rentasHtml += '<button class="cot-pill cot-pill-custom" onclick="cotSetDeposito()" id="cot-deposito-pill">💰 Depósito de garantía</button>';
+  rentasHtml += '<button class="cot-pill cot-pill-custom" onclick="cotSetDeposito()" id="cot-deposito-pill">Depósito de garantía</button>';
   rentasPills.innerHTML = rentasHtml;
   cotBuildCmpPills(); // [v1.11.78] comparador de planes (opcional)
   // Reset depósito al abrir cotización
@@ -1676,7 +1685,7 @@ function cotRender(){
     const _fpStart2 = new Date(cotState.futStart + 'T00:00:00');
     const _today2 = new Date(); _today2.setHours(0,0,0,0);
     if(_fpStart2 > _today2){
-      h += '<div style="background:linear-gradient(135deg,#FF9500,#FF6F00);color:#fff;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:10px">⏳ <b>Disponible a partir del '+fmtVigShort(cotState.futStart)+'</b></div>';
+      h += '<div style="background:linear-gradient(135deg,#FF9500,#FF6F00);color:#fff;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:10px"><b>Disponible a partir del '+fmtVigShort(cotState.futStart)+'</b></div>';
     }
   }
   
@@ -1699,7 +1708,7 @@ function cotRender(){
   
   // Total inicial
   if(totalInicial>0){
-    h += '<div class="cot-resumen-row" style="background:rgba(0,122,255,.06);margin:6px -16px 0;padding:8px 16px;border-radius:8px"><span class="cot-resumen-label" style="font-weight:700">💵 Pago inicial</span><span class="cot-resumen-val" style="color:var(--ios-blue);font-size:16px">$'+fmx(totalInicial)+'</span></div>';
+    h += '<div class="cot-resumen-row" style="background:rgba(0,122,255,.06);margin:6px -16px 0;padding:8px 16px;border-radius:8px"><span class="cot-resumen-label" style="font-weight:700">Pago inicial</span><span class="cot-resumen-val" style="color:var(--ios-blue);font-size:16px">$'+fmx(totalInicial)+'</span></div>';
   }
   
   // Mensualidad detail
@@ -1727,7 +1736,7 @@ function cotRender(){
   if(cartAcc.length > 0){
     const accTotal = cartAcc.reduce(function(s,a){return s+a.price;},0);
     h += '<div style="height:8px"></div>';
-    h += '<div class="cot-resumen-row" style="background:rgba(255,149,0,.08);margin:0 -16px;padding:8px 16px"><span class="cot-resumen-label" style="font-weight:700">🎁 Accesorios (contado)</span><span class="cot-resumen-val" style="color:#FF6F00">$'+fmx(accTotal)+'</span></div>';
+    h += '<div class="cot-resumen-row" style="background:rgba(255,149,0,.08);margin:0 -16px;padding:8px 16px"><span class="cot-resumen-label" style="font-weight:700">Accesorios (contado)</span><span class="cot-resumen-val" style="color:#FF6F00">$'+fmx(accTotal)+'</span></div>';
     cartAcc.forEach(function(a){
       h += '<div class="cot-acc-row"><span>• '+a.name+'</span><span>$'+fmx(a.price)+'</span></div>';
     });
@@ -1763,7 +1772,6 @@ function _bloqueSugerenciaPlan(){
   let h = '';
   h += '<div class="plan-upsell">';
   h += '<div class="plan-upsell-head">';
-  h += '<span class="plan-upsell-emoji">💡</span>';
   h += '<span class="plan-upsell-title">Le conviene subir a '+s.plan+'</span>';
   h += '</div>';
   h += '<div class="plan-upsell-body">Subiendo a <b>'+s.plan+'</b>, lo que paga hoy baja a <b>$'+fmx0(s.entrada)+'</b>'+(s.tipo==='garantia'?' ('+txtNuevo+')':'')+' — '+(s.aumentoMensual>0?('solo <b>$'+fmx0(s.aumentoMensual)+' más al mes</b>'):'<b>sin pagar más al mes</b>')+'.</div>';
@@ -1865,7 +1873,7 @@ function renderCommission(){
   
   h += '<div class="comm-row total"><span class="comm-row-label">Total estimado</span><span class="comm-row-amount">$' + fmx(c.total) + '</span></div>';
   h += '<div class="comm-disclaimer">Estimado · sujeto a cumplimiento de cuota de tienda ≥80%</div>';
-  h += '<div class="comm-section-private-note">🔒 Esta información no aparece en la cotización del cliente</div>';
+  h += '<div class="comm-section-private-note">Esta información no aparece en la cotización del cliente</div>';
   
   document.getElementById('comm-body-inner').innerHTML = h;
 }
@@ -1877,7 +1885,7 @@ function cotValidarTipo(){
   const aviso = document.getElementById('cot-tipo-aviso');
   if(aviso){
     aviso.classList.remove('cot-tipo-aviso-ok');
-    aviso.textContent = '⚠️ Debes elegir Pospago o Renovación para enviar';
+    aviso.textContent = 'Debes elegir Pospago o Renovación para enviar';
   }
   // Resaltar brevemente el selector
   const grid = document.getElementById('cot-tipo-grid');
@@ -2225,16 +2233,16 @@ function renderAccTab(){
   
   const accs = getAccsForDevice(curFichaId);
   if(accs.length===0){
-    el.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--label3)"><div style="font-size:48px;opacity:.4;margin-bottom:10px">📦</div><div style="font-size:14px">No hay accesorios disponibles para este equipo</div></div>';
+    el.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--label3)"><div style="font-size:14px">No hay accesorios disponibles para este equipo</div></div>';
     return;
   }
   
   // Group by category
   const cats = {
-    'cable':{title:'Cables',icon:'🔌',items:[]},
-    'charger':{title:'Cargadores',icon:'🔋',items:[]},
-    'case':{title:'Fundas',icon:'🛡️',items:[]},
-    'screen':{title:'Micas y vidrios',icon:'📱',items:[]}
+    'cable':{title:'Cables',icon:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 7v5a6 6 0 0 0 12 0V7"/><path d="M9 2v5M15 2v5M12 18v4"/></svg>',items:[]},
+    'charger':{title:'Cargadores',icon:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.19M15 6h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3.19"/><line x1="23" y1="13" x2="23" y2="11"/><polyline points="11 6 7 12 13 12 9 18"/></svg>',items:[]},
+    'case':{title:'Fundas',icon:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',items:[]},
+    'screen':{title:'Micas y vidrios',icon:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>',items:[]}
   };
   accs.forEach(function(a){if(cats[a.cat]) cats[a.cat].items.push(a);});
   
@@ -2245,7 +2253,7 @@ function renderAccTab(){
     h += '<div class="acc-cat-title"><span class="acc-cat-title-icon">'+cat.icon+'</span> '+cat.title+' ('+cat.items.length+')</div>';
     cat.items.forEach(function(a,i){
       const sel = isAccSelected(a.sku);
-      const iconMap = {cable:'🔌',charger:'🔋',case:'🛡️',screen:'📱'};
+      const iconMap = {cable:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 7v5a6 6 0 0 0 12 0V7"/><path d="M9 2v5M15 2v5M12 18v4"/></svg>',charger:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.19M15 6h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3.19"/><line x1="23" y1="13" x2="23" y2="11"/><polyline points="11 6 7 12 13 12 9 18"/></svg>',case:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',screen:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>'};
       const brandBtn = (a.brand && BRAND_INFO[a.brand]) ? '<button class="brand-info-btn" onclick="event.stopPropagation();showProductInfo(\''+a.sku+'\')">ⓘ Ver detalles</button>' : '';
       h += '<div class="acc-card'+(sel?' selected':'')+'" onclick="toggleAcc(\'' +a.sku+'\')" style="animation-delay:'+(i*30)+'ms">';
       h += '<div class="acc-icon">'+iconMap[a.cat]+'</div>';
@@ -2557,10 +2565,10 @@ function renderTopCommList(){
       groupIdx++;
       let groupLabel = '';
       let groupColor = '#FF6F00';
-      if(groupIdx === 1){ groupLabel = '🥇 Mejor incentivo'; groupColor = '#FFB300'; }
-      else if(groupIdx === 2){ groupLabel = '🥈 Segundo mejor'; groupColor = '#90A4AE'; }
-      else if(groupIdx === 3){ groupLabel = '🥉 Tercer puesto'; groupColor = '#CD7F32'; }
-      else groupLabel = '✨ Más equipos con incentivo';
+      if(groupIdx === 1){ groupLabel = 'Nº1 · Mejor incentivo'; groupColor = '#FFB300'; }
+      else if(groupIdx === 2){ groupLabel = 'Nº2 · Segundo mejor'; groupColor = '#90A4AE'; }
+      else if(groupIdx === 3){ groupLabel = 'Nº3 · Tercer puesto'; groupColor = '#CD7F32'; }
+      else groupLabel = 'Más equipos con incentivo';
       
       h += '<div style="background:linear-gradient(90deg,'+groupColor+'15,transparent);padding:10px 14px;border-top:0.5px solid var(--sep);font-size:11px;font-weight:700;color:'+groupColor+';letter-spacing:.5px;display:flex;align-items:center;justify-content:space-between">';
       h += '<span>'+groupLabel+'</span>';
@@ -2571,7 +2579,7 @@ function renderTopCommList(){
     
     const imgEl = (typeof IMG !== 'undefined' && IMG[item.device.id])
       ? '<img src="'+IMG[item.device.id]+'" alt="">'
-      : '<span style="font-size:18px;opacity:.4">📱</span>';
+      : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>';
     
     const promoStr = item.promo < 999999 ? 'Desde $'+Math.round(item.promo).toLocaleString('es-MX') : 'Sin promo';
     
@@ -2688,7 +2696,7 @@ function buildSpecsPDFHTML(dev){
 
 async function generateSpecsPDF(){
   if(!cotState || !cotState.device){
-    alert('⚠️ Sin datos del equipo. Vuelve a abrir cotización.');
+    alert('Sin datos del equipo. Vuelve a abrir cotización.');
     return;
   }
   
@@ -2696,7 +2704,7 @@ async function generateSpecsPDF(){
   try{
     await loadVendors();
   }catch(e){
-    alert('⚠️ ' + e.message);
+    alert(e.message);
     return;
   }
   
@@ -2707,7 +2715,7 @@ async function generateSpecsPDF(){
   let originalHTML = '';
   if(btn){
     originalHTML = btn.innerHTML;
-    btn.innerHTML = '⏳ Generando PDF...';
+    btn.innerHTML = 'Generando PDF…';
     btn.disabled = true;
   }
   
@@ -2802,7 +2810,7 @@ async function generateSpecsPDF(){
     alert('📥 PDF descargado\n\nAdjúntalo al WhatsApp del cliente.');
     
   } catch(e){
-    alert('⚠️ Error generando PDF: ' + e.message);
+    alert('Error generando PDF: ' + e.message);
   } finally {
     if(btn){btn.innerHTML = originalHTML; btn.disabled = false;}
   }
@@ -2906,7 +2914,7 @@ function renderFlashCard(){
       g.offers.forEach(function(o){
         const imgEl = (typeof IMG !== 'undefined' && IMG[o.device.id])
           ? '<img src="'+IMG[o.device.id]+'" alt="">'
-          : '<span style="font-size:20px;opacity:.5">📱</span>';
+          : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>';
         h += '<div class="flash-item" onclick="event.stopPropagation();showFicha(\''+o.device.id+'\')">';
         h += '<div class="flash-item-thumb">'+imgEl+'</div>';
         h += '<div class="flash-item-name">'+o.device.name+'</div>';
@@ -3124,7 +3132,7 @@ function renderSimilarTab(){
       const d = s.device;
       const imgEl = (typeof IMG !== 'undefined' && IMG[d.id])
         ? '<img src="'+IMG[d.id]+'" alt="">'
-        : '<span style="font-size:18px;opacity:.4">📱</span>';
+        : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>';
       
       // Reason badge
       let reasonBadge = '';
@@ -3705,7 +3713,7 @@ function openAsesorEdit(){
   header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:16px';
   const title = document.createElement('div');
   title.style.cssText = 'font-size:18px;font-weight:700';
-  title.innerHTML = '👤 Mi perfil';
+  title.innerHTML = 'Mi perfil';
   const closeBtn = document.createElement('button');
   closeBtn.textContent = '✕';
   closeBtn.style.cssText = 'background:none;border:none;font-size:22px;cursor:pointer;color:var(--label3);padding:0 4px;line-height:1';
@@ -3844,8 +3852,8 @@ function openAsesorEdit(){
   botones.style.cssText = 'display:flex;flex-direction:column;gap:8px';
   
   const btnGuardar = document.createElement('button');
-  btnGuardar.textContent = '💾 Guardar cambios';
-  btnGuardar.style.cssText = 'width:100%;padding:13px;border:none;border-radius:10px;font-size:15px;font-weight:600;background:#007AFF;color:#fff;cursor:pointer';
+  btnGuardar.textContent = 'Guardar cambios';
+  btnGuardar.style.cssText = 'width:100%;padding:13px;border:none;border-radius:10px;font-size:15px;font-weight:600;background:var(--hv2-navy,#13203E);color:#fff;cursor:pointer';
   btnGuardar.onclick = function(){
     const nuevoNombre   = document.getElementById('perfil-nombre').value.trim();
     const nuevaSucursal = document.getElementById('perfil-sucursal').value.trim();
@@ -4085,12 +4093,12 @@ function openDiagnostico(){
   // entre "inactiva porque aún no se usa" (normal) y "no conecta de verdad"
   // (problema real). Da un diagnóstico concreto en vez de un estado ambiguo.
   const btnProbar = document.createElement('button');
-  btnProbar.textContent = '📡 Probar conexión ahora';
-  btnProbar.style.cssText = 'width:100%;padding:13px;border:none;border-radius:10px;font-size:14px;font-weight:600;background:rgba(0,122,255,0.1);color:var(--ios-blue,#007AFF);cursor:pointer';
+  btnProbar.textContent = 'Probar conexión ahora';
+  btnProbar.style.cssText = 'width:100%;padding:13px;border:none;border-radius:10px;font-size:14px;font-weight:600;background:var(--hv2-accent-soft,rgba(14,125,190,.09));color:var(--hv2-accent,#0E7DBE);cursor:pointer';
   btnProbar.onclick = async function(){
     const resEl = document.getElementById('diag-prueba-resultado');
     btnProbar.disabled = true;
-    btnProbar.textContent = '⏳ Probando...';
+    btnProbar.textContent = 'Probando…';
     const mostrar = function(txt, tipo){
       if(!resEl) return;
       let bg = 'rgba(52,199,89,0.10)', col = '#34C759';
@@ -4105,9 +4113,9 @@ function openDiagnostico(){
     };
     // 1) Verificar internet primero
     if(!navigator.onLine){
-      mostrar('❌ Sin conexión a internet. Revisa tus datos móviles o WiFi.', 'err');
+      mostrar('Sin conexión a internet. Revisa tus datos móviles o WiFi.', 'err');
       btnProbar.disabled = false;
-      btnProbar.textContent = '📡 Probar conexión ahora';
+      btnProbar.textContent = 'Probar conexión ahora';
       return;
     }
     // 2) Intentar conectar a Firebase y hacer una lectura real
@@ -4115,7 +4123,7 @@ function openDiagnostico(){
     try{
       if(typeof loadFirebase === 'function') await loadFirebase();
       if(typeof firestoreDB === 'undefined' || !firestoreDB){
-        mostrar('⚠️ No se pudo iniciar la base de datos. Intenta actualizar la aplicación.', 'warn');
+        mostrar('No se pudo iniciar la base de datos. Intenta actualizar la aplicación.', 'warn');
       } else {
         // Lectura real: leer el propio empleado (siempre existe si hay sesión)
         const attuid = (asesorData && asesorData.attuid) ? asesorData.attuid : null;
@@ -4125,18 +4133,18 @@ function openDiagnostico(){
         }
         const ms = Date.now() - t0;
         if(ms < 1500){
-          mostrar('✅ Conexión correcta ('+ms+' ms). La base de datos responde bien.', 'ok');
+          mostrar('Conexión correcta ('+ms+' ms). La base de datos responde bien.', 'ok');
         } else if(ms < 4000){
-          mostrar('⚠️ Conexión lenta ('+ms+' ms). Funciona, pero la señal está débil.', 'warn');
+          mostrar('Conexión lenta ('+ms+' ms). Funciona, pero la señal está débil.', 'warn');
         } else {
-          mostrar('⚠️ Conexión muy lenta ('+ms+' ms). Las cotizaciones pueden tardar en registrarse.', 'warn');
+          mostrar('Conexión muy lenta ('+ms+' ms). Las cotizaciones pueden tardar en registrarse.', 'warn');
         }
       }
     }catch(e){
-      mostrar('❌ La base de datos no respondió. Tu internet puede estar intermitente. Reintenta en un momento.', 'err');
+      mostrar('La base de datos no respondió. Tu internet puede estar intermitente. Reintenta en un momento.', 'err');
     }
     btnProbar.disabled = false;
-    btnProbar.textContent = '📡 Probar conexión otra vez';
+    btnProbar.textContent = 'Probar conexión otra vez';
   };
   botones.appendChild(btnProbar);
   
@@ -4148,7 +4156,7 @@ function openDiagnostico(){
     btnReintentar.onclick = function(){
       if(typeof flushColaCotizaciones === 'function'){
         flushColaCotizaciones();
-        btnReintentar.textContent = '⏳ Reintentando...';
+        btnReintentar.textContent = 'Reintentando…';
         setTimeout(function(){
           ov.remove(); document.body.style.overflow='';
           openDiagnostico(); // refrescar la vista
@@ -4621,7 +4629,7 @@ async function registrarCotizacion(canal){
     // asesor creía que se contó. Ahora avisamos.
     console.warn('[Cotización] payload null — cotState o asesorData ausente');
     if(typeof showCotizacionToast === 'function'){
-      showCotizacionToast('error', '⚠️ No se pudo registrar la cotización. Reintenta.');
+      showCotizacionToast('error', 'No se pudo registrar la cotización. Reintenta.');
     }
     return false;
   }
@@ -4695,7 +4703,7 @@ async function flushColaCotizaciones(){
     Object.keys(dashCache).forEach(function(k){ delete dashCache[k]; });
     // [v1.9.13 fix 4] Toast al usuario
     if(typeof showCotizacionToast === 'function'){
-      showCotizacionToast('success', '✅ '+enviados+' cotización'+(enviados===1?'':'es')+' enviada'+(enviados===1?'':'s')+' (recuperadas)');
+      showCotizacionToast('success', enviados+' cotización'+(enviados===1?'':'es')+' enviada'+(enviados===1?'':'s')+' (recuperadas)');
     }
     // Actualizar badge de pendientes en el home
     if(typeof updatePendientesBadge === 'function') updatePendientesBadge();
@@ -5288,10 +5296,10 @@ function refrescarSeguimientoUI(){
       resumen.style.display = 'none';
     } else {
       resumen.style.display = '';
-      if(diasDif === 0) resumen.textContent = '⏰ Seguimiento agendado para hoy';
-      else if(diasDif === 1) resumen.textContent = '📅 Seguimiento agendado para mañana';
-      else if(diasDif > 1) resumen.textContent = '📅 Seguimiento en '+diasDif+' días ('+fmtVigShort(val)+')';
-      else if(diasDif < 0) resumen.textContent = '⚠️ Fecha en el pasado — elige una futura';
+      if(diasDif === 0) resumen.textContent = 'Seguimiento agendado para hoy';
+      else if(diasDif === 1) resumen.textContent = 'Seguimiento agendado para mañana';
+      else if(diasDif > 1) resumen.textContent = 'Seguimiento en '+diasDif+' días ('+fmtVigShort(val)+')';
+      else if(diasDif < 0) resumen.textContent = 'Fecha en el pasado — elige una futura';
     }
   }
 }
@@ -5582,11 +5590,11 @@ async function submitSaveClient(){
     if(typeof showCotizacionToast === 'function'){
       let msg;
       if(saveClientState.modoEditar){
-        msg = '✅ Cambios guardados';
+        msg = 'Cambios guardados';
       } else if(saveClientState.clienteExistente){
-        msg = '✅ Cotización agregada a ' + nombre;
+        msg = 'Cotización agregada a ' + nombre;
       } else {
-        msg = '✅ Cliente ' + nombre + ' guardado';
+        msg = 'Cliente ' + nombre + ' guardado';
       }
       showCotizacionToast('success', msg);
     }
@@ -5607,7 +5615,7 @@ async function submitSaveClient(){
     submitBtn.disabled = false;
     submitBtn.textContent = txtOriginal;
     if(typeof showCotizacionToast === 'function'){
-      showCotizacionToast('error', '⚠️ No se pudo guardar: ' + (e.message||'error'));
+      showCotizacionToast('error', 'No se pudo guardar: ' + (e.message||'error'));
     } else {
       alert('Error guardando cliente: ' + (e.message||'error'));
     }
@@ -5652,11 +5660,11 @@ async function confirmarEliminarCliente(){
     // queda en estado raro y se reabre.
     if(deleteBtn){
       deleteBtn.disabled = false;
-      deleteBtn.innerHTML = '🗑 Eliminar cliente';
+      deleteBtn.innerHTML = 'Eliminar cliente';
     }
     
     if(typeof showCotizacionToast === 'function'){
-      showCotizacionToast('success', '🗑 Cliente eliminado');
+      showCotizacionToast('success', 'Cliente eliminado');
     }
     
     closeSaveClientModal();
@@ -5679,10 +5687,10 @@ async function confirmarEliminarCliente(){
     console.error('[CRM] error eliminando:', e);
     if(deleteBtn){
       deleteBtn.disabled = false;
-      deleteBtn.innerHTML = '🗑 Eliminar cliente';
+      deleteBtn.innerHTML = 'Eliminar cliente';
     }
     if(typeof showCotizacionToast === 'function'){
-      showCotizacionToast('error', '⚠️ No se pudo eliminar: ' + (e.message||'error'));
+      showCotizacionToast('error', 'No se pudo eliminar: ' + (e.message||'error'));
     }
   }
 }
@@ -5794,7 +5802,7 @@ async function reloadCRMScreen(){
   const listEl = document.getElementById('crm-list');
   if(!listEl) return;
   crmState.loading = true;
-  listEl.innerHTML = '<div class="crm-empty"><div class="crm-empty-icon">⏳</div><div class="crm-empty-title">Cargando...</div></div>';
+  listEl.innerHTML = '<div class="crm-empty"><div class="crm-empty-title">Cargando…</div></div>';
   
   try{
     crmState.clientes = await leerClientes(); // sin filtro, los traemos todos y filtramos en cliente
@@ -5802,7 +5810,7 @@ async function reloadCRMScreen(){
     renderCRMList();
   }catch(e){
     console.error('[CRM] error:', e);
-    listEl.innerHTML = '<div class="crm-empty"><div class="crm-empty-icon">⚠️</div><div class="crm-empty-title">No se pudieron cargar los clientes</div><div class="crm-empty-sub">Verifica tu conexión y reintenta</div></div>';
+    listEl.innerHTML = '<div class="crm-empty"><div class="crm-empty-title">No se pudieron cargar los clientes</div><div class="crm-empty-sub">Verifica tu conexión y reintenta</div></div>';
   }finally{
     crmState.loading = false;
   }
@@ -5860,10 +5868,10 @@ function renderCRMList(){
   
   if(filtered.length === 0){
     const msgs = {
-      'hoy': {icon:'✅', title:'Sin seguimientos para hoy', sub:'Cuando agendes un seguimiento a un cliente aparecerá aquí el día que toque.'},
-      'activo': {icon:'👋', title:'Sin clientes activos', sub:'Al guardar un cliente tras compartir cotización aparecerá aquí.'},
-      'cerrado': {icon:'🎉', title:'Sin ventas cerradas', sub:'Marca tus clientes como cerrados al concretar la venta.'},
-      'perdido': {icon:'😕', title:'Sin clientes perdidos', sub:'Aquí aparecen los que no concretaron.'}
+      'hoy': {icon:'<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 5-5.5"/></svg>', title:'Sin seguimientos para hoy', sub:'Cuando agendes un seguimiento a un cliente aparecerá aquí el día que toque.'},
+      'activo': {icon:'<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>', title:'Sin clientes activos', sub:'Al guardar un cliente tras compartir cotización aparecerá aquí.'},
+      'cerrado': {icon:'<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.5 6.8L12 16.9 5.9 20.3l1.5-6.8L2.2 8.9l6.9-.6L12 2z"/></svg>', title:'Sin ventas cerradas', sub:'Marca tus clientes como cerrados al concretar la venta.'},
+      'perdido': {icon:'<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>', title:'Sin clientes perdidos', sub:'Aquí aparecen los que no concretaron.'}
     };
     const m = msgs[tab] || msgs['activo'];
     listEl.innerHTML = '<div class="crm-empty"><div class="crm-empty-icon">'+m.icon+'</div><div class="crm-empty-title">'+m.title+'</div><div class="crm-empty-sub">'+m.sub+'</div></div>';
@@ -5900,9 +5908,9 @@ function renderCRMList(){
     if(c.proximoSeguimiento && (c.estatus||'activo') === 'activo'){
       const retraso = diasRetrasoSeguimiento(c);
       if(retraso > 0){
-        html += '<div class="crm-client-urgencia crm-urg-hot">⚠️ VENCIDO '+retraso+'d</div>';
+        html += '<div class="crm-client-urgencia crm-urg-hot">VENCIDO '+retraso+'d</div>';
       } else if(retraso === 0){
-        html += '<div class="crm-client-urgencia crm-urg-seg">⏰ SEGUIMIENTO HOY</div>';
+        html += '<div class="crm-client-urgencia crm-urg-seg">SEGUIMIENTO HOY</div>';
       } else if(tab !== 'hoy'){
         // Seguimiento futuro: solo recordatorio discreto fuera del tab "hoy"
         html += '<div class="crm-client-urgencia crm-urg-future">📅 '+fmtVigShort(c.proximoSeguimiento)+'</div>';
@@ -5990,7 +5998,7 @@ async function marcarCliente(clienteId, nuevoEstatus){
   if(!(rol === 'asesor' && esMio)){
     console.warn('[CRM] sin permiso para cambiar estatus de cliente ajeno');
     if(typeof showCotizacionToast === 'function'){
-      showCotizacionToast('error', '⚠️ Solo el asesor dueño puede cambiar el estatus');
+      showCotizacionToast('error', 'Solo el asesor dueño puede cambiar el estatus');
     }
     return;
   }
@@ -6001,7 +6009,7 @@ async function marcarCliente(clienteId, nuevoEstatus){
     actualizarContadoresTabs();
     renderCRMList();
     if(typeof showCotizacionToast === 'function'){
-      const txt = nuevoEstatus === 'cerrado' ? '🎉 Venta cerrada'
+      const txt = nuevoEstatus === 'cerrado' ? 'Venta cerrada'
                 : nuevoEstatus === 'perdido' ? '✕ Cliente perdido'
                 : '↻ Cliente reactivado';
       showCotizacionToast('success', txt);
@@ -7261,7 +7269,7 @@ function calcularAlertas(data){
       if(tiendasInactivas.length > 5){
         alerts.push({
           severity: 'high',
-          icon: '⚠️',
+          icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
           title: 'Y '+(tiendasInactivas.length-5)+' tiendas más sin actividad',
           subtitle: 'Ver todas las tiendas para detalle',
           action: null
@@ -7331,7 +7339,7 @@ function openAlertsModal(){
   
   if(alerts.length === 0){
     body.innerHTML = '<div class="alerts-modal-empty">'+
-      '<div class="alerts-modal-empty-icon">✅</div>'+
+      '<div class="alerts-modal-empty-icon"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#3BC292" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 5-5.5"/></svg></div>'+
       '<div class="alerts-modal-empty-title">Todo en orden</div>'+
       '<div class="alerts-modal-empty-sub">No hay alertas en este período</div>'+
     '</div>';
@@ -7576,10 +7584,10 @@ async function exportarDashboardExcel(){
         ['Servicios adicionales — Período: ' + periodoLabel],
         [],
         ['Servicio', 'Cotizaciones con el servicio', '% del total'],
-        ['🔄 Portabilidad', f.conPortabilidad||0, pctF(f.conPortabilidad||0)],
-        ['🛡️ Seguro', f.conSeguro||0, pctF(f.conSeguro||0)],
-        ['📡 Control', f.conControl||0, pctF(f.conControl||0)],
-        ['🎧 Accesorios', f.conAccesorios||0, pctF(f.conAccesorios||0)],
+        ['Portabilidad', f.conPortabilidad||0, pctF(f.conPortabilidad||0)],
+        ['Seguro', f.conSeguro||0, pctF(f.conSeguro||0)],
+        ['Control', f.conControl||0, pctF(f.conControl||0)],
+        ['Accesorios', f.conAccesorios||0, pctF(f.conAccesorios||0)],
         [],
         ['Total cotizaciones', totalCotiz, '']
       ];
@@ -7726,7 +7734,7 @@ async function reloadDashboard(){
     }
   }catch(e){
     console.error('[Dashboard] error:',e);
-    body.innerHTML='<div class="dash-empty">⚠️ No se pudieron cargar los datos. Verifica tu conexión y reintenta.</div>';
+    body.innerHTML='<div class="dash-empty">No se pudieron cargar los datos. Verifica tu conexión y reintenta.</div>';
   }
 }
 
@@ -7769,7 +7777,7 @@ function renderCRMSeccion(crmStats){
   
   let html = '<div class="dash-section dash-crm-section">';
   html += '<div class="dash-section-title">';
-  html += '<span style="display:flex;align-items:center;gap:6px">📋 Prospectos del período</span>';
+  html += '<span style="display:flex;align-items:center;gap:6px">Prospectos del período</span>';
   if(totalConTipo > 0){
     html += '<span class="dash-section-count">'+totalConTipo+'</span>';
   }
@@ -7780,7 +7788,6 @@ function renderCRMSeccion(crmStats){
   // Card POSPAGO
   html += '<div class="dash-crm-card dash-crm-pospago">';
   html += '<div class="dash-crm-card-header">';
-  html += '<span class="dash-crm-card-icon">📱</span>';
   html += '<span class="dash-crm-card-label">POSPAGO</span>';
   html += '</div>';
   html += '<div class="dash-crm-card-total">'+p.total+'</div>';
@@ -7800,7 +7807,6 @@ function renderCRMSeccion(crmStats){
   // Card RENOVACIÓN
   html += '<div class="dash-crm-card dash-crm-renovacion">';
   html += '<div class="dash-crm-card-header">';
-  html += '<span class="dash-crm-card-icon">🔄</span>';
   html += '<span class="dash-crm-card-label">RENOVACIÓN</span>';
   html += '</div>';
   html += '<div class="dash-crm-card-total">'+r.total+'</div>';
@@ -7822,7 +7828,6 @@ function renderCRMSeccion(crmStats){
   // Aviso de prospectos sin tipo (clientes legacy)
   if(sinTipoTotal > 0){
     html += '<div class="dash-crm-footer-note">';
-    html += '<span class="dash-crm-footer-icon">ℹ️</span>';
     html += sinTipoTotal + ' prospecto'+(sinTipoTotal===1?'':'s')+' sin tipo (registro previo a esta versión)';
     html += '</div>';
   }
@@ -7861,14 +7866,13 @@ function renderFeaturesSeccion(stats){
   
   let html = '<div class="dash-section dash-features-section">';
   html += '<div class="dash-section-title">';
-  html += '<span style="display:flex;align-items:center;gap:6px">🎯 Servicios adicionales</span>';
+  html += '<span style="display:flex;align-items:center;gap:6px">Servicios adicionales</span>';
   html += '<span class="dash-section-count">'+total.toLocaleString('es-MX')+' cotiz</span>';
   html += '</div>';
   
   // [v1.9.21.1] Mensaje si todavía no hay datos
   if(sinDatos){
     html += '<div class="dash-features-empty">';
-    html += '<div class="dash-features-empty-icon">⏳</div>';
     html += '<div class="dash-features-empty-title">Aún no hay datos en este período</div>';
     html += '<div class="dash-features-empty-sub">Las métricas de portabilidad, seguro, control y accesorios se acumulan a partir de v1.9.21. Los datos históricos se rellenarán con el script.</div>';
     html += '</div>';
@@ -7881,7 +7885,7 @@ function renderFeaturesSeccion(stats){
   
   // Portabilidad
   html += '<div class="dash-feature-card dash-feature-port">';
-  html += '<div class="dash-feature-icon">🔄</div>';
+  html += '<div class="dash-feature-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div>';
   html += '<div class="dash-feature-body">';
   html += '<div class="dash-feature-label">Portabilidad</div>';
   html += '<div class="dash-feature-value">'+port.toLocaleString('es-MX')+'</div>';
@@ -7892,7 +7896,7 @@ function renderFeaturesSeccion(stats){
   
   // Seguro
   html += '<div class="dash-feature-card dash-feature-seguro">';
-  html += '<div class="dash-feature-icon">🛡️</div>';
+  html += '<div class="dash-feature-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>';
   html += '<div class="dash-feature-body">';
   html += '<div class="dash-feature-label">Seguro</div>';
   html += '<div class="dash-feature-value">'+seg.toLocaleString('es-MX')+'</div>';
@@ -7903,7 +7907,7 @@ function renderFeaturesSeccion(stats){
   
   // Control
   html += '<div class="dash-feature-card dash-feature-control">';
-  html += '<div class="dash-feature-icon">📡</div>';
+  html += '<div class="dash-feature-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12.55a11 11 0 0 1 14.08 0M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor" stroke="none"/></svg></div>';
   html += '<div class="dash-feature-body">';
   html += '<div class="dash-feature-label">Control</div>';
   html += '<div class="dash-feature-value">'+ctrl.toLocaleString('es-MX')+'</div>';
@@ -7914,7 +7918,7 @@ function renderFeaturesSeccion(stats){
   
   // Accesorios
   html += '<div class="dash-feature-card dash-feature-acc">';
-  html += '<div class="dash-feature-icon">🎧</div>';
+  html += '<div class="dash-feature-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg></div>';
   html += '<div class="dash-feature-body">';
   html += '<div class="dash-feature-label">Accesorios</div>';
   html += '<div class="dash-feature-value">'+acc.toLocaleString('es-MX')+'</div>';
@@ -7959,7 +7963,7 @@ function renderFeaturesSeccion(stats){
   // Si no hay datos todavía, mostrar mensaje explicativo en vez de ocultar.
   const topAcc = f.topAccesorios || [];
   html += '<div class="dash-features-acc-top">';
-  html += '<div class="dash-features-acc-top-title">🏆 Top accesorios más cotizados</div>';
+  html += '<div class="dash-features-acc-top-title">Top accesorios más cotizados</div>';
   if(topAcc.length > 0){
     const maxAcc = topAcc[0] ? topAcc[0][1] : 1;
     topAcc.forEach(function(entry, idx){
@@ -8362,7 +8366,7 @@ function renderHeatmapHTML(data){
   html += '</div>';
 
   if(peakHour >= 0 && maxVal > 0){
-    html += '<div class="dash-heatmap-peak">🔥 Hora pico: <b>'+fmtHour(peakHour)+'</b> ('+fmtHour12(peakHour)+') con '+maxVal.toLocaleString('es-MX')+' cotiz.</div>';
+    html += '<div class="dash-heatmap-peak">Hora pico: <b>'+fmtHour(peakHour)+'</b> ('+fmtHour12(peakHour)+') con '+maxVal.toLocaleString('es-MX')+' cotiz.</div>';
   }
 
   html += '</div>'; // dash-section
@@ -8788,7 +8792,7 @@ function aiRenderInitial(){
   // Si no hay key → mostrar gate
   if(!aiGetKey()){
     body.innerHTML = '<div class="ai-key-gate">'
-      +'<h3>🔑 Configurar Gemini</h3>'
+      +'<h3>Configurar Gemini</h3>'
       +'<p>Antes de empezar, necesitas una API key gratis de Google AI Studio. Se guarda <strong>sólo en este dispositivo</strong>, nunca se sube a GitHub.</p>'
       +'<ol>'
       +'<li>Abre <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a></li>'
@@ -11074,7 +11078,7 @@ async function generateFlyerImage(){
   try{
     await loadVendors();
   }catch(e){
-    alert('⚠️ ' + e.message);
+    alert(e.message);
     return;
   }
   
@@ -11104,7 +11108,7 @@ async function generateFlyerImage(){
     console.error('[flyer] buildFlyerHTML falló:', buildErr);
     const previewLoading2 = document.getElementById('flyer-preview-loading');
     if(previewLoading2){
-      previewLoading2.innerHTML = '<div style="color:var(--ios-red)">⚠️ Error armando la cotización: '+(buildErr && buildErr.message ? buildErr.message : 'desconocido')+'</div>';
+      previewLoading2.innerHTML = '<div style="color:var(--ios-red)">Error armando la cotización: '+(buildErr && buildErr.message ? buildErr.message : 'desconocido')+'</div>';
     }
     return;
   }
@@ -11153,7 +11157,7 @@ async function generateFlyerImage(){
       else if(e.message) errMsg = e.message;
       else if(e.toString) errMsg = e.toString();
     }
-    previewLoading.innerHTML = '<div style="color:var(--ios-red)">⚠️ Error generando imagen: '+errMsg+'</div>';
+    previewLoading.innerHTML = '<div style="color:var(--ios-red)">Error generando imagen: '+errMsg+'</div>';
   }
 }
 
@@ -11316,12 +11320,12 @@ function revertirCotizacionEncolada(cotizacionId){
 function cotSendImage(){
   // [v1.9.22] No chequeamos vendors aquí — generateFlyerImage hace loadVendors()
   if(!cotState || !cotState.device){
-    alert('⚠️ Sin datos. Vuelve a abrir cotización.');
+    alert('Sin datos. Vuelve a abrir cotización.');
     return;
   }
   if(!cotValidarTipo()) return; // [v1.10.25] tipo obligatorio
   generateFlyerImage().catch(function(err){
-    alert('⚠️ Error: ' + err.message);
+    alert('Error: ' + err.message);
   });
 }
 

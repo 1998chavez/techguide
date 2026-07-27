@@ -9,23 +9,23 @@
 <title>Comisiones · Ejecutivo — TechGuide</title>
 <style>
 :root{
-  --bg:#000;--surface:#1C1C1E;--surface2:#2C2C2E;--surface3:#3A3A3C;
-  --label:#FFF;--label2:#EBEBF5;--label3:#8E8E93;--label4:#48484A;--sep:rgba(255,255,255,0.10);
-  --tint:rgba(255,255,255,.04);--shadow:rgba(0,0,0,.4);
-  --att-cyan:#5BC2E7;--att-blue:#00A8E0;
+  --bg:#080D16;--surface:#0F1622;--surface2:#16202E;--surface3:#1F2B3C;
+  --label:#EDF2F8;--label2:#D7E0EB;--label3:#8A97A9;--label4:#414E5F;--sep:rgba(237,242,248,0.10);
+  --tint:rgba(255,255,255,.045);--shadow:rgba(0,0,0,.45);
+  --att-cyan:#4DB4EC;--att-blue:#31A5E5;
   --orange:#FF9F0A;--orange-deep:#FF6B00;--green:#30D158;--red:#FF453A;--amber:#FFD60A;
-  --t-green:#5BE584;--t-cyan:#5BC2E7;--t-red:#FF8A80;--t-amber:#FFD60A;
+  --t-green:#3BC292;--t-cyan:#4DB4EC;--t-red:#FF8A80;--t-amber:#FFD60A;
   --r-xl:22px;--r-lg:16px;--r-md:12px;--r-sm:9px;
   --fd:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",system-ui,sans-serif;
   --fm:"SF Mono","Roboto Mono",ui-monospace,monospace;--ease:cubic-bezier(.16,1,.3,1);
 }
 :root[data-theme="light"]{
-  --bg:#F2F2F7;--surface:#FFFFFF;--surface2:#EFEFF4;--surface3:#E3E3E8;
-  --label:#000;--label2:#1C1C1E;--label3:#8E8E93;--label4:#B8B8BE;--sep:rgba(0,0,0,0.09);
-  --tint:rgba(0,0,0,.035);--shadow:rgba(0,0,0,.10);
-  --att-cyan:#0090C4;--att-blue:#0090C4;
+  --bg:#F3F5F8;--surface:#FFFFFF;--surface2:#EBEFF4;--surface3:#DFE5EC;
+  --label:#0B1524;--label2:#24303F;--label3:#6D7B8E;--label4:#B3BDC9;--sep:rgba(11,21,36,0.10);
+  --tint:rgba(11,21,36,.04);--shadow:rgba(11,21,36,.10);
+  --att-cyan:#0E7DBE;--att-blue:#0E7DBE;
   --orange:#EE7600;--orange-deep:#D35E00;--green:#1E9E45;--red:#D0291C;--amber:#B58A00;
-  --t-green:#1E9E45;--t-cyan:#0090C4;--t-red:#C0271B;--t-amber:#8A6A00;
+  --t-green:#178A66;--t-cyan:#0B6AA2;--t-red:#C0271B;--t-amber:#8A6A00;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
@@ -208,7 +208,7 @@ select:focus,input:focus{border-color:var(--att-blue)}
     <div class="inccard" id="incCard"></div>
     <div class="simnote">Las cantidades son una <b>simulación informativa</b> y no representan el cobro real.</div>
     <button class="pdf" onclick="abrirEsquema()">
-      <span class="pi">📄</span><span class="pt">Esquema de comisiones<small>Reglas e incentivos del Ejecutivo · PDF</small></span><span class="pc">↓</span>
+      <span class="pi"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8M8 17h5"/></svg></span><span class="pt">Esquema de comisiones<small>Reglas e incentivos del Ejecutivo · PDF</small></span><span class="pc">↓</span>
     </button>
   </div>
 
@@ -219,13 +219,13 @@ select:focus,input:focus{border-color:var(--att-blue)}
     <div class="shead" id="shead"><button class="sb" onclick="toStep1()">‹</button><h2 id="sttl">¿Qué registraste?</h2></div>
     <div id="step1">
       <div class="types">
-        <button class="ty" onclick="pick('pospago')"><div class="te">📱</div><div class="tt">Pospago</div><div class="ts">Línea nueva con plan</div></button>
-        <button class="ty" onclick="pick('renov')"><div class="te">🔄</div><div class="tt">Renovación</div><div class="ts">Con equipo, según antigüedad</div></button>
-        <button class="ty" onclick="pick('migra')"><div class="te">🔀</div><div class="tt">Migración</div><div class="ts">Prepago → pospago</div></button>
-        <button class="ty" onclick="pick('prepago')"><div class="te">💳</div><div class="tt">Prepago</div><div class="ts">Recarga ≥ $150</div></button>
-        <button class="ty" onclick="pick('seguro')"><div class="te">🛡️</div><div class="tt">Seguro</div><div class="ts">Suelto · elige el plan</div></button>
-        <button class="ty" onclick="pick('acces')"><div class="te">🎧</div><div class="tt">Accesorio</div><div class="ts">Suelto · ALPHACOMM u otra</div></button>
-        <button class="ty full" onclick="pick('addon')"><div class="te">➕</div><div class="tt">Addon</div><div class="ts">Suelto · 80% de su valor</div></button>
+        <button class="ty" onclick="pick('pospago')"><div class="te"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg></div><div class="tt">Pospago</div><div class="ts">Línea nueva con plan</div></button>
+        <button class="ty" onclick="pick('renov')"><div class="te"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div><div class="tt">Renovación</div><div class="ts">Con equipo, según antigüedad</div></button>
+        <button class="ty" onclick="pick('migra')"><div class="te"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg></div><div class="tt">Migración</div><div class="ts">Prepago → pospago</div></button>
+        <button class="ty" onclick="pick('prepago')"><div class="te"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="1.5" y="4.5" width="21" height="15" rx="2.5"/><path d="M1.5 10h21"/></svg></div><div class="tt">Prepago</div><div class="ts">Recarga ≥ $150</div></button>
+        <button class="ty" onclick="pick('seguro')"><div class="te"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="tt">Seguro</div><div class="ts">Suelto · elige el plan</div></button>
+        <button class="ty" onclick="pick('acces')"><div class="te"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg></div><div class="tt">Accesorio</div><div class="ts">Suelto · ALPHACOMM u otra</div></button>
+        <button class="ty full" onclick="pick('addon')"><div class="te"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div><div class="tt">Addon</div><div class="ts">Suelto · 80% de su valor</div></button>
       </div>
     </div>
     <div id="step2" class="hide">
@@ -235,9 +235,9 @@ select:focus,input:focus{border-color:var(--att-blue)}
         <div class="seg fam"><button class="on" data-f="Premium">Premium</button><button data-f="Lite">Lite</button><button data-f="A Negocios">A Negocios</button></div>
         <div class="fld"><label>Plan</label><select class="selplan"></select></div>
         <div class="eqwrap"><p class="q">Equipo</p><div class="seg eq"><button class="on" data-e="nuevo">Equipo nuevo</button><button data-e="propio">Equipo propio</button></div></div>
-        <div class="eqsel"><p class="eqh">📱 ¿Qué equipo vendió?</p><div class="fld"><label>Marca</label><select class="selmarca"></select></div><div class="fld"><label>Modelo</label><select class="selmodelo"></select></div></div>
+        <div class="eqsel"><p class="eqh">¿Qué equipo vendió?</p><div class="fld"><label>Marca</label><select class="selmarca"></select></div><div class="fld"><label>Modelo</label><select class="selmodelo"></select></div></div>
         <p class="q sec">¿Llevó algo más? <span style="font-weight:500;text-transform:none">(opcional)</span></p>
-        <div class="exrow"><button type="button" class="exck" data-x="seguro">🛡️ Seguro</button><button type="button" class="exck" data-x="acces">🎧 Accesorios</button><button type="button" class="exck" data-x="addon">➕ Addon</button></div>
+        <div class="exrow"><button type="button" class="exck" data-x="seguro">Seguro</button><button type="button" class="exck" data-x="acces">Accesorios</button><button type="button" class="exck" data-x="addon">Addon</button></div>
         <div class="exf" data-x="seguro"><div class="fld" style="margin-bottom:0"><label>Seguro vinculado</label><select class="exseg"></select></div></div>
         <div class="exf" data-x="acces"><div class="seg exmarca"><button class="on" data-k="ALPHACOMM">ALPHACOMM</button><button data-k="otra">Otra marca</button></div><div class="exaccA"><div class="fld"><label>Accesorio · 10%</label><select class="exacc"></select></div></div><div class="exaccO hide"><div class="fld"><label>Valor · 2%</label><div class="money"><input type="number" class="examt" placeholder="0"></div></div></div><button type="button" class="addacc" onclick="addAcc(this)">＋ Agregar accesorio</button><div class="acchips"></div></div>
         <div class="exf" data-x="addon"><div class="fld" style="margin-bottom:0"><label>Valor del addon · 80%</label><div class="money"><input type="number" class="exadd" placeholder="0"></div></div></div>
@@ -251,9 +251,9 @@ select:focus,input:focus{border-color:var(--att-blue)}
         <div class="fld"><label>Plan</label><select class="selplan"></select></div>
         <p class="q">Antigüedad de la línea</p>
         <div class="seg dias"><button data-d="le180">≤ 180 días</button><button data-d="m180">181–360</button><button class="on" data-d="m360">+360 días</button></div>
-        <div class="eqsel"><p class="eqh">📱 Equipo de la renovación</p><div class="fld"><label>Marca</label><select class="selmarca"></select></div><div class="fld"><label>Modelo</label><select class="selmodelo"></select></div></div>
+        <div class="eqsel"><p class="eqh">Equipo de la renovación</p><div class="fld"><label>Marca</label><select class="selmarca"></select></div><div class="fld"><label>Modelo</label><select class="selmodelo"></select></div></div>
         <p class="q sec">¿Llevó algo más? <span style="font-weight:500;text-transform:none">(opcional)</span></p>
-        <div class="exrow"><button type="button" class="exck" data-x="seguro">🛡️ Seguro</button><button type="button" class="exck" data-x="acces">🎧 Accesorios</button><button type="button" class="exck" data-x="addon">➕ Addon</button></div>
+        <div class="exrow"><button type="button" class="exck" data-x="seguro">Seguro</button><button type="button" class="exck" data-x="acces">Accesorios</button><button type="button" class="exck" data-x="addon">Addon</button></div>
         <div class="exf" data-x="seguro"><div class="fld" style="margin-bottom:0"><label>Seguro vinculado</label><select class="exseg"></select></div></div>
         <div class="exf" data-x="acces"><div class="seg exmarca"><button class="on" data-k="ALPHACOMM">ALPHACOMM</button><button data-k="otra">Otra marca</button></div><div class="exaccA"><div class="fld"><label>Accesorio · 10%</label><select class="exacc"></select></div></div><div class="exaccO hide"><div class="fld"><label>Valor · 2%</label><div class="money"><input type="number" class="examt" placeholder="0"></div></div></div><button type="button" class="addacc" onclick="addAcc(this)">＋ Agregar accesorio</button><div class="acchips"></div></div>
         <div class="exf" data-x="addon"><div class="fld" style="margin-bottom:0"><label>Valor del addon · 80%</label><div class="money"><input type="number" class="exadd" placeholder="0"></div></div></div>
@@ -268,7 +268,7 @@ select:focus,input:focus{border-color:var(--att-blue)}
         <div class="fld"><label>Plan</label><select class="selplan"></select></div>
         <p class="q">¿Llevó equipo?</p>
         <div class="seg mig"><button class="on" data-g="con">Con equipo</button><button data-g="sin">Sin equipo</button></div>
-        <div class="eqsel"><p class="eqh">📱 ¿Qué equipo vendió?</p><div class="fld"><label>Marca</label><select class="selmarca"></select></div><div class="fld"><label>Modelo</label><select class="selmodelo"></select></div></div>
+        <div class="eqsel"><p class="eqh">¿Qué equipo vendió?</p><div class="fld"><label>Marca</label><select class="selmarca"></select></div><div class="fld"><label>Modelo</label><select class="selmodelo"></select></div></div>
         <div class="prev"><span class="pl">Comisión de esta venta</span><span class="pv">$0</span></div>
         <button class="addbtn" onclick="add('migra',this)">Agregar venta</button>
       </div>
@@ -329,7 +329,7 @@ const EQUIPOS={
   'Oppo':['Oppo A5','Oppo A5 Pro 4G','Oppo A5 Pro 5G','Oppo A58','Oppo A6','Oppo A6k','Oppo A6T','Oppo A6x','Oppo Find X9 Pro','Oppo Reno 13 5G','Oppo Reno14 BDL Headphones','Oppo Reno 14F','Oppo Reno 16F'],
   'Xiaomi':['Redmi Note 15','Redmi Note 15 Pro 5G','Xiaomi 15T','Xiaomi 15T Pro','Xiaomi 17T','Xiaomi 17T Pro','Xiaomi 17 Ultra','Xiaomi Redmi 15','Xiaomi Redmi 15C','Xiaomi Redmi A5','Xiaomi Redmi A7 Pro']
 };
-const ICON={pospago:['📱','c1'],renov:['🔄','c2'],migra:['🔀','c4'],prepago:['💳','c1'],seguro:['🛡️','c3'],acces:['🎧','c2'],addon:['➕','c2']};
+const ICON={pospago:['<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>','c1'],renov:['<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>','c2'],migra:['<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>','c4'],prepago:['<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1.5" y="4.5" width="21" height="15" rx="2.5"/><path d="M1.5 10h21"/></svg>','c1'],seguro:['<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>','c3'],acces:['<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>','c2'],addon:['<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>','c2']};
 const fmt=n=>Math.round(n).toLocaleString('es-MX');
 
 // [v1.11.23] Alcance de TIENDA: hoy NO hay fuente real. Se calcula sumando las
@@ -452,7 +452,7 @@ window.pmdSyncDesktop=function(){var sw=document.getElementById('pmd-desktop-sw'
   if(saved==='1')document.documentElement.setAttribute('data-desktop','1');
 })();
 
-function toggleTheme(){const el=document.documentElement;const isLight=el.getAttribute('data-theme')==='light';el.setAttribute('data-theme',isLight?'dark':'light');var _tb=document.getElementById('themeBtn');if(_tb)_tb.textContent=isLight?'☀️':'🌙';if(typeof pmdSyncTheme==='function')pmdSyncTheme();}
+function toggleTheme(){const el=document.documentElement;const isLight=el.getAttribute('data-theme')==='light';el.setAttribute('data-theme',isLight?'dark':'light');var _tb=document.getElementById('themeBtn');if(_tb)_tb.innerHTML=isLight?'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.5 4.5l1.8 1.8M17.7 17.7l1.8 1.8M19.5 4.5l-1.8 1.8M6.3 17.7l-1.8 1.8"/></svg>':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';if(typeof pmdSyncTheme==='function')pmdSyncTheme();}
 let _refreshing=false;
 async function refreshDash(){if(_refreshing)return;_refreshing=true;var b=document.getElementById('refreshBtn');if(b)b.classList.add('spin');try{await cargarSemana();}catch(e){console.error('refresh',e);}if(b)b.classList.remove('spin');_refreshing=false;}
 function irInicio(){if(esGerente){location.href='index.html';return;}if(history.length>1){history.back();}else{location.href='index.html';}}
@@ -476,14 +476,14 @@ function recalcHero(){
   document.getElementById('payAmt').textContent=fmt(pay);
   const incEqFull=incEquipoList().reduce((s,e)=>s+e.monto,0),incMixFull=incMixCalc().monto,inc7Full=(lines>=7&&(ALCANCE.seguro||0)>=0.80)?Math.round(segSum*0.10):0;
   const genPot=gen+incEqFull+incMixFull+inc7Full,bloq=Math.max(0,genPot-pay);
-  const acumTag=genPot<=0?'':(bloq>0?'<span class="acbloq">🔒 $'+fmt(bloq)+' sin liberar</span>':'<span class="acok">✓ liberado</span>');
+  const acumTag=genPot<=0?'':(bloq>0?'<span class="acbloq">$'+fmt(bloq)+' sin liberar</span>':'<span class="acok">✓ liberado</span>');
   document.getElementById('acumRow').innerHTML=`<span class="acl">Generado en total ${acumTag}</span><span class="acv">$${fmt(genPot)}</span>`;
   const lc=document.getElementById('lockChip');
   lc.className='lockchip '+(accede?'on':'off');
   lc.textContent=accede?('✓ Comisiones liberadas · pospago '+Math.round(ALCANCE.pospago*100)+'%')
-    :(!ALCANCE_LISTO?'🔒 Alcance de tu tienda pendiente · falta cargar la cuota'
-      :(!libreGral?('🔒 Tu tienda al 80% de pospago para liberar · va '+Math.round(ALCANCE.pospago*100)+'%')
-        :('🔒 Te '+(pos===1?'falta 1 venta':'faltan '+(2-pos)+' ventas')+' de pospago para cobrar')));
+    :(!ALCANCE_LISTO?'Alcance de tu tienda pendiente · falta cargar la cuota'
+      :(!libreGral?('Tu tienda al 80% de pospago para liberar · va '+Math.round(ALCANCE.pospago*100)+'%')
+        :('Te '+(pos===1?'falta 1 venta':'faltan '+(2-pos)+' ventas')+' de pospago para cobrar')));
   const alcEl=document.getElementById('alcVal');
   alcEl.textContent=ALCANCE_LISTO?(Math.round(ALCANCE.pospago*100)+'%'):'Sin datos';
   alcEl.style.color=!ALCANCE_LISTO?'var(--label3)':(libreGral?'var(--t-green)':'var(--t-amber)');
@@ -504,7 +504,7 @@ function recalcHero(){
   if(!ALCANCE_LISTO)wn.push('El alcance de tu tienda aún no está disponible: falta cargar la cuota y sumar las ventas de toda la tienda. El cobro se libera cuando esté listo.');
   else if(!libreGral)wn.push('Tu tienda aún no llega al 80% de pospago: no se libera nada (ni seguros ni accesorios).');
   if(!esGerente&&pos<2)wn.push(`Te ${pos===1?'falta 1 venta':'faltan '+(2-pos)+' ventas'} de pospago esta semana para acceder a comisiones.`);
-  document.getElementById('warns').innerHTML=wn.map(t=>`<div class="warn">⚠ ${t}</div>`).join('');
+  document.getElementById('warns').innerHTML=wn.map(t=>`<div class="warn">${t}</div>`).join('');
   renderInc();
 }
 
@@ -512,7 +512,7 @@ function recalcHero(){
 function renderList(){
   const w=document.getElementById('listWrap');
   let lines=0;ventas.forEach(v=>{if(v.line)lines++;});
-  if(!ventas.length){w.innerHTML='<div class="empty"><div class="em">🧾</div><p>Aún no registras ventas esta semana.<br>Toca <b style="color:var(--orange)">Registrar venta</b> para empezar.</p></div>';recalcHero();return;}
+  if(!ventas.length){w.innerHTML='<div class="empty"><p>Aún no registras ventas esta semana.<br>Toca <b style="color:var(--orange)">Registrar venta</b> para empezar.</p></div>';recalcHero();return;}
   let h='';
   GRUPOS.forEach(g=>{
     const items=ventas.map((v,i)=>({v,i})).filter(o=>o.v.tipo===g.k);
@@ -658,12 +658,12 @@ document.getElementById('weeks').addEventListener('click',e=>{const b=e.target.c
 
 /* ---------- Firestore: cargar / guardar ventas reales ---------- */
 async function cargarSemana(){
-  if(!ASESOR){document.getElementById('listWrap').innerHTML='<div class="empty"><div class="em">🔒</div><p>Inicia sesión en TechGuide para ver y registrar tus ventas.</p></div>';return;}
-  if(!window.TG_FB){document.getElementById('listWrap').innerHTML='<div class="empty"><div class="em">⏳</div><p>Cargando tus ventas…</p></div>';return;}
-  document.getElementById('listWrap').innerHTML='<div class="empty"><div class="em">⏳</div><p>Cargando tus ventas…</p></div>';
+  if(!ASESOR){document.getElementById('listWrap').innerHTML='<div class="empty"><p>Inicia sesión en TechGuide para ver y registrar tus ventas.</p></div>';return;}
+  if(!window.TG_FB){document.getElementById('listWrap').innerHTML='<div class="empty"><p>Cargando tus ventas…</p></div>';return;}
+  document.getElementById('listWrap').innerHTML='<div class="empty"><p>Cargando tus ventas…</p></div>';
   let arr=[];
   try{arr=await window.TG_FB.loadVentas(ASESOR.attuid,periodoActivo());}
-  catch(e){console.error(e);ventas=[];recalcHero();document.getElementById('listWrap').innerHTML='<div class="empty"><div class="em">⚠️</div><p>No se pudieron cargar las ventas.<br>Revisa tu conexión e inténtalo de nuevo.</p></div>';return;}
+  catch(e){console.error(e);ventas=[];recalcHero();document.getElementById('listWrap').innerHTML='<div class="empty"><p>No se pudieron cargar las ventas.<br>Revisa tu conexión e inténtalo de nuevo.</p></div>';return;}
   const padres={};
   arr.forEach(v=>{v.id=newId();if(!v.esHijo&&v.grupo)padres[v.grupo]=v.id;});
   arr.forEach(v=>{if(v.esHijo&&v.grupo&&padres[v.grupo])v.link=padres[v.grupo];});
@@ -708,7 +708,7 @@ async function guardarVentas(arr){
   if(!window.TG_FB||!ASESOR){toast('No hay sesión · no se guardó',true);return;}
   const per=periodoActivo();let ok=true;
   for(const v of arr){try{v.fid=await window.TG_FB.addVenta(v,ASESOR.attuid,per,ASESOR.tienda||ASESOR.sucursal||'');}catch(e){ok=false;console.error('No se guardó la venta en Firestore',e);}}
-  toast(ok?'✓ Guardado en la nube':'⚠ No se pudo guardar · reintenta',!ok);
+  toast(ok?'✓ Guardado en la nube':'No se pudo guardar · reintenta',!ok);
   cargarAlcanceTienda();
 }
 window.bootComisiones=cargarSemana;
@@ -736,31 +736,7 @@ window.TG_FB={
 };
 if(window.bootComisiones)window.bootComisiones();
 </script>
-<style>
-.pmd-overlay{position:fixed;inset:0;z-index:1200;background:rgba(9,13,22,.44);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:opacity .26s cubic-bezier(.32,.72,0,1),visibility .26s}
-.pmd-overlay.on{opacity:1;visibility:visible}
-.pmd-drawer{position:fixed;top:0;left:0;bottom:0;z-index:1201;width:84%;max-width:328px;background:var(--surface);box-shadow:0 18px 60px rgba(0,0,0,.5);transform:translateX(-102%);transition:transform .28s cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0)}
-.pmd-drawer.on{transform:none}
-.pmd-head{padding:22px 20px 18px;display:flex;align-items:center;gap:13px;width:100%;background:transparent;border:none;border-bottom:1px solid var(--sep);cursor:pointer;font-family:inherit;text-align:left;transition:background .16s ease}
-.pmd-head:hover{background:var(--surface2)}
-.pmd-avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--att-blue),#0071BC);color:#fff;font-weight:700;font-size:17px;flex-shrink:0}
-.pmd-who b{display:block;font-size:16px;font-weight:800;color:var(--label);letter-spacing:-.01em}
-.pmd-who span{display:block;font-size:12.5px;color:var(--label3);margin-top:2px;font-weight:500}
-.pmd-head-chev{width:18px;height:18px;color:var(--label3);flex-shrink:0;margin-left:auto}
-.pmd-nav{padding:12px;display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto}
-.pmd-item{display:flex;align-items:center;gap:14px;padding:13px 14px;border-radius:12px;background:transparent;border:none;color:var(--label);font-size:15px;font-weight:600;letter-spacing:-.01em;width:100%;text-align:left;cursor:pointer;font-family:inherit;transition:background .16s ease,transform .1s ease}
-.pmd-item svg{width:20px;height:20px;color:var(--label3);flex-shrink:0;stroke-width:1.9;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
-.pmd-item:hover{background:var(--surface2)}
-.pmd-item:active{transform:scale(.98)}
-.pmd-sep{height:1px;background:var(--sep);margin:10px 14px}
-.pmd-danger{color:var(--red)} .pmd-danger svg{color:var(--red)}
-.pmd-switch{width:38px;height:22px;border-radius:999px;background:var(--sep);position:relative;transition:background .2s ease;flex-shrink:0}
-.pmd-switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s ease}
-.pmd-switch.on{background:var(--att-blue)}
-.pmd-switch.on::after{transform:translateX(16px)}
-.pmd-foot{padding:14px 22px calc(16px + env(safe-area-inset-bottom,0));font-size:11px;color:var(--label3);border-top:1px solid var(--sep);font-weight:600}
-.pmd-foot b{font-weight:800;color:var(--label)} .pmd-foot b span{color:var(--att-blue)}
-</style>
+<link rel="stylesheet" href="comisiones-ui.css">
 <div class="pmd-overlay" id="pmd-overlay" onclick="pmdClose()"></div>
 <aside class="pmd-drawer" id="pmd-drawer" aria-label="Menú de navegación">
   <button class="pmd-head" onclick="pmdGo('perfil')" aria-label="Editar perfil">

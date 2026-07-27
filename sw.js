@@ -32,6 +32,9 @@ const OFFLINE_ASSETS = [
   // [v1.11.62] incentivos.js va SIN ?v=: es chico y se sirve stale-while-revalidate
   // para que los tableros (que no tienen BUILD_ID propio) puedan pedirlo igual.
   SCOPE + 'incentivos.js',
+  // [v1.12.3] UI compartida de los tableros de comisiones (drawer). Sin ?v=:
+  // igual que incentivos.js, stale-while-revalidate.
+  SCOPE + 'comisiones-ui.css',
   SCOPE + 'app.js?v=' + BUILD_ID,
   SCOPE + 'vendors.js?v=' + BUILD_ID,
   SCOPE + 'catalog.js?v=' + BUILD_ID,

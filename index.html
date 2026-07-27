@@ -57,7 +57,7 @@ const APP_VERSION = 'v1.11.79';</script>
   --r-xl:20px;--r-lg:16px;--r-md:12px;--r-sm:8px;
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bot:env(safe-area-inset-bottom,0px);
-  --transition:cubic-bezier(.34,1.56,.64,1);
+  --transition:cubic-bezier(.32,.72,0,1);
   --easing:cubic-bezier(.16,1,.3,1);
 }
 [data-theme="dark"]{
@@ -75,11 +75,11 @@ const APP_VERSION = 'v1.11.79';</script>
   --elev-4:0 24px 48px rgba(0,0,0,0.8);
   --att-blue:#5BC2E7;--att-blue-dark:#00A8E0;
 }
-[data-theme="dark"] .nav{background:rgba(28,28,30,0.85)!important}
+[data-theme="dark"] .nav{background:rgba(8,13,22,0.82)!important}
 [data-theme="dark"] .home-hero{background:linear-gradient(135deg,#000 0%,#0F1729 50%,#1A2440 100%)!important}
 [data-theme="dark"] .stat-card,
-[data-theme="dark"] .d-card,
 [data-theme="dark"] .momento-card,
+[data-theme="dark"] .d-card{background:var(--hv2-card)!important;color:var(--label)}
 [data-theme="dark"] .os-btn,
 [data-theme="dark"] .spec-card,
 [data-theme="dark"] .price-result-card,
@@ -99,86 +99,96 @@ const APP_VERSION = 'v1.11.79';</script>
 /* ═══ [v1.10.39] HOME REINVENTADO ═══════════════════════════════════════════
    Paleta propia del home v2. Funciona en claro y oscuro mediante variables. */
 :root{
-  --hv2-bg:#EEF1F5; --hv2-card:#FFFFFF; --hv2-card-soft:#F4F6F9;
-  --hv2-ink:#0A1018; --hv2-ink2:#5B6573; --hv2-ink3:#8B95A3;
-  --hv2-line:rgba(10,16,24,0.08); --hv2-accent:#185FA5; --hv2-accent-soft:rgba(24,95,165,0.08);
+  --hv2-bg:#F3F5F8; --hv2-card:#FFFFFF; --hv2-card-soft:#EBEFF4;
+  --hv2-ink:#0B1524; --hv2-ink2:#4E5B6C; --hv2-ink3:#6D7B8E;
+  --hv2-line:rgba(11,21,36,0.10); --hv2-accent:#0E7DBE; --hv2-accent-ink:#0B6AA2; --hv2-accent-soft:rgba(14,125,190,0.09);
+  --hv2-navy:#13203E; --hv2-pos:#178A66; --hv2-warn:#B97F1F; --hv2-neg:#C24A43;
+  --hv2-shadow-1:0 1px 2px rgba(11,21,36,.05);
+  --hv2-shadow-2:0 8px 24px -12px rgba(11,21,36,.22);
 }
 [data-theme="dark"]{
-  --hv2-bg:#070B11; --hv2-card:rgba(255,255,255,0.045); --hv2-card-soft:rgba(255,255,255,0.06);
-  --hv2-ink:#F2F5F8; --hv2-ink2:#8B95A3; --hv2-ink3:#5B6573;
-  --hv2-line:rgba(255,255,255,0.09); --hv2-accent:#378ADD; --hv2-accent-soft:rgba(56,138,221,0.1);
+  --hv2-bg:#080D16; --hv2-card:#0F1622; --hv2-card-soft:rgba(255,255,255,0.055);
+  --hv2-ink:#EDF2F8; --hv2-ink2:#93A0B2; --hv2-ink3:#69788D;
+  --hv2-line:rgba(237,242,248,0.10); --hv2-accent:#31A5E5; --hv2-accent-ink:#4DB4EC; --hv2-accent-soft:rgba(49,165,229,0.12);
+  --hv2-navy:#101A30; --hv2-pos:#3BC292; --hv2-warn:#D9A03C; --hv2-neg:#E2716A;
+  --hv2-shadow-1:0 1px 2px rgba(0,0,0,.4);
+  --hv2-shadow-2:0 12px 28px -12px rgba(0,0,0,.6);
 }
 @keyframes hv2Rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-@keyframes hv2Pulse{0%,100%{box-shadow:0 0 0 0 rgba(56,138,221,.45)}50%{box-shadow:0 0 0 13px rgba(56,138,221,0)}}
-@keyframes hv2Glow{0%,100%{opacity:.45}50%{opacity:.85}}
 .home-v2-scroll{background:var(--hv2-bg);min-height:100%}
 .home-v2{padding:calc(var(--safe-top) + 16px) 16px calc(var(--safe-bot) + 24px);position:relative;overflow:hidden}
-.home-v2::before{content:"";position:absolute;width:260px;height:260px;border-radius:50%;top:-100px;right:-80px;
-  background:radial-gradient(circle,var(--hv2-accent-soft),transparent 70%);animation:hv2Glow 5s ease-in-out infinite;pointer-events:none}
+.home-v2::before{content:none}
 .hv2-rise{opacity:0;animation:hv2Rise .55s cubic-bezier(.2,.7,.2,1) forwards;animation-delay:var(--d,0s)}
 .home-v2 button{-webkit-tap-highlight-color:transparent;font-family:inherit}
 .hv2-topbar{display:flex;justify-content:space-between;align-items:center;position:relative}
-.hv2-brand{color:var(--hv2-ink2);font-size:12px;font-weight:700;letter-spacing:2px}
-.hv2-brand span{opacity:.55}
+.hv2-brand{color:var(--hv2-ink);font-size:13px;font-weight:800;letter-spacing:3px}
+.hv2-brand b{color:var(--hv2-accent);font-weight:800}
+.hv2-brand span{color:var(--hv2-ink3);font-weight:700}
 .hv2-topbar-right{display:flex;gap:7px;align-items:center}
 .hv2-icon-btn{width:32px;height:32px;border-radius:50%;border:none;background:var(--hv2-card-soft);
   font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .12s ease}
 .hv2-icon-btn:active{transform:scale(.9)}
+.hv2-icon-btn:hover{background:var(--hv2-line)}
 .home-v2 .refresh-chip{background:var(--hv2-card-soft);color:var(--hv2-ink2);border:none}
-.hv2-hello{margin-top:26px;margin-bottom:8px;position:relative}
-.hv2-hello-sub{color:var(--hv2-ink2);font-size:13px;letter-spacing:.01em}
-.hv2-hello-title{color:var(--hv2-ink);font-size:31px;font-weight:700;line-height:1.18;margin-top:6px;letter-spacing:-.02em}
-.hv2-pulse{margin-top:18px;display:flex;align-items:stretch;background:var(--hv2-card);border:.5px solid var(--hv2-line);
-  border-radius:16px;padding:14px 4px;position:relative}
-.hv2-pulse-item{flex:1;text-align:center;padding:0 8px}
-.hv2-pulse-div{width:.5px;background:var(--hv2-line)}
-.hv2-pulse-num{font-size:25px;font-weight:700;color:var(--hv2-accent);line-height:1}
-.hv2-pulse-num-crm{color:#1D9E75}
-.hv2-pulse-lbl{font-size:11px;color:var(--hv2-ink3);margin-top:4px}
-.hv2-meta-bar{margin:8px auto 0;width:72%;height:5px;border-radius:3px;background:var(--hv2-line);overflow:hidden}
-.hv2-meta-fill{height:100%;width:0;border-radius:3px;background:linear-gradient(90deg,#378ADD,#5BA3E8);
+.hv2-hello{margin-top:28px;margin-bottom:10px;position:relative}
+.hv2-hello-sub{color:var(--hv2-ink3);font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
+.hv2-hello-title{color:var(--hv2-ink);font-size:29px;font-weight:800;line-height:1.15;margin-top:7px;letter-spacing:-.025em;text-wrap:balance}
+.hv2-pulse{margin-top:18px;display:flex;align-items:stretch;background:var(--hv2-card);border:1px solid var(--hv2-line);
+  border-radius:14px;padding:16px 2px;position:relative;box-shadow:var(--hv2-shadow-1)}
+.hv2-pulse-item{flex:1;text-align:left;padding:0 18px;min-width:0}
+.hv2-pulse-div{width:1px;background:var(--hv2-line)}
+.hv2-pulse-num{font-size:28px;font-weight:750;color:var(--hv2-ink);line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hv2-pulse-num-crm{color:var(--hv2-pos)}
+.hv2-pulse-lbl{font-size:10px;color:var(--hv2-ink3);margin-top:6px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.hv2-meta-bar{margin:10px 0 0;width:82%;height:3px;border-radius:2px;background:var(--hv2-card-soft);overflow:hidden}
+[data-theme="dark"] .hv2-meta-bar{background:rgba(255,255,255,.09)}
+.hv2-meta-fill{height:100%;width:0;border-radius:2px;background:var(--hv2-accent);
   transition:width .9s cubic-bezier(.2,.7,.2,1)}
-.hv2-racha{margin-top:9px;display:flex;align-items:center;justify-content:center;gap:6px;
-  background:rgba(239,159,39,.1);border:.5px solid rgba(239,159,39,.28);border-radius:11px;padding:8px 12px}
-.hv2-racha-ico{font-size:14px}
-.hv2-racha-txt{font-size:12px;font-weight:700;color:#EF9F27}
-.hv2-cta{margin-top:14px;width:100%;border:.5px solid rgba(56,138,221,.4);cursor:pointer;
-  display:flex;align-items:center;gap:14px;border-radius:18px;padding:17px 18px;position:relative;overflow:hidden;
-  background:var(--hv2-card-soft);transition:transform .12s ease;
+.hv2-racha{margin-top:10px;display:flex;align-items:center;justify-content:center;gap:7px;
+  background:var(--hv2-card);border:1px solid var(--hv2-line);border-radius:10px;padding:8px 12px}
+.hv2-racha-ico{font-size:14px;display:flex;align-items:center;color:var(--hv2-warn)}
+.hv2-racha-ico svg{width:14px;height:14px}
+.hv2-racha-txt{font-size:12px;font-weight:700;color:var(--hv2-warn);letter-spacing:.01em}
+.hv2-cta{margin-top:14px;width:100%;border:1px solid var(--hv2-navy);cursor:pointer;
+  display:flex;align-items:center;gap:14px;border-radius:14px;padding:15px 16px;position:relative;overflow:hidden;
+  background:var(--hv2-navy);transition:transform .16s ease,box-shadow .16s ease;
   opacity:0;animation:hv2Rise .55s cubic-bezier(.2,.7,.2,1) .21s forwards}
-[data-theme="dark"] .hv2-cta{background:#10243B}
-.hv2-cta::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
-  background:linear-gradient(180deg,#5BA3E8,#185FA5);animation:hv2Glow 3.4s ease-in-out infinite}
+[data-theme="dark"] .hv2-cta{background:#122138;border-color:rgba(237,242,248,.12)}
+.hv2-cta:hover{transform:translateY(-1px);box-shadow:var(--hv2-shadow-2)}
 .hv2-cta:active{transform:scale(.985)}
-.hv2-cta-icon{width:46px;height:46px;border-radius:13px;background:var(--hv2-accent);color:#fff;
-  font-size:26px;font-weight:300;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hv2-cta-icon{width:42px;height:42px;border-radius:11px;background:rgba(255,255,255,.12);color:#fff;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hv2-cta-icon svg{width:20px;height:20px}
 .hv2-cta-text{flex:1;text-align:left;display:flex;flex-direction:column}
-.hv2-cta-title{color:var(--hv2-ink);font-size:17px;font-weight:700}
-.hv2-cta-sub{color:var(--hv2-ink2);font-size:12px;margin-top:1px}
-.hv2-cta-arrow{color:var(--hv2-accent);font-size:21px;flex-shrink:0}
+.hv2-cta-title{color:#fff;font-size:16px;font-weight:700;letter-spacing:-.01em}
+.hv2-cta-sub{color:rgba(255,255,255,.6);font-size:12px;margin-top:2px}
+.hv2-cta-arrow{color:rgba(255,255,255,.75);flex-shrink:0;display:flex;align-items:center}
+.hv2-cta-arrow svg{width:18px;height:18px}
 
 /* Hoja selectora de plataforma */
 .hv2-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9990;
   display:none;align-items:flex-end;justify-content:center}
 .hv2-sheet-overlay.open{display:flex}
 .hv2-sheet{width:100%;max-width:480px;background:var(--hv2-bg);border-radius:22px 22px 0 0;
-  padding:10px 18px calc(var(--safe-bot) + 22px);animation:hv2SheetUp .32s cubic-bezier(.2,.7,.2,1)}
+  padding:10px 18px calc(var(--safe-bot) + 22px);animation:hv2SheetUp .32s cubic-bezier(.2,.7,.2,1);
+  box-shadow:0 -16px 48px rgba(4,10,20,.28)}
 @keyframes hv2SheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .hv2-sheet-grip{width:38px;height:4px;border-radius:2px;background:var(--hv2-line);margin:0 auto 14px}
 .hv2-sheet-title{font-size:18px;font-weight:700;color:var(--hv2-ink)}
 .hv2-sheet-sub{font-size:13px;color:var(--hv2-ink3);margin-top:2px;margin-bottom:16px}
 .hv2-sheet-opts{display:flex;flex-direction:column;gap:10px}
 .hv2-sheet-opt{display:flex;align-items:center;gap:14px;width:100%;cursor:pointer;
-  background:var(--hv2-card);border:.5px solid var(--hv2-line);border-radius:15px;padding:16px;
-  transition:transform .12s ease}
+  background:var(--hv2-card);border:1px solid var(--hv2-line);border-radius:14px;padding:16px;
+  transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+.hv2-sheet-opt:hover{border-color:var(--hv2-accent);box-shadow:var(--hv2-shadow-1)}
 .hv2-sheet-opt:active{transform:scale(.97)}
 .hv2-sheet-opt-logo{color:var(--hv2-ink);display:flex;align-items:center}
 .hv2-sheet-opt-txt{flex:1;text-align:left;display:flex;flex-direction:column}
 .hv2-sheet-opt-name{font-size:15px;font-weight:700;color:var(--hv2-ink)}
 .hv2-sheet-opt-cnt{font-size:12px;color:var(--hv2-ink3);margin-top:1px}
 .hv2-sheet-opt-arrow{font-size:19px;color:var(--hv2-accent)}
-.hv2-seclabel{margin-top:22px;display:flex;justify-content:space-between;align-items:baseline}
-.hv2-seclabel>span:first-child{color:var(--hv2-ink2);font-size:13px;font-weight:700}
+.hv2-seclabel{margin-top:26px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.hv2-seclabel>span:first-child{color:var(--hv2-ink3);font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
 .hv2-seclabel-aside{color:var(--hv2-ink3);font-size:11px}
 .hv2-os{margin-top:11px;display:flex;gap:9px}
 .hv2-os-btn{flex:1;border:.5px solid var(--hv2-line);background:var(--hv2-card);border-radius:15px;
@@ -188,13 +198,18 @@ const APP_VERSION = 'v1.11.79';</script>
 .hv2-os-name{font-size:14px;font-weight:700;color:var(--hv2-ink)}
 .hv2-os-count{font-size:11px;color:var(--hv2-ink3)}
 .hv2-flash{margin-top:14px;display:flex;flex-direction:column;gap:11px;cursor:pointer;
-  background:var(--hv2-accent-soft);border:.5px solid rgba(56,138,221,.25);border-radius:15px;padding:14px}
+  background:var(--hv2-card);border:1px solid var(--hv2-line);border-radius:14px;padding:14px;box-shadow:var(--hv2-shadow-1);
+  transition:transform .16s ease,box-shadow .16s ease}
+.hv2-flash:hover{transform:translateY(-1px);box-shadow:var(--hv2-shadow-2)}
 .hv2-flash-head{display:flex;align-items:center;gap:11px}
-.hv2-flash-icon{font-size:19px}
+.hv2-flash-icon{width:34px;height:34px;border-radius:9px;background:var(--hv2-accent-soft);color:var(--hv2-accent);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hv2-flash-icon svg{width:16px;height:16px}
 .hv2-flash-text{flex:1;display:flex;flex-direction:column}
-.hv2-flash-title{font-size:13px;font-weight:700;color:var(--hv2-ink)}
+.hv2-flash-title{font-size:13.5px;font-weight:700;color:var(--hv2-ink);letter-spacing:-.01em}
 .hv2-flash-sub{font-size:11px;color:var(--hv2-ink3)}
-.hv2-flash-arrow{font-size:18px;color:var(--hv2-ink3)}
+.hv2-flash-arrow{color:var(--hv2-ink3);display:flex;align-items:center}
+.hv2-flash-arrow svg{width:15px;height:15px}
 .hv2-flash-items{display:flex;gap:9px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
 .hv2-flash-items::-webkit-scrollbar{display:none}
 .hv2-flash-items:empty{display:none}
@@ -218,20 +233,49 @@ const APP_VERSION = 'v1.11.79';</script>
 .hv2-tool-ic-amber{background:rgba(239,159,39,.14)}
 .hv2-tool-ic-red{background:rgba(226,75,74,.14)}
 .hv2-tool-name{font-size:12px;color:var(--hv2-ink2);font-weight:500}
-.hv2-stats{margin-top:11px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
-.hv2-stat{background:var(--hv2-card);border:.5px solid var(--hv2-line);border-radius:13px;padding:13px 6px;text-align:center}
-.hv2-stat-num{font-size:21px;font-weight:700;color:var(--hv2-ink)}
+.hv2-stats{margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+.hv2-stat{background:var(--hv2-card);border:1px solid var(--hv2-line);border-radius:12px;padding:13px 12px;text-align:left;box-shadow:var(--hv2-shadow-1);transition:border-color .16s ease,box-shadow .16s ease}
+.hv2-stat:hover{border-color:rgba(11,21,36,.18);box-shadow:var(--hv2-shadow-2)}
+[data-theme="dark"] .hv2-stat:hover{border-color:rgba(237,242,248,.22)}
+.hv2-stat-num{font-size:22px;font-weight:750;color:var(--hv2-ink);letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
 .hv2-stat-blue{color:var(--hv2-accent)}
-.hv2-stat-purple{color:#7F77DD}
-.hv2-stat-amber{color:#EF9F27}
-.hv2-stat-lbl{font-size:10px;color:var(--hv2-ink3);margin-top:3px;line-height:1.25}
+.hv2-stat-purple{color:var(--hv2-ink)}
+.hv2-stat-amber{color:var(--hv2-warn)}
+.hv2-stat-lbl{font-size:9.5px;color:var(--hv2-ink3);margin-top:6px;line-height:1.3;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
 .hv2-momento-hint{font-size:11px;color:var(--hv2-ink3);margin-top:5px;margin-bottom:9px}
-.hv2-footer{text-align:center;padding:28px 0 8px;opacity:.55}
+.hv2-footer{text-align:center;padding:28px 0 8px;opacity:.7}
 .hv2-footer-brand{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--hv2-ink2)}
 .hv2-footer-brand span{opacity:.5}
 .hv2-footer-meta{font-size:10px;color:var(--hv2-ink3);margin-top:3px;letter-spacing:.04em}
 .home-v2 .crm-home-badge{position:absolute;top:-4px;right:-4px;background:#E24B4A;color:#fff;font-size:10px;
   font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px}
+
+/* ═══ [v1.12.0] SHELL ENTERPRISE — sidebar fija en pantallas anchas ═════════
+   Solo layout/presentación: el drawer (pmd-*) se ancla como sidebar permanente
+   y el home pasa a grid de 2 columnas. Cero cambios de lógica. */
+.hv2-main,.hv2-side{display:contents}
+.hv2-footer-brand b{color:var(--hv2-accent)}
+#app a{color:var(--hv2-accent)}
+#app a:hover{color:var(--hv2-accent-ink)}
+@media (min-width:1080px){
+  .pmd-burger{display:none}
+  .pmd-overlay{display:none!important}
+  .pmd-drawer{transform:none!important;width:264px;box-shadow:none;border-right:1px solid var(--hv2-line);background:var(--hv2-bg)}
+  #app{margin-left:264px}
+  .home-v2{max-width:1240px;margin:0 auto;padding:36px 56px 56px;display:grid;
+    grid-template-columns:minmax(340px,5fr) minmax(0,7fr);gap:0 56px;align-content:start}
+  .hv2-main,.hv2-side{display:block;min-width:0}
+  .hv2-topbar{grid-column:1/-1;margin-bottom:6px}
+  .hv2-footer{grid-column:1/-1}
+  .hv2-brand{font-size:14px}
+  .hv2-hello{margin-top:22px}
+  .hv2-hello-title{font-size:32px}
+  .hv2-side .hv2-seclabel:first-child{margin-top:30px}
+  .momento-scroll{flex-wrap:wrap}
+  .momento-card{width:170px}
+  .hv2-sheet-overlay{align-items:center;padding:24px}
+  .hv2-sheet{border-radius:18px;max-width:430px;padding-bottom:24px;border:1px solid var(--hv2-line)}
+}
 
 /* ═══ [v1.10.57] ENTREGA 2 — PIEL NUEVA: CATÁLOGO ════════════════════════════
    Overrides con scope #s-catalog para migrar solo esta pantalla a la piel
@@ -408,10 +452,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 .screen{display:none;flex:1;flex-direction:column;overflow:hidden}
 .screen.active{display:flex}
 .scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+/* [v1.12.1] Accesibilidad: anillo de foco visible solo con teclado, en toda la app */
+:where(button,a,input,select,textarea,[onclick],[tabindex]):focus-visible{outline:2px solid var(--hv2-accent);outline-offset:2px}
+::selection{background:var(--hv2-accent-soft)}
 
 /* ── NAV BAR ── */
 .nav{
-  background:rgba(242,242,247,0.85);
+  background:rgba(243,245,248,0.86);
   backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
   border-bottom:0.5px solid var(--sep);
   padding:calc(var(--safe-top) + 10px) 16px 10px;
@@ -419,10 +466,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
   flex-shrink:0;min-height:54px;
   position:relative;z-index:50;
 }
-.nav-back{display:flex;align-items:center;gap:3px;color:var(--ios-blue);font-size:17px;background:none;border:none;cursor:pointer;padding:4px 0;flex-shrink:0}
+.nav-back{display:flex;align-items:center;gap:3px;color:var(--hv2-accent);font-size:17px;background:none;border:none;cursor:pointer;padding:4px 0;flex-shrink:0}
 .nav-back svg{width:9px;height:15px;flex-shrink:0}
 .nav-title{font-size:17px;font-weight:600;color:var(--label);position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap}
-.nav-right{margin-left:auto;color:var(--ios-blue);font-size:15px;font-weight:500;background:none;border:none;cursor:pointer;padding:4px 0;white-space:nowrap;flex-shrink:0}
+.nav-right{margin-left:auto;color:var(--hv2-accent);font-size:15px;font-weight:500;background:none;border:none;cursor:pointer;padding:4px 0;white-space:nowrap;flex-shrink:0}
 .nav-right.on{font-weight:700}
 
 /* ── HOME SCREEN ── */
@@ -665,8 +712,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 }
 .cmp-bar.vis{display:flex}
 .cmp-bar-lbl{font-size:13px;color:var(--label2);flex:1}
-.cmp-clear{font-size:14px;color:var(--ios-blue);background:none;border:none;cursor:pointer}
-.cmp-go{background:var(--ios-blue);color:#fff;font-size:14px;font-weight:600;border:none;border-radius:12px;padding:8px 18px;cursor:pointer}
+.cmp-clear{font-size:14px;color:var(--hv2-accent);background:none;border:none;cursor:pointer}
+.cmp-go{background:var(--hv2-accent);color:#fff;font-size:14px;font-weight:600;border:none;border-radius:12px;padding:8px 18px;cursor:pointer}
 
 /* ── FICHA ── */
 .ficha-hero{background:var(--surface);padding:16px;margin-bottom:8px}
@@ -920,14 +967,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 
 /* ── REFINED MOMENTO ── */
 .momento-card{
-  box-shadow:0 2px 10px rgba(0,0,0,.08);
-  border-radius:var(--r-xl);
-  transition:all .2s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:var(--hv2-shadow-1);
+  transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;
 }
-.momento-promo{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.momento-card:hover{transform:translateY(-2px);box-shadow:var(--hv2-shadow-2);border-color:rgba(11,21,36,.16)}
+[data-theme="dark"] .momento-card:hover{border-color:rgba(237,242,248,.2)}
 
 /* ── SELL ITEMS ── */
-.sell-ico{background:linear-gradient(135deg,#EEF4FF,#E8EEFF)}
+.sell-ico{background:var(--hv2-accent-soft);color:var(--hv2-accent);display:flex;align-items:center;justify-content:center}
 .sell-txt{font-size:13px;line-height:1.6}
 .sell-card{border-radius:var(--r-xl);box-shadow:0 2px 10px rgba(0,0,0,.06)}
 
@@ -947,12 +994,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 .fpill{
   border-radius:20px;font-weight:600;
   transition:all .2s ease;
-  border:.5px solid rgba(0,0,0,.08);
+  border:1px solid var(--hv2-line);
 }
 .fpill.on{
-  background:linear-gradient(135deg,#007AFF,#5856D6);
+  background:var(--hv2-accent);
   color:#fff;border-color:transparent;
-  box-shadow:0 3px 10px rgba(0,122,255,.3);
+  box-shadow:none;
 }
 
 /* ── LEGEND BOX ── */
@@ -960,47 +1007,47 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 
 
 /* ── EQUIPOS DEL MOMENTO V2 ── */
-.momento-plan-block{margin-bottom:20px}
+.momento-plan-block{margin-bottom:22px}
 .momento-plan-header{
-  display:flex;align-items:center;gap:8px;
-  padding:10px 0 8px;
+  display:flex;align-items:center;gap:9px;
+  padding:10px 0 9px;
 }
 .momento-plan-pill{
-  padding:4px 12px;border-radius:20px;
-  font-size:11px;font-weight:700;color:#fff;
+  padding:3px 9px;border-radius:6px;
+  font-size:10px;font-weight:800;color:#fff;letter-spacing:.05em;text-transform:uppercase;
   flex-shrink:0;
 }
-.momento-plan-label{font-size:12px;color:var(--hv2-ink3);font-weight:500}
+.momento-plan-label{font-size:12px;color:var(--hv2-ink3);font-weight:500;font-variant-numeric:tabular-nums}
 .momento-scroll{
   display:flex;gap:10px;overflow-x:auto;
   padding:0 2px 4px;scrollbar-width:none;
 }
 .momento-scroll::-webkit-scrollbar{display:none}
 .momento-card{
-  flex-shrink:0;width:154px;
-  background:var(--hv2-card);border:.5px solid var(--hv2-line);border-radius:16px;
-  padding:0 0 12px;overflow:hidden;
+  flex-shrink:0;width:158px;
+  background:var(--hv2-card);border:1px solid var(--hv2-line);border-radius:14px;
+  padding:0 0 13px;overflow:hidden;
   cursor:pointer;
-  transition:transform .14s cubic-bezier(.34,1.56,.64,1);
 }
-.momento-card:active{transform:scale(0.96)}
+.momento-card:active{transform:scale(0.97)}
 .momento-img{
   height:118px;
   background:#FFFFFF;
-  border-radius:11px;
-  margin:11px 11px 10px;
+  border-radius:10px;
+  margin:10px 10px 11px;
   display:flex;align-items:center;justify-content:center;overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(11,21,36,.05);
 }
 .momento-img img{width:80%;height:80%;object-fit:contain}
-.momento-name{font-size:14px;font-weight:700;color:var(--hv2-ink);line-height:1.25;margin:0 12px 3px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.momento-plazo{font-size:11px;color:var(--hv2-ink3);text-align:left;margin:0 12px 8px}
-.momento-promo{font-size:20px;font-weight:800;color:var(--hv2-accent);text-align:left;margin:0 12px;letter-spacing:-.3px}
-.momento-eng{font-size:11px;color:var(--hv2-ink3);text-align:left;margin:4px 12px 0}
-.momento-eng span{font-weight:800;color:#1D9E75;font-size:12px}
+.momento-name{font-size:13px;font-weight:700;color:var(--hv2-ink);line-height:1.25;margin:0 13px 2px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+.momento-plazo{font-size:10.5px;color:var(--hv2-ink3);text-align:left;margin:0 13px 9px}
+.momento-promo{font-size:19px;font-weight:800;color:var(--hv2-ink);text-align:left;margin:0 13px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.momento-eng{font-size:10.5px;color:var(--hv2-ink3);text-align:left;margin:4px 13px 0}
+.momento-eng span{font-weight:800;color:var(--hv2-pos);font-size:11.5px;font-variant-numeric:tabular-nums}
 .momento-badge{
   display:inline-block;text-align:center;
-  font-size:9px;font-weight:700;
-  margin:7px 12px 0;padding:3px 8px;border-radius:6px;
+  font-size:9px;font-weight:800;letter-spacing:.03em;
+  margin:8px 13px 0;padding:3px 7px;border-radius:5px;
 }
 
 /* ── STORAGE SELECTOR ── */
@@ -1233,10 +1280,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 .budget-card:hover .budget-icon{animation:heartbeat 1s ease}
 .theme-toggle:active{animation:spin .4s ease}
 
-.calc-result-card{animation:bounceInRight .4s var(--transition) both}
+.calc-result-card{animation:slideUpFade .35s var(--easing) both}
 .calc-input-wrap{animation:slideUpFade .4s var(--easing) both}
 .calc-input-wrap:nth-child(2){animation-delay:.1s}
-.calc-input:focus{animation:glowPulse 1.5s ease infinite}
 
 .fpill{transition:all .25s var(--transition)}
 .fpill:active{transform:scale(0.92)}
@@ -1807,46 +1853,48 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 .asesor-overlay.show{display:flex;animation:fadeIn .2s ease}
 .asesor-modal{
   background:var(--hv2-bg,#0A1018);
-  border:.5px solid var(--hv2-line,rgba(255,255,255,.09));
+  border:1px solid var(--hv2-line,rgba(255,255,255,.09));
   width:100%;max-width:400px;
-  border-radius:24px;
+  border-radius:20px;
   padding:34px 24px 24px;
   text-align:center;
   position:relative;overflow:hidden;
+  box-shadow:var(--hv2-shadow-2);
 }
 .asesor-modal::before{
   content:"";position:absolute;width:220px;height:220px;border-radius:50%;
   top:-110px;right:-80px;pointer-events:none;
-  background:radial-gradient(circle,rgba(56,138,221,.18),transparent 70%);
+  background:radial-gradient(circle,var(--hv2-accent-soft,rgba(49,165,229,.14)),transparent 70%);
 }
 .asesor-modal-icon{
-  width:58px;height:58px;border-radius:17px;
-  background:var(--hv2-accent,#185FA5);
+  width:56px;height:56px;border-radius:15px;
+  background:var(--hv2-navy,#13203E);
   display:flex;align-items:center;justify-content:center;
   margin:0 auto 18px;color:#fff;font-size:26px;position:relative;
 }
 .asesor-modal-title{font-size:23px;font-weight:700;color:var(--hv2-ink,#F2F5F8);margin-bottom:6px;position:relative;letter-spacing:-.02em}
 .asesor-modal-sub{font-size:13px;color:var(--hv2-ink3,#5B6573);margin-bottom:24px;position:relative}
 .asesor-input{
-  width:100%;padding:15px 16px;
-  border:.5px solid var(--hv2-line,rgba(255,255,255,.09));
-  border-radius:14px;
+  width:100%;padding:14px 16px;
+  border:1px solid var(--hv2-line,rgba(255,255,255,.09));
+  border-radius:12px;
   background:var(--hv2-card-soft,rgba(255,255,255,.06));
   color:var(--hv2-ink,#F2F5F8);
   font-size:15px;font-family:inherit;
   margin-bottom:11px;text-align:left;position:relative;
-  transition:border-color .15s ease;
+  transition:border-color .15s ease,box-shadow .15s ease;
 }
 .asesor-input::placeholder{color:var(--hv2-ink3,#5B6573)}
-.asesor-input:focus{outline:none;border-color:var(--hv2-accent,#378ADD)}
+.asesor-input:focus{outline:none;border-color:var(--hv2-accent,#378ADD);box-shadow:0 0 0 3px var(--hv2-accent-soft,rgba(49,165,229,.12))}
 .asesor-btn-save{
-  width:100%;padding:16px;
-  background:var(--hv2-accent,#185FA5);
+  width:100%;padding:15px;
+  background:var(--hv2-navy,#13203E);
   color:#fff;border:none;
-  border-radius:14px;font-size:15px;font-weight:700;
+  border-radius:12px;font-size:15px;font-weight:700;letter-spacing:-.01em;
   cursor:pointer;margin-top:8px;position:relative;
-  transition:transform .12s ease;
+  transition:transform .15s ease,box-shadow .15s ease,opacity .15s ease;
 }
+.asesor-btn-save:hover{transform:translateY(-1px);box-shadow:var(--hv2-shadow-2)}
 .asesor-btn-save:active{transform:scale(.98)}
 
 .theme-toggle{
@@ -2922,8 +2970,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
   font-weight:500
 }
 .dash-empty::before{
-  content:"📊";display:block;font-size:36px;margin-bottom:12px;
-  filter:saturate(0.4)
+  content:none
 }
 
 /* KPIs grandes */
@@ -3685,7 +3732,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 }
 .crm-btn-secondary:hover{background:var(--sep);color:var(--label)}
 .crm-btn-primary{
-  background:linear-gradient(135deg, var(--att-blue), var(--att-blue-dark));
+  background:var(--hv2-navy);
   color:#fff;
   box-shadow:0 2px 8px rgba(0,168,224,0.25)
 }
@@ -3831,8 +3878,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
   transition:color .15s ease, border-color .15s ease
 }
 .crm-tab-active{
-  color:var(--att-blue-dark);
-  border-bottom-color:var(--att-blue)
+  color:var(--hv2-accent-ink);
+  border-bottom-color:var(--hv2-accent)
 }
 .crm-tab-count{
   font-size:10px;font-weight:700;
@@ -4435,17 +4482,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 /* ═══ v1.10.0 ASISTENTE IA ═══════════════════════════════════════════ */
 .ai-bubble{
   position:fixed;bottom:18px;right:18px;width:54px;height:54px;
-  border-radius:50%;background:linear-gradient(135deg,#00A8E0,#0066CC);
+  border-radius:50%;background:var(--hv2-navy);
   border:none;color:#fff;cursor:pointer;
   box-shadow:0 4px 16px rgba(0,102,204,0.4),0 2px 4px rgba(0,0,0,0.2);
   display:flex;align-items:center;justify-content:center;
   z-index:9998;transition:transform .2s ease,box-shadow .2s ease;
 }
 .ai-bubble:active{transform:scale(0.92)}
-.ai-bubble:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,102,204,0.5)}
+.ai-bubble:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(11,21,36,0.4)}
 .ai-bubble-pulse{
   position:absolute;inset:-4px;border-radius:50%;
-  border:2px solid #00A8E0;opacity:0;
+  border:2px solid var(--hv2-accent);opacity:0;
   animation:aiPulse 2.5s infinite;
 }
 @keyframes aiPulse{
@@ -4472,7 +4519,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 @keyframes aiSlideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 
 .ai-modal-header{
-  background:linear-gradient(135deg,#00A8E0,#0066CC);color:#fff;
+  background:var(--hv2-navy);color:#fff;
   padding:14px 16px;display:flex;justify-content:space-between;align-items:center;
   flex-shrink:0;
 }
@@ -4604,6 +4651,81 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 #s-calc .calc-hero{
   background:linear-gradient(135deg,var(--hv2-accent) 0%,#1B4F8A 100%) !important;
 }
+
+/* ═══ [v1.12.1] REFINAMIENTO ENTERPRISE — ACTIVIDAD (centro de mando) ═════
+   Solo piel sobre las mismas clases: alinea el dashboard al lenguaje PRIME
+   (tokens --hv2-*), sin cambios de estructura ni lógica. */
+.dash-screen{background:var(--hv2-bg)}
+.dash-body{background:var(--hv2-bg)}
+.dash-header{background:var(--hv2-bg);border-bottom:1px solid var(--hv2-line)}
+[data-theme="dark"] .dash-header{background:var(--hv2-bg);backdrop-filter:none}
+.dash-title{color:var(--hv2-ink)}
+.dash-sub{color:var(--hv2-ink3)}
+.dash-back{color:var(--hv2-ink2)}
+.dash-back:hover{background:var(--hv2-card-soft);color:var(--hv2-ink)}
+.dash-refresh{background:var(--hv2-card);border:1px solid var(--hv2-line);color:var(--hv2-ink2);border-radius:10px}
+.dash-refresh:hover{background:var(--hv2-card);box-shadow:var(--hv2-shadow-1);transform:none;color:var(--hv2-accent)}
+.dash-controls{background:var(--hv2-bg);border-bottom:1px solid var(--hv2-line)}
+[data-theme="dark"] .dash-controls{background:var(--hv2-bg)}
+.dash-controls-toggle{background:var(--hv2-card);border-color:var(--hv2-line);color:var(--hv2-ink2)}
+.dash-controls-toggle:hover{background:var(--hv2-card);color:var(--hv2-accent)}
+.dash-control-label{color:var(--hv2-ink3)}
+.dash-control-row select{background:var(--hv2-card);border:1px solid var(--hv2-line);color:var(--hv2-ink);border-radius:9px}
+.dash-control-row select:hover{border-color:var(--hv2-accent)}
+.dash-control-row select:focus{border-color:var(--hv2-accent);box-shadow:0 0 0 3px var(--hv2-accent-soft)}
+.dash-filter-chip{background:var(--hv2-accent-soft);color:var(--hv2-accent-ink);border:1px solid transparent}
+.dash-filter-chip:hover{background:var(--hv2-accent-soft);border-color:var(--hv2-accent)}
+[data-theme="dark"] .dash-filter-chip{background:var(--hv2-accent-soft);color:var(--hv2-accent-ink);border-color:transparent}
+.dash-stat-card{background:var(--hv2-card);border:1px solid var(--hv2-line);border-radius:14px;box-shadow:var(--hv2-shadow-1)}
+.dash-stat-card:hover{box-shadow:var(--hv2-shadow-2)}
+.dash-stat-card::before{background:var(--hv2-accent);height:2px;opacity:1}
+.dash-stat-label{color:var(--hv2-ink3)}
+.dash-stat-value{color:var(--hv2-ink)}
+.dash-section{background:var(--hv2-card);border:1px solid var(--hv2-line);border-radius:14px;box-shadow:var(--hv2-shadow-1)}
+.dash-section-title{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--hv2-ink3);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.dash-section-count{background:var(--hv2-card-soft);color:var(--hv2-ink2);border:none;border-radius:99px;padding:3px 9px;font-size:10px;font-weight:700;letter-spacing:.02em;text-transform:none;font-variant-numeric:tabular-nums}
+.dash-row{border-radius:8px}
+.dash-row:not(.no-click):hover{background:var(--hv2-accent-soft)}
+.dash-row-bar{background:var(--hv2-accent-soft);border-radius:6px}
+.dash-row-pct{color:var(--hv2-ink3);font-variant-numeric:tabular-nums}
+.dash-row-count{color:var(--hv2-ink);font-weight:700;font-variant-numeric:tabular-nums}
+.dash-row-chev{color:var(--hv2-ink3)}
+.dash-empty{background:var(--hv2-card);border:1px dashed var(--hv2-line);color:var(--hv2-ink3);border-radius:14px}
+.dash-empty::before{content:none}
+.dash-loading{color:var(--hv2-ink3)}
+.dash-loading::before{border-color:var(--hv2-line);border-top-color:var(--hv2-accent)}
+.dash-crm-card{background:var(--hv2-card);border-color:var(--hv2-line)}
+.dash-crm-pospago::before{background:var(--hv2-accent)}
+.dash-crm-renovacion::before{background:#7C6FD8}
+.dash-crm-pospago .dash-crm-card-label{color:var(--hv2-accent-ink)}
+.dash-crm-renovacion .dash-crm-card-label{color:#6F63C9}
+[data-theme="dark"] .dash-crm-pospago .dash-crm-card-label{color:var(--hv2-accent-ink)}
+[data-theme="dark"] .dash-crm-renovacion .dash-crm-card-label{color:#B0A7F0}
+.dash-crm-card-total{color:var(--hv2-ink)}
+.dash-crm-footer-note{background:var(--hv2-card-soft);color:var(--hv2-ink3)}
+.dash-tipo-bar-pos{background:var(--hv2-accent)}
+.dash-tipo-bar-ren{background:var(--hv2-pos)}
+.dash-crm-pill-activo{background:var(--hv2-accent-soft);color:var(--hv2-accent-ink);border-color:transparent}
+.dash-crm-pill-cerrado{background:rgba(23,138,102,.1);color:var(--hv2-pos);border-color:transparent}
+.dash-crm-pill-perdido{background:rgba(194,74,67,.1);color:var(--hv2-neg);border-color:transparent}
+/* [v1.12.2] Piel PRIME: comparador, top comisiones, CRM, modales secundarios */
+#s-compare{background:var(--hv2-bg)}
+#s-compare .scroll-area{background:var(--hv2-bg)}
+#s-top-comm{background:var(--hv2-bg)}
+#s-top-comm .scroll-area{background:var(--hv2-bg)}
+.crm-screen{background:var(--hv2-bg)}
+.crm-tabs{background:var(--hv2-bg);border-bottom:1px solid var(--hv2-line)}
+.crm-tab{color:var(--hv2-ink3)}
+.crm-tab-count{background:var(--hv2-card-soft);color:var(--hv2-ink2)}
+.crm-input{background:var(--hv2-card);border:1px solid var(--hv2-line);color:var(--hv2-ink)}
+.crm-input:focus{outline:none;border-color:var(--hv2-accent);box-shadow:0 0 0 3px var(--hv2-accent-soft)}
+.crm-modal-card{background:var(--hv2-bg);border:1px solid var(--hv2-line);box-shadow:var(--hv2-shadow-2)}
+.crm-label{color:var(--hv2-ink3)}
+.alerts-modal-card{background:var(--hv2-bg);border:1px solid var(--hv2-line);box-shadow:var(--hv2-shadow-2)}
+.dash-detail-modal{background:var(--hv2-bg)}
+.ai-modal{background:var(--hv2-bg)}
+.cot-btn{border-radius:12px}
+.cot-modal{box-shadow:0 -16px 48px rgba(4,10,20,.28)}
 #s-calc .calc-input-wrap{
   background:var(--hv2-card) !important;
   border:.5px solid var(--hv2-line) !important;
@@ -4649,14 +4771,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 
     <!-- TOPBAR -->
     <div class="hv2-topbar hv2-rise" style="--d:0s">
-      <div style="display:flex;align-items:center;gap:11px"><button class="pmd-burger" id="pmd-burger" onclick="pmdOpen()" aria-label="Abrir menú"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button><div class="hv2-brand">PRIME<span>MX</span></div></div>
+      <div style="display:flex;align-items:center;gap:11px"><button class="pmd-burger" id="pmd-burger" onclick="pmdOpen()" aria-label="Abrir menú"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button><div class="hv2-brand">PR<b>I</b>ME<span>MX</span></div></div>
     </div>
 
+    <div class="hv2-main">
     <!-- SALUDO -->
     <div class="hv2-hello hv2-rise" style="--d:0.07s">
       <div class="hv2-hello-sub" id="hero-greeting-msg">Toma una cotización para empezar</div>
       <div class="hv2-hello-title" id="hero-greeting-title">Bienvenido</div>
-      <span class="hero-greeting-icon" id="hero-greeting-icon" style="display:none">✨</span>
+      <span class="hero-greeting-icon" id="hero-greeting-icon" style="display:none"></span>
     </div>
 
     <!-- PULSO DEL DÍA -->
@@ -4674,38 +4797,38 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
     </div>
     <!-- RACHA DE ACTIVIDAD (solo asesor) -->
     <div class="hv2-racha hv2-rise" id="hv2-racha" style="--d:0.17s;display:none">
-      <span class="hv2-racha-ico">🔥</span>
+      <span class="hv2-racha-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
       <span class="hv2-racha-txt" id="hv2-racha-txt">Racha de 0 días</span>
     </div>
 
     <!-- ACCIÓN DOMINANTE: NUEVA COTIZACIÓN -->
     <button class="hv2-cta" onclick="abrirPlatSheet()">
-      <span class="hv2-cta-icon">＋</span>
+      <span class="hv2-cta-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
       <span class="hv2-cta-text">
         <span class="hv2-cta-title">Nueva cotización</span>
         <span class="hv2-cta-sub">Arranca una venta ahora</span>
       </span>
-      <span class="hv2-cta-arrow">→</span>
+      <span class="hv2-cta-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
     </button>
 
     <!-- COMISIONES — ACTIVO. Para ocultar de nuevo: agregar ;display:none al style del botón de abajo. -->
     <button class="hv2-cta hv2-rise" onclick="abrirComisiones()" style="--d:0.3s;margin-top:14px;display:none">
-      <span class="hv2-cta-icon">$</span>
+      <span class="hv2-cta-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.2v9.6M14.6 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.6 0-2.7.9-2.7 2.1s1.1 1.8 2.7 2.1 2.7.9 2.7 2.1-1.1 2.1-2.7 2.1c-1.1 0-2.1-.5-2.6-1.3"/></svg></span>
       <span class="hv2-cta-text">
         <span class="hv2-cta-title">Comisiones</span>
         <span class="hv2-cta-sub">Mira lo que llevas ganando</span>
       </span>
-      <span class="hv2-cta-arrow">→</span>
+      <span class="hv2-cta-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
     </button>
 
     <!-- OFERTAS FLASH -->
     <div class="hv2-flash hv2-rise" style="--d:0.4s" id="flash-card" onclick="showFlashOffers()">
       <div class="hv2-flash-head">
-        <span class="hv2-flash-icon">⚡</span>
+        <span class="hv2-flash-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>
         <span class="hv2-flash-text">
           <span class="hv2-flash-title">Ofertas flash de hoy</span>
         </span>
-        <span class="hv2-flash-arrow">›</span>
+        <span class="hv2-flash-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
       </div>
       <div id="flash-brands"></div>
     </div>
@@ -4717,6 +4840,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 
     <!-- HERRAMIENTAS movidas al menú lateral (drawer) — v1.11.47 -->
 
+    </div>
+
+    <div class="hv2-side">
     <!-- CATÁLOGO: STATS -->
     <div class="hv2-seclabel hv2-rise" style="--d:0.58s"><span>Catálogo</span></div>
     <div class="hv2-stats hv2-rise" style="--d:0.64s">
@@ -4728,14 +4854,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 
     <!-- EQUIPOS DEL MOMENTO -->
     <div class="hv2-seclabel hv2-rise" style="--d:0.7s">
-      <span>🔥 Equipos del momento</span>
+      <span>Equipos del momento</span>
     </div>
     <div class="hv2-momento-hint hv2-rise" style="--d:0.74s">Menor enganche por plan · desliza para ver más</div>
     <div id="momento-cards" class="hv2-rise" style="--d:0.78s"></div>
 
+    </div>
+
     <!-- [v1.10.47] CIERRE DEL HOME -->
     <div class="hv2-footer hv2-rise" style="--d:0.84s">
-      <div class="hv2-footer-brand">PRIME<span>MX</span></div>
+      <div class="hv2-footer-brand">PR<b>I</b>ME<span>MX</span></div>
       <div class="hv2-footer-meta">TechGuide · <span id="hv2-footer-ver">v1.10.47</span></div>
     </div>
 
@@ -4754,13 +4882,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 .pmd-drawer{position:fixed;top:0;left:0;bottom:0;z-index:1201;width:84%;max-width:328px;background:var(--surface);box-shadow:var(--elev-4);transform:translateX(-102%);transition:transform .28s cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0)}
 .pmd-drawer.on{transform:none}
 .pmd-head{padding:22px 20px 18px;display:flex;align-items:center;gap:13px;border-bottom:1px solid var(--sep)}
-.pmd-avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--att-blue),var(--att-blue-deep));color:#fff;font-weight:700;font-size:17px;flex-shrink:0}
+.pmd-avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--hv2-navy);color:#fff;font-weight:700;font-size:17px;flex-shrink:0;letter-spacing:.02em}
 .pmd-who b{display:block;font-size:16px;font-weight:800;color:var(--label);letter-spacing:-.01em}
 .pmd-who span{display:block;font-size:12.5px;color:var(--label3);margin-top:2px;font-weight:500}
-.pmd-nav{padding:12px;display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto}
-.pmd-item{display:flex;align-items:center;gap:14px;padding:13px 14px;border-radius:12px;background:transparent;border:none;color:var(--label);font-size:15px;font-weight:600;letter-spacing:-.01em;width:100%;text-align:left;cursor:pointer;font-family:inherit;transition:background .16s ease,transform .1s ease}
-.pmd-item svg{width:20px;height:20px;color:var(--label3);flex-shrink:0;stroke-width:1.9;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
+.pmd-nav{padding:10px 12px 12px;display:flex;flex-direction:column;gap:1px;flex:1;overflow-y:auto}
+.pmd-group{padding:16px 15px 7px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--label3)}
+.pmd-nav .pmd-group:first-child{padding-top:8px}
+.pmd-item{display:flex;align-items:center;gap:13px;padding:12px 13px;border-radius:10px;background:transparent;border:none;color:var(--label);font-size:14.5px;font-weight:600;letter-spacing:-.01em;width:100%;text-align:left;cursor:pointer;font-family:inherit;transition:background .16s ease,transform .1s ease}
+.pmd-item svg{width:19px;height:19px;color:var(--label3);flex-shrink:0;stroke-width:1.9;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;transition:color .16s ease}
 .pmd-item:hover{background:var(--surface2)}
+.pmd-item:hover svg{color:var(--label)}
 .pmd-item:active{transform:scale(.98)}
 .pmd-sep{height:1px;background:var(--sep);margin:10px 14px}
 .pmd-danger{color:var(--ios-red)} .pmd-danger svg{color:var(--ios-red)}
@@ -4783,10 +4914,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
     <svg class="pmd-head-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
   </button>
   <nav class="pmd-nav">
+    <div class="pmd-group">Operación</div>
     <button class="pmd-item" onclick="pmdGo('momento')"><svg viewBox="0 0 24 24"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>Equipos del momento</button>
     <button class="pmd-item" onclick="pmdGo('topcomm')"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>Top comisiones</button>
     <button class="pmd-item" onclick="pmdGo('comisiones')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.2v9.6M14.6 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.6 0-2.7.9-2.7 2.1s1.1 1.8 2.7 2.1 2.7.9 2.7 2.1-1.1 2.1-2.7 2.1c-1.1 0-2.1-.5-2.6-1.3"/></svg>Comisiones</button>
     <button class="pmd-item" id="dash-home-card" style="display:none" onclick="pmdGo('dash')"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 5-7"/></svg><span id="dash-card-title">Actividad</span></button>
+    <div class="pmd-group">Herramientas</div>
     <button class="pmd-item" onclick="pmdGo('calc')"><svg viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M8 6.5h8M8 11h2M8 15h2M14 11h2M14 15h2M11 11h2M11 15h2"/></svg>Calculadora</button>
     <button class="pmd-item" onclick="pmdGo('diag')"><svg viewBox="0 0 24 24"><path d="M3.5 13a8.5 8.5 0 0 1 17 0"/><path d="M12 13l4-3.5"/><circle cx="12" cy="13" r="1.4" fill="currentColor" stroke="none"/></svg>Diagnóstico</button>
     <button class="pmd-item" id="admin-home-card" style="display:none" onclick="pmdGo('accesos')"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4.5"/><path d="M11 12l8-8 2 2M16 7l2 2"/></svg>Accesos</button>
@@ -4842,12 +4975,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
       <button class="nav-back" onclick="show('s-home')" style="color:#fff;background:rgba(255,255,255,0.15);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center">‹</button>
     </div>
-    <h1>💰 Calculadora</h1>
+    <h1>Calculadora</h1>
     <p>Encuentra equipos según el presupuesto del cliente</p>
   </div>
   <div class="scroll-area">
     <div class="calc-input-wrap">
-      <div class="calc-label">💵 Presupuesto de enganche</div>
+      <div class="calc-label">Presupuesto de enganche</div>
       <div class="calc-input-row">
         <span class="calc-currency">$</span>
         <input class="calc-input" id="enganche-input" type="number" placeholder="0" oninput="calcBudget()" />
@@ -4857,7 +4990,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
     </div>
     
     <div class="calc-input-wrap" style="margin-top:0">
-      <div class="calc-label">📅 Presupuesto mensual</div>
+      <div class="calc-label">Presupuesto mensual</div>
       <div class="calc-input-row">
         <span class="calc-currency">$</span>
         <input class="calc-input" id="mensual-input" type="number" placeholder="0" oninput="calcBudget()" />
@@ -4867,7 +5000,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
     </div>
     <div class="calc-results" id="calc-results">
       <div class="calc-empty">
-        <div class="calc-empty-icon">💡</div>
         <div>Ingresa el presupuesto mensual<br>para ver equipos recomendados</div>
       </div>
     </div>
@@ -4961,7 +5093,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
   <div class="scroll-area">
     <div class="container" style="padding-bottom:40px">
       <div class="top-comm-hero">
-        <div class="top-comm-hero-title">🏆 Top equipos por comisión</div>
+        <div class="top-comm-hero-title">Top equipos por comisión</div>
         <div class="top-comm-hero-sub">Ranking según el plan que selecciones</div>
         <div class="top-comm-plan-pills" id="top-comm-plan-pills"></div>
       </div>
@@ -5050,14 +5182,14 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
   <div class="cot-modal">
     <div class="cot-handle"></div>
     <div class="cot-header">
-      <div class="cot-title">📋 Personaliza tu cotización</div>
+      <div class="cot-title">Personaliza tu cotización</div>
       <div class="cot-sub" id="cot-device-info">—</div>
     </div>
     <div class="cot-body">
       
       <!-- [v1.9.25] Nombre del cliente (opcional, para personalizar saludo) -->
       <div class="cot-section">
-        <div class="cot-section-label">👤 Nombre del cliente <span style="color:var(--label3);font-weight:400">(opcional)</span></div>
+        <div class="cot-section-label">Nombre del cliente <span style="color:var(--label3);font-weight:400">(opcional)</span></div>
         <div class="cot-cliente-wrap">
           <input class="cot-cliente-input" id="cot-cliente-input" type="text" 
             placeholder="Ej. Juan Pérez (solo primer nombre se usa)" 
@@ -5069,15 +5201,13 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
       
       <!-- [v1.10.25] Tipo de operación — OBLIGATORIO, sin default -->
       <div class="cot-section">
-        <div class="cot-section-label">📋 Tipo de operación <span style="color:#FF3B30;font-weight:600">*</span></div>
+        <div class="cot-section-label">Tipo de operación <span style="color:#FF3B30;font-weight:600">*</span></div>
         <div class="cot-tipo-grid" id="cot-tipo-grid">
           <button type="button" class="cot-tipo-btn" id="cot-tipo-pospago" onclick="cotSetTipo('POSPAGO')">
-            <span class="cot-tipo-emoji">📲</span>
             <span class="cot-tipo-nombre">Pospago</span>
             <span class="cot-tipo-desc">Línea nueva</span>
           </button>
           <button type="button" class="cot-tipo-btn" id="cot-tipo-renovacion" onclick="cotSetTipo('RENOVACION')">
-            <span class="cot-tipo-emoji">🔄</span>
             <span class="cot-tipo-nombre">Renovación</span>
             <span class="cot-tipo-desc">Cliente existente</span>
           </button>
@@ -5086,9 +5216,8 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
       </div>
       
       <div class="cot-section">
-        <div class="cot-section-label">📞 Portabilidad</div>
+        <div class="cot-section-label">Portabilidad</div>
         <div class="cot-switch" id="cot-port-switch" onclick="cotTogglePort()">
-          <div class="cot-switch-icon">🔄</div>
           <div class="cot-switch-text">
             <div class="cot-switch-name">Cliente con portabilidad</div>
             <div class="cot-switch-desc">20% desc. en plan x 12 meses</div>
@@ -5098,9 +5227,8 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
       </div>
       
       <div class="cot-section">
-        <div class="cot-section-label">🛡️ Servicios adicionales</div>
+        <div class="cot-section-label">Servicios adicionales</div>
         <div class="cot-switch" id="cot-control-switch" onclick="cotToggleControl()">
-          <div class="cot-switch-icon">📊</div>
           <div class="cot-switch-text">
             <div class="cot-switch-name">Control de datos</div>
             <div class="cot-switch-desc" id="cot-control-desc">$50/mes</div>
@@ -5108,7 +5236,6 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
           <div class="cot-switch-toggle"></div>
         </div>
         <div class="cot-switch" id="cot-seguro-switch" onclick="cotToggleSeguro()">
-          <div class="cot-switch-icon">🛡️</div>
           <div class="cot-switch-text">
             <div class="cot-switch-name">Seguro AT&T Protección</div>
             <div class="cot-switch-desc" id="cot-seguro-desc">—</div>
@@ -5118,7 +5245,7 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
       </div>
       
       <div class="cot-section">
-        <div class="cot-section-label">💵 Enganche</div>
+        <div class="cot-section-label">Enganche</div>
         <div class="cot-pills" id="cot-eng-pills"></div>
         <div class="cot-custom-wrap" id="cot-eng-custom-wrap">
           <span class="cot-custom-prefix">$</span>
@@ -5127,7 +5254,7 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
       </div>
       
       <div class="cot-section">
-        <div class="cot-section-label">📅 Rentas en garantía</div>
+        <div class="cot-section-label">Rentas en garantía</div>
         <div class="cot-pills" id="cot-rentas-pills"></div>
         <div class="cot-custom-wrap" id="cot-deposito-custom-wrap">
           <span class="cot-custom-prefix">$</span>
@@ -5136,18 +5263,17 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
       </div>
       
       <div class="cot-section">
-        <div class="cot-section-label">⚖️ Comparar planes</div>
+        <div class="cot-section-label">Comparar planes</div>
         <div class="cot-pills" id="cot-cmp-pills"></div>
       </div>
       
       <div class="cot-section">
-        <div class="cot-section-label">📊 Resumen</div>
+        <div class="cot-section-label">Resumen</div>
         <div class="cot-resumen" id="cot-resumen">—</div>
       </div>
       
       <div class="comm-section" id="comm-section" onclick="toggleCommSection(event)">
         <div class="comm-section-toggle">
-          <div class="comm-section-icon">💼</div>
           <div class="comm-section-info">
             <div class="comm-section-title">Tu comisión potencial</div>
             <div class="comm-section-sub">Solo visible para ti</div>
@@ -5162,11 +5288,11 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
       
     </div>
     <div class="cot-actions" style="flex-direction:column;gap:8px">
-      <button class="cot-btn cot-btn-send" onclick="cotSendImage()" style="width:100%;background:linear-gradient(135deg,#185FA5,#534AB7);box-shadow:0 4px 14px rgba(24,95,165,.35)">
+      <button class="cot-btn cot-btn-send" onclick="cotSendImage()" style="width:100%;background:var(--hv2-navy);box-shadow:var(--hv2-shadow-2)">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
         Enviar cotización como imagen
       </button>
-      <button class="cot-btn cot-btn-send" onclick="generateSpecsPDF()" style="width:100%;background:linear-gradient(135deg,#37474F,#1C1C1E);box-shadow:0 4px 14px rgba(28,28,30,.25);color:#fff;margin-top:8px">
+      <button class="cot-btn cot-btn-send" onclick="generateSpecsPDF()" style="width:100%;background:#2A3646;box-shadow:var(--hv2-shadow-1);color:#fff;margin-top:8px">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
         Enviar ficha técnica (PDF)
       </button>
@@ -5215,26 +5341,25 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
   <div class="cot-modal" style="max-height:96vh">
     <div class="cot-handle"></div>
     <div class="cot-header">
-      <div class="cot-title">📸 Vista previa</div>
+      <div class="cot-title">Vista previa</div>
       <div class="cot-sub">Toca compartir para enviarla al cliente</div>
     </div>
     <div class="cot-body" style="padding:14px;background:var(--surface2)">
       <div id="flyer-preview-container" style="display:flex;justify-content:center;padding:8px"></div>
       <div id="flyer-preview-loading" style="text-align:center;padding:40px;color:var(--label3)">
-        <div style="font-size:32px;margin-bottom:10px">⏳</div>
         <div>Generando imagen...</div>
       </div>
       <!-- [v1.10.11 BUG A] Mensaje informativo: el selector nativo de Android lista todas
            las apps capaces de recibir la imagen (WhatsApp, WhatsApp Business, Gmail, Drive...).
            El asesor debe elegir cuál usar — Android no permite filtrar desde la web. -->
       <div style="margin:8px 12px 0;padding:10px 12px;background:rgba(24,95,165,.08);border-left:3px solid var(--ios-blue);border-radius:6px;font-size:12px;color:var(--label2);line-height:1.45">
-        <b style="color:var(--ios-blue)">💡 Tip:</b> al tocar "Compartir imagen", tu celular te mostrará todas las apps disponibles. Selecciona <b>WhatsApp</b> o <b>WhatsApp Business</b> según la que uses con tus clientes.
+        <b style="color:var(--hv2-accent)">Tip:</b> al tocar "Compartir imagen", tu celular te mostrará todas las apps disponibles. Selecciona <b>WhatsApp</b> o <b>WhatsApp Business</b> según la que uses con tus clientes.
       </div>
     </div>
     <div class="cot-actions">
       <button class="cot-btn cot-btn-cancel" onclick="closeFlyerPreview()">Cerrar</button>
       <button class="cot-btn cot-btn-send" id="flyer-share-btn" onclick="shareFlyerImage()">
-        📤 Compartir imagen
+        Compartir imagen
       </button>
     </div>
   </div>
@@ -5318,7 +5443,6 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
     </div>
     <div class="crm-modal-body">
       <div id="save-client-duplicado" class="crm-duplicado-hint" style="display:none">
-        <span class="crm-duplicado-icon">🔄</span>
         <div>
           <div class="crm-duplicado-title">Ya tienes un cliente con este teléfono</div>
           <div class="crm-duplicado-sub" id="save-client-duplicado-name">—</div>
@@ -5329,12 +5453,10 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
         <label class="crm-label">Tipo de prospecto <span class="crm-required">*</span></label>
         <div class="crm-tipo-selector">
           <button type="button" class="crm-tipo-btn" data-tipo="POSPAGO" onclick="selectTipoProspecto('POSPAGO')">
-            <div class="crm-tipo-icon">📱</div>
             <div class="crm-tipo-label">POSPAGO</div>
             <div class="crm-tipo-sub">Cliente nuevo</div>
           </button>
           <button type="button" class="crm-tipo-btn" data-tipo="RENOVACION" onclick="selectTipoProspecto('RENOVACION')">
-            <div class="crm-tipo-icon">🔄</div>
             <div class="crm-tipo-label">RENOVACIÓN</div>
             <div class="crm-tipo-sub">Ya tiene línea</div>
           </button>
@@ -5372,11 +5494,11 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
       </div>
       <!-- [v1.9.16] Botón eliminar solo visible en modo editar -->
       <button class="crm-btn-delete" id="save-client-delete-btn" onclick="confirmarEliminarCliente()" style="display:none">
-        🗑 Eliminar cliente
+        Eliminar cliente
       </button>
       <!-- [v1.9.16.1] Botón gerente: contactar cliente con mensaje institucional -->
       <button class="crm-btn-wa" id="save-client-wa-btn" onclick="enviarMensajeGerenteWA()" style="display:none">
-        📤 Contactar al cliente por WhatsApp
+        Contactar al cliente por WhatsApp
       </button>
     </div>
     <div class="crm-modal-footer">
@@ -5395,7 +5517,7 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
   </div>
   <div class="crm-tabs">
     <button class="crm-tab crm-tab-active" id="crm-tab-hoy" onclick="switchCRMTab('hoy')">
-      ⏰ Hoy <span class="crm-tab-count" id="crm-count-hoy">0</span>
+      Hoy <span class="crm-tab-count" id="crm-count-hoy">0</span>
     </button>
     <button class="crm-tab" id="crm-tab-activos" onclick="switchCRMTab('activo')">
       Activos <span class="crm-tab-count" id="crm-count-activos">0</span>
@@ -5409,8 +5531,7 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
   </div>
   <div class="crm-list" id="crm-list">
     <div class="crm-empty">
-      <div class="crm-empty-icon">⏳</div>
-      <div class="crm-empty-title">Cargando...</div>
+      <div class="crm-empty-title">Cargando…</div>
     </div>
   </div>
 </div>
@@ -5462,7 +5583,7 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
       </button>
     </div>
     <div class="ai-modal-disclaimer">
-      ⚠️ La IA puede equivocarse. Valida precios siempre en la ficha del equipo.
+      La IA puede equivocarse. Valida precios siempre en la ficha del equipo.
     </div>
   </div>
 </div>
@@ -5472,7 +5593,7 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
 (function(){
   var d=document.getElementById('pmd-drawer'), ov=document.getElementById('pmd-overlay');
   if(!d||!ov) return;
-  window.pmdOpen=function(){
+  function pmdFill(){
     try{
       if(typeof asesorData!=='undefined' && asesorData && asesorData.attuid){
         var nm=asesorData.name||'Asesor';
@@ -5483,6 +5604,11 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
         if(eA){var p=String(nm).trim().split(/\s+/); eA.textContent=(((p[0]||'')[0]||'')+((p[1]||'')[0]||''))||(String(nm)[0]||'P');}
       }
     }catch(e){}
+  }
+  // Sidebar fija en escritorio: poblar nombre/rol sin esperar a que se abra el drawer.
+  window.addEventListener('load',function(){ setTimeout(pmdFill,900); setTimeout(pmdFill,3200); });
+  window.pmdOpen=function(){
+    pmdFill();
     if(window.pmdSyncTheme)pmdSyncTheme(); if(window.pmdSyncDesktop)pmdSyncDesktop();
     d.classList.add('on'); ov.classList.add('on'); document.body.style.overflow='hidden';
   };

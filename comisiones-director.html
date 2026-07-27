@@ -9,23 +9,23 @@
 <title>Comisiones · Director — TechGuide</title>
 <style>
 :root{
-  --bg:#000;--surface:#1C1C1E;--surface2:#2C2C2E;--surface3:#3A3A3C;
-  --label:#FFF;--label2:#EBEBF5;--label3:#8E8E93;--label4:#48484A;--sep:rgba(255,255,255,0.10);
-  --tint:rgba(255,255,255,.04);--shadow:rgba(0,0,0,.4);
-  --blue:#00A8E0;--cyan:#5BC2E7;
+  --bg:#080D16;--surface:#0F1622;--surface2:#16202E;--surface3:#1F2B3C;
+  --label:#EDF2F8;--label2:#D7E0EB;--label3:#8A97A9;--label4:#414E5F;--sep:rgba(237,242,248,0.10);
+  --tint:rgba(255,255,255,.045);--shadow:rgba(0,0,0,.45);
+  --blue:#31A5E5;--cyan:#4DB4EC;
   --green:#30D158;--red:#FF453A;--amber:#FFD60A;
-  --t-blue:#5BC2E7;--t-green:#5BE584;--t-amber:#FFD60A;--t-red:#FF8A80;--t-orange:#FF9F0A;
+  --t-blue:#4DB4EC;--t-green:#3BC292;--t-amber:#FFD60A;--t-red:#FF8A80;--t-orange:#FF9F0A;
   --r-xl:22px;--r-lg:16px;--r-md:12px;--r-sm:9px;
   --fd:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",system-ui,sans-serif;
   --fm:"SF Mono","Roboto Mono",ui-monospace,monospace;--ease:cubic-bezier(.16,1,.3,1);
 }
 :root[data-theme="light"]{
-  --bg:#F2F2F7;--surface:#FFFFFF;--surface2:#EFEFF4;--surface3:#E3E3E8;
-  --label:#000;--label2:#1C1C1E;--label3:#8E8E93;--label4:#B8B8BE;--sep:rgba(0,0,0,0.09);
-  --tint:rgba(0,0,0,.035);--shadow:rgba(0,0,0,.10);
-  --blue:#0090C4;--cyan:#0090C4;
+  --bg:#F3F5F8;--surface:#FFFFFF;--surface2:#EBEFF4;--surface3:#DFE5EC;
+  --label:#0B1524;--label2:#24303F;--label3:#6D7B8E;--label4:#B3BDC9;--sep:rgba(11,21,36,0.10);
+  --tint:rgba(11,21,36,.04);--shadow:rgba(11,21,36,.10);
+  --blue:#0E7DBE;--cyan:#0E7DBE;
   --green:#1E9E45;--red:#D0291C;--amber:#B58A00;
-  --t-blue:#0080B5;--t-green:#178A3C;--t-amber:#A57C00;--t-red:#C42818;--t-orange:#CF5A00;
+  --t-blue:#0B6AA2;--t-green:#178A66;--t-amber:#A57C00;--t-red:#C42818;--t-orange:#CF5A00;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
@@ -278,7 +278,7 @@ body{background:var(--bg);color:var(--label);font-family:var(--fd);min-height:10
 
 <script>
 const fmt=n=>Math.round(n).toLocaleString('es-MX');
-const MET=[{k:'po',label:'Pospago',e:'📱'},{k:'re',label:'Renovaciones',e:'🔄'},{k:'ac',label:'Accesorios',e:'🎧'},{k:'se',label:'Seguros',e:'🛡️'},{k:'pr',label:'Prepago',e:'💳'}];
+const MET=[{k:'po',label:'Pospago',e:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>'},{k:'re',label:'Renovaciones',e:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>'},{k:'ac',label:'Accesorios',e:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>'},{k:'se',label:'Seguros',e:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'},{k:'pr',label:'Prepago',e:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1.5" y="4.5" width="21" height="15" rx="2.5"/><path d="M1.5 10h21"/></svg>'}];
 
 let ORG=[];
 
@@ -502,7 +502,7 @@ function renderNav(){
 function viewRegion(r){
   const a=alc(r.real.po,r.cuota.po),c=cls(a);
   let h='<div class="navpad">';
-  h+=`<div class="candbig"><span class="cbl">🔒 Pospago de la región</span><span class="cbv ${c}">${r.real.po} / ${r.cuota.po} · ${Math.round(a*100)}%</span></div>`;
+  h+=`<div class="candbig"><span class="cbl">Pospago de la región</span><span class="cbv ${c}">${r.real.po} / ${r.cuota.po} · ${Math.round(a*100)}%</span></div>`;
   h+='<p class="seclab">Indicadores</p><div class="minis">'+minisHTML(r)+'</div>';
   h+=`<div class="incrow"><span class="incl">Director regional</span><span class="incv name">${r.dir}</span></div>`;
   h+=`<p class="seclab">Zonas · ${r.zonas_n}</p><div class="aslist">`;
@@ -512,7 +512,7 @@ function viewRegion(r){
 function viewZona(z,key){
   const a=alc(z.real.po,z.cuota.po),c=cls(a),ts=genTiendas(key,z);
   let h='<div class="navpad">';
-  h+=`<div class="candbig"><span class="cbl">🔒 Pospago de la zona</span><span class="cbv ${c}">${z.real.po} / ${z.cuota.po} · ${Math.round(a*100)}%</span></div>`;
+  h+=`<div class="candbig"><span class="cbl">Pospago de la zona</span><span class="cbv ${c}">${z.real.po} / ${z.cuota.po} · ${Math.round(a*100)}%</span></div>`;
   h+='<p class="seclab">Indicadores</p><div class="minis">'+minisHTML(z)+'</div>';
   h+=`<p class="seclab">Tiendas · ${ts.length} <span class="sechint">bono del gerente</span></p><div class="aslist">`;
   ts.forEach((t,i)=>{const ta=alc(t.po,t.cpo),right=`<span class="alcbox"><span class="bchip${t.bono>0?'':' off'}">$${fmt(t.bono)}</span><span class="alcnum">${t.cpo>0?t.po+' / '+t.cpo+' · '+Math.round(ta*100)+'%':'sin cuota'}</span></span>`;h+=`<button class="drow" onclick="openChild(${i})"><span class="asav">${t.ini}</span><span class="asmeta"><span class="asn">${t.n}</span><span class="ass">${t.gte}</span></span>${right}<span class="tchev">›</span></button>`;});
@@ -521,10 +521,10 @@ function viewZona(z,key){
 function viewTienda(t,key){
   const m=metricasTienda(key,t),bg=bonoGerente(t,m),ases=genAsesores(key,t),tot=ases.reduce((s,x)=>s+x.com,0);
   let h='<div class="navpad">';
-  h+=`<div class="bhero ${bg.locked?'lock':''}"><div class="bhl">🏆 Bono del gerente</div><div class="bhv">$${fmt(bg.total)}</div><div class="bhs">${t.gte} · ${t.cpo>0?t.po+' / '+t.cpo+' · '+Math.round(m.po*100)+'% pospago':'sin cuota'}</div></div>`;
+  h+=`<div class="bhero ${bg.locked?'lock':''}"><div class="bhl">Bono del gerente</div><div class="bhv">$${fmt(bg.total)}</div><div class="bhs">${t.gte} · ${t.cpo>0?t.po+' / '+t.cpo+' · '+Math.round(m.po*100)+'% pospago':'sin cuota'}</div></div>`;
   h+='<div style="background:var(--surface);border:1px solid var(--sep);border-radius:13px;padding:11px 14px;margin-bottom:13px"><div style="font-size:11px;color:var(--label2);font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Cuota de la tienda · por semana</div>'+[['po','Pospago'],['re','Renovaciones'],['ac','Accesorios'],['se','Seguros'],['pr','Prepago']].map(function(p){var k=p[0],cu=(t.cuota&&t.cuota[k])||0,rl=(t.real&&t.real[k])||0,a=cu>0?Math.round(rl/cu*100):null,col=a==null?'var(--label3)':(a>=80?'#34D399':'#FBBF24');return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;border-top:1px solid var(--sep)"><span style="color:var(--label2)">'+p[1]+'</span><span style="color:'+col+';font-weight:600">'+(cu>0?rl+' / '+cu+(a!=null?' · '+a+'%':''):'sin cuota')+'</span></div>';}).join('')+'</div>';
-  h+=`<button class="gbtn" onclick="openGerente()"><span>📊 Cómo cobra y qué le falta</span><span class="ac">›</span></button>`;
-  if(CAN_EDIT_CUOTA)h+=`<button class="gbtn" onclick="openCuota()"><span>🎯 Ajustar la cuota de la tienda</span><span class="ac">›</span></button>`;
+  h+=`<button class="gbtn" onclick="openGerente()"><span>Cómo cobra y qué le falta</span><span class="ac">›</span></button>`;
+  if(CAN_EDIT_CUOTA)h+=`<button class="gbtn" onclick="openCuota()"><span>Ajustar la cuota de la tienda</span><span class="ac">›</span></button>`;
   h+=`<p class="seclab">Asesores · ${ases.length} <span class="sechint">$${fmt(tot)} en comisiones</span></p><div class="aslist">`;
   ases.forEach((as,i)=>{h+=`<button class="drow" onclick="openChild(${i})"><span class="asav">${as.ini}</span><span class="asmeta"><span class="asn">${as.n}</span><span class="ass">${as.po} pos · ${as.re} renov · ${as.ac} acc · ${as.se} seg</span></span><span class="ascom">$${fmt(as.com)}</span><span class="tchev">›</span></button>`;});
   h+='</div></div>';return h;
@@ -532,7 +532,7 @@ function viewTienda(t,key){
 function viewGerente(t,key){
   const m=metricasTienda(key,t),bg=bonoGerente(t,m);
   let h='<div class="navpad">';
-  h+=`<div class="bhero ${bg.locked?'lock':''}"><div class="bhl">🏆 Bono actual del gerente</div><div class="bhv">$${fmt(bg.total)}</div><div class="bhs">${t.gte}${t.cpo>0?' · '+Math.round(m.po*100)+'% pospago':' · sin cuota'}</div></div>`;
+  h+=`<div class="bhero ${bg.locked?'lock':''}"><div class="bhl">Bono actual del gerente</div><div class="bhv">$${fmt(bg.total)}</div><div class="bhs">${t.gte}${t.cpo>0?' · '+Math.round(m.po*100)+'% pospago':' · sin cuota'}</div></div>`;
   h+='<p class="seclab">De qué se compone</p><div class="brk">';
   h+=`<div class="brkrow"><span>Base por pospago / renovación</span><b>$${fmt(bg.base)}</b></div>`;
   h+=`<div class="brkrow"><span>Incentivo ARPU-Mix</span><b class="${bg.arpu>0?'pos':'z'}">${bg.arpu>0?'$'+fmt(bg.arpu):'$0'}</b></div>`;
@@ -548,15 +548,15 @@ function viewGerente(t,key){
   h+=cell('Seguros',Math.round(m.se*100)+'%',m.se>=0.80);
   h+='</div>';
   h+='<p class="seclab">Para cobrar todo le falta</p>';
-  if(!bg.falta.length)h+='<div class="okbox">✅ Está cobrando el máximo posible.</div>';
+  if(!bg.falta.length)h+='<div class="okbox">Está cobrando el máximo posible.</div>';
   else{h+='<div class="falist">';bg.falta.forEach(x=>h+=`<div class="farow"><span class="fadot"></span><span>${x}</span></div>`);h+='</div>';}
   h+='</div>';return h;
 }
 function viewAsesor(as,key){
   const vs=genVentas(key,as);
   let h='<div class="navpad">';
-  h+=`<div class="bhero ase ${as.noAcc?'lock':''}"><div class="bhl">💰 Comisión del asesor</div><div class="bhv">$${fmt(as.com)}</div><div class="bhs">${as.po} pospago · ${as.re} renov · ${as.ac} acc · ${as.se} seg</div></div>`;
-  if(as.noAcc)h+=`<div class="alertin"><span>🔒</span><span>${as.po<2?('Lleva '+as.po+' pospago'+(as.po===1?'':'s')+': necesita mínimo 2 para cobrar comisión.'):('La tienda está bajo el 80% de pospago: no se libera comisión.')} Generaría $${fmt(as.comGen)} al desbloquear.</span></div>`;
+  h+=`<div class="bhero ase ${as.noAcc?'lock':''}"><div class="bhl">Comisión del asesor</div><div class="bhv">$${fmt(as.com)}</div><div class="bhs">${as.po} pospago · ${as.re} renov · ${as.ac} acc · ${as.se} seg</div></div>`;
+  if(as.noAcc)h+=`<div class="alertin"><span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg></span><span>${as.po<2?('Lleva '+as.po+' pospago'+(as.po===1?'':'s')+': necesita mínimo 2 para cobrar comisión.'):('La tienda está bajo el 80% de pospago: no se libera comisión.')} Generaría $${fmt(as.comGen)} al desbloquear.</span></div>`;
   h+=`<p class="seclab">${as.noAcc?'Generaría al desbloquear (bloqueado)':'De qué se compone'}</p><div class="brk">`;
   h+=`<div class="brkrow"><span>Plan (pospago + renovación)</span><b class="${as.noAcc?'z':''}">$${fmt(as.comPlan)}</b></div>`;
   h+=`<div class="brkrow"><span>Incentivo de equipo</span><b class="${(as.noAcc||as.comEq===0)?'z':'pos'}">$${fmt(as.comEq)}</b></div>`;
@@ -571,7 +571,7 @@ function viewAsesor(as,key){
 function aggMetric(k,arr){arr=arr||SCOPE;let r=0,c=0;arr.forEach(o=>{if(o.cuota&&o.cuota[k]>0){r+=o.real[k];c+=o.cuota[k];}});return c>0?{a:Math.min(r/c,1),r,c}:null;}
 function renderTiles(){
   const src=AGG?[AGG]:SCOPE;
-  const tile=(m,lock)=>{const ag=aggMetric(m.k,src),c=cls(ag?ag.a:null),pc=ag?Math.round(ag.a*100):0;const sub=ag?`<div class="tisub">${fmt(ag.r)} / ${fmt(ag.c)}${m.k==='po'?' activaciones':''}</div>`:'';const lk=lock?'<span class="lock">🔒 desbloqueo</span>':'';return `<div class="tile ${lock?'full':''}"><div class="tih"><span>${m.e}</span>${m.label}${lk}</div><div class="tiv ${c}">${ag?pc+'%':'—'}</div><div class="tibar"><span class="tibarf ${c}" style="width:${pc}%"></span></div>${sub}</div>`;};
+  const tile=(m,lock)=>{const ag=aggMetric(m.k,src),c=cls(ag?ag.a:null),pc=ag?Math.round(ag.a*100):0;const sub=ag?`<div class="tisub">${fmt(ag.r)} / ${fmt(ag.c)}${m.k==='po'?' activaciones':''}</div>`:'';const lk=lock?'<span class="lock"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg> desbloqueo</span>':'';return `<div class="tile ${lock?'full':''}"><div class="tih"><span>${m.e}</span>${m.label}${lk}</div><div class="tiv ${c}">${ag?pc+'%':'—'}</div><div class="tibar"><span class="tibarf ${c}" style="width:${pc}%"></span></div>${sub}</div>`;};
   document.getElementById('tiles').innerHTML=tile(MET[0],true)+tile(MET[1])+tile(MET[2])+tile(MET[3])+tile(MET[4]);
 }
 function renderMain(){
@@ -601,7 +601,7 @@ window.pmdSyncDesktop=function(){var sw=document.getElementById('pmd-desktop-sw'
   if(saved==='1')document.documentElement.setAttribute('data-desktop','1');
 })();
 
-function toggleTheme(){const el=document.documentElement;const isLight=el.getAttribute('data-theme')==='light';el.setAttribute('data-theme',isLight?'dark':'light');var _tb=document.getElementById('themeBtn');if(_tb)_tb.textContent=isLight?'☀️':'🌙';if(typeof pmdSyncTheme==='function')pmdSyncTheme();}
+function toggleTheme(){const el=document.documentElement;const isLight=el.getAttribute('data-theme')==='light';el.setAttribute('data-theme',isLight?'dark':'light');var _tb=document.getElementById('themeBtn');if(_tb)_tb.innerHTML=isLight?'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.5 4.5l1.8 1.8M17.7 17.7l1.8 1.8M19.5 4.5l-1.8 1.8M6.3 17.7l-1.8 1.8"/></svg>':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';if(typeof pmdSyncTheme==='function')pmdSyncTheme();}
 function irInicio(){if(history.length>1){history.back();}else{location.href='index.html';}}
 /* ── Firebase: cuota mensual + nombres reales de gerentes ── */
 const STORE_ID={"Puerta Bajío":"PRM TDA PUERTA BAJIO","León Centro":"PRM TDA LEON CENTRO","León Flagship":"PRM TDA LEON FLAGSHIP","León Altacia":"PRM TDA LEON ALTACIA","Plaza Mandarinas":"PRM TDA PLAZA MANDARINAS","Paseo del Moral":"PRM TDA PASEO DEL MORAL","Plaza Rossini":"PRM TDA PLAZA ROSSINI","Mariano Escobedo":"PRM TDA MARIANO ESCOBEDO","Plaza Argania":"PRM TDA PLAZA ARGANIA","Lagos de Moreno":"PRM TDA LAGOS DE MORENO","Portal Lagos de Moreno":"PRM TDA PORTAL LAGOS DE MORENO"};
@@ -738,31 +738,7 @@ window.TG_DASH={
 };
 if(window.hidratarFirebase)window.hidratarFirebase();
 </script>
-<style>
-.pmd-overlay{position:fixed;inset:0;z-index:1200;background:rgba(9,13,22,.44);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:opacity .26s cubic-bezier(.32,.72,0,1),visibility .26s}
-.pmd-overlay.on{opacity:1;visibility:visible}
-.pmd-drawer{position:fixed;top:0;left:0;bottom:0;z-index:1201;width:84%;max-width:328px;background:var(--surface);box-shadow:0 18px 60px rgba(0,0,0,.5);transform:translateX(-102%);transition:transform .28s cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0)}
-.pmd-drawer.on{transform:none}
-.pmd-head{padding:22px 20px 18px;display:flex;align-items:center;gap:13px;width:100%;background:transparent;border:none;border-bottom:1px solid var(--sep);cursor:pointer;font-family:inherit;text-align:left;transition:background .16s ease}
-.pmd-head:hover{background:var(--surface2)}
-.pmd-avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--att-blue),#0071BC);color:#fff;font-weight:700;font-size:17px;flex-shrink:0}
-.pmd-who b{display:block;font-size:16px;font-weight:800;color:var(--label);letter-spacing:-.01em}
-.pmd-who span{display:block;font-size:12.5px;color:var(--label3);margin-top:2px;font-weight:500}
-.pmd-head-chev{width:18px;height:18px;color:var(--label3);flex-shrink:0;margin-left:auto}
-.pmd-nav{padding:12px;display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto}
-.pmd-item{display:flex;align-items:center;gap:14px;padding:13px 14px;border-radius:12px;background:transparent;border:none;color:var(--label);font-size:15px;font-weight:600;letter-spacing:-.01em;width:100%;text-align:left;cursor:pointer;font-family:inherit;transition:background .16s ease,transform .1s ease}
-.pmd-item svg{width:20px;height:20px;color:var(--label3);flex-shrink:0;stroke-width:1.9;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
-.pmd-item:hover{background:var(--surface2)}
-.pmd-item:active{transform:scale(.98)}
-.pmd-sep{height:1px;background:var(--sep);margin:10px 14px}
-.pmd-danger{color:var(--red)} .pmd-danger svg{color:var(--red)}
-.pmd-switch{width:38px;height:22px;border-radius:999px;background:var(--sep);position:relative;transition:background .2s ease;flex-shrink:0}
-.pmd-switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s ease}
-.pmd-switch.on{background:var(--att-blue)}
-.pmd-switch.on::after{transform:translateX(16px)}
-.pmd-foot{padding:14px 22px calc(16px + env(safe-area-inset-bottom,0));font-size:11px;color:var(--label3);border-top:1px solid var(--sep);font-weight:600}
-.pmd-foot b{font-weight:800;color:var(--label)} .pmd-foot b span{color:var(--att-blue)}
-</style>
+<link rel="stylesheet" href="comisiones-ui.css">
 <div class="pmd-overlay" id="pmd-overlay" onclick="pmdClose()"></div>
 <aside class="pmd-drawer" id="pmd-drawer" aria-label="Menú de navegación">
   <button class="pmd-head" onclick="pmdGo('perfil')" aria-label="Editar perfil">
