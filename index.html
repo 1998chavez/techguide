@@ -260,8 +260,14 @@ const APP_VERSION = 'v1.11.79';</script>
 @media (min-width:1080px){
   .pmd-burger{display:none}
   .pmd-overlay{display:none!important}
-  .pmd-drawer{transform:none!important;width:264px;box-shadow:none;border-right:1px solid var(--hv2-line);background:var(--hv2-bg)}
+  /* #pmd-drawer por id: el <style> del drawer vive más abajo en el documento y
+     con .pmd-drawer a secas ganaba su width 84%/328px → tapaba 64px del contenido. */
+  #pmd-drawer{transform:none!important;width:264px;max-width:264px;box-shadow:none;border-right:1px solid var(--hv2-line);background:var(--hv2-bg)}
   #app{margin-left:264px}
+  /* Modo escritorio manual: el centrado 50vw no sabía de la sidebar fija */
+  [data-desktop="1"] .nav{padding-left:max(16px,calc((100vw - 264px)/2 - 574px));padding-right:max(16px,calc((100vw - 264px)/2 - 574px))}
+  [data-desktop="1"] .sticky-search,
+  [data-desktop="1"] .filter-scroll{padding-left:max(16px,calc((100vw - 264px)/2 - 574px));padding-right:max(16px,calc((100vw - 264px)/2 - 574px))}
   .home-v2{max-width:1240px;margin:0 auto;padding:36px 56px 56px;display:grid;
     grid-template-columns:minmax(340px,5fr) minmax(0,7fr);gap:0 56px;align-content:start}
   .hv2-main,.hv2-side{display:block;min-width:0}
@@ -275,7 +281,22 @@ const APP_VERSION = 'v1.11.79';</script>
   .momento-card{width:170px}
   .hv2-sheet-overlay{align-items:center;padding:24px}
   .hv2-sheet{border-radius:18px;max-width:430px;padding-bottom:24px;border:1px solid var(--hv2-line)}
+  /* [v1.12.4] Riel derecho del catálogo: navegar marcas sin volver arriba */
+  .cat-rail{display:flex;position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:60;
+    flex-direction:column;gap:3px;width:132px;max-height:76vh;overflow-y:auto;
+    background:var(--hv2-card);border:1px solid var(--hv2-line);border-radius:14px;padding:8px;box-shadow:var(--hv2-shadow-2)}
+  .cat-rail:empty{display:none}
+  #s-catalog .scroll-area{padding-right:156px}
 }
+.cat-rail{display:none}
+.cat-rail-lab{font-size:9.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--hv2-ink3);padding:9px 9px 4px}
+.cat-rail-item{border:none;background:transparent;color:var(--hv2-ink2);font-family:inherit;font-size:12.5px;font-weight:600;
+  text-align:left;padding:7px 9px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:7px;
+  transition:background .15s ease,color .15s ease;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cat-rail-item:hover{background:var(--hv2-card-soft);color:var(--hv2-ink)}
+.cat-rail-item.on{background:var(--hv2-accent);color:#fff}
+.cat-rail-top{color:var(--hv2-accent);font-weight:700}
+@media (max-width:1079.9px){.cat-rail{display:none!important}}
 
 /* ═══ [v1.10.57] ENTREGA 2 — PIEL NUEVA: CATÁLOGO ════════════════════════════
    Overrides con scope #s-catalog para migrar solo esta pantalla a la piel
@@ -5055,6 +5076,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
     </div>
   </div>
   <div class="filter-scroll" id="fbar"></div>
+  <aside class="cat-rail" id="cat-rail" aria-label="Navegación del catálogo"></aside>
   <div class="scroll-area" id="dev-wrap"></div>
   <div class="cmp-bar" id="cmp-bar">
     <span class="cmp-bar-lbl" id="cmp-lbl">0 seleccionados</span>
@@ -5655,6 +5677,34 @@ document.write('<scr'+'ipt src="app.js?v='+(window.BUILD_ID||'0')+'"></scr'+'ipt
       }catch(e){}
     },700);
   });
+})();
+/* ── [v1.12.4] Riel derecho del catálogo (solo escritorio) — presentacional:
+   espeja las píldoras de marca de #fbar y hace proxy del click. Cero lógica. ── */
+(function(){
+  var rail=document.getElementById('cat-rail'), fbar=document.getElementById('fbar');
+  if(!rail||!fbar) return;
+  function build(){
+    var pills=Array.prototype.slice.call(fbar.querySelectorAll('.fpill'));
+    rail.innerHTML='';
+    if(!pills.length) return;
+    var top=document.createElement('button');
+    top.className='cat-rail-item cat-rail-top';
+    top.innerHTML='<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Subir';
+    top.addEventListener('click',function(){var w=document.getElementById('dev-wrap');if(w)w.scrollTo({top:0,behavior:'smooth'});});
+    rail.appendChild(top);
+    var lab=document.createElement('div'); lab.className='cat-rail-lab'; lab.textContent='Marcas'; rail.appendChild(lab);
+    pills.forEach(function(p){
+      var b=document.createElement('button');
+      b.className='cat-rail-item'+(p.classList.contains('on')?' on':'');
+      b.textContent=p.textContent;
+      b.addEventListener('click',function(){p.click();var w=document.getElementById('dev-wrap');if(w)w.scrollTo({top:0,behavior:'smooth'});});
+      rail.appendChild(b);
+    });
+  }
+  var t=null;
+  function queueBuild(){ clearTimeout(t); t=setTimeout(build,60); }
+  try{ new MutationObserver(queueBuild).observe(fbar,{childList:true,subtree:true,attributes:true,attributeFilter:['class']}); }catch(e){}
+  window.addEventListener('load',function(){ setTimeout(build,700); });
 })();
 </script>
 </body>
