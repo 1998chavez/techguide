@@ -2599,6 +2599,117 @@ function renderTopCommList(){
 
 
 
+// ── [v1.11.85] DESCUENTOS ───────────────────────────────────────────────────
+// Equipos agrupados por % de descuento según plan y plazo. TODO se deriva en
+// tiempo de render de PRICES + resolvePrice() + isVigent(): cero datos nuevos
+// en catalog.js y cero constantes extra en el ritual de release. Al subir
+// precios nuevos, esta pantalla se recalcula sola.
+// Cajones: Incluido ($0) · 70%+ · 50–69 · 30–49 · 10–29. No hay cajón <10%
+// porque la regla de auto-rellenado de resolvePrice concentra todo arriba
+// (un null con precio en plan/plazo inferior se interpreta como $0).
+// La pantalla reusa la piel de top-comm (hero, pills, list, item, thumb).
+
+let descSelectedPlan = 'Plata';
+let descSelectedPlazo = '36';
+const DESC_PLANS = ['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Diamante'];
+const DESC_BRACKETS = [
+  {k:'inc', label:'Equipo incluido', color:'#10B981'},
+  {k:'70',  label:'70% o más',       color:'#34C759'},
+  {k:'50',  label:'50–69%',          color:'#00A8E0'},
+  {k:'30',  label:'30–49%',          color:'#FF9500'},
+  {k:'10',  label:'10–29%',          color:'#8E8E93'}
+];
+// Cajones expandidos ("Ver los N"). Se limpia al cambiar plan o plazo.
+const descExpanded = new Set();
+
+function showDescuentos(){
+  show('s-descuentos');
+  renderDescPlanPills();
+  renderDescPlazoSeg();
+  renderDescList();
+}
+
+function descSetPlan(p){ descSelectedPlan = p; descExpanded.clear(); renderDescPlanPills(); renderDescList(); }
+function descSetPlazo(z){ descSelectedPlazo = z; descExpanded.clear(); renderDescPlazoSeg(); renderDescList(); }
+function descToggle(k){ if(descExpanded.has(k)) descExpanded.delete(k); else descExpanded.add(k); renderDescList(); }
+
+function renderDescPlanPills(){
+  const el = document.getElementById('desc-plan-pills');
+  if(!el) return;
+  el.innerHTML = DESC_PLANS.map(function(p){
+    return '<button class="top-comm-plan-pill'+(p===descSelectedPlan?' active':'')+'" onclick="descSetPlan(\''+p+'\')">'+p+'</button>';
+  }).join('');
+}
+
+function renderDescPlazoSeg(){
+  const el = document.getElementById('desc-plazo-seg');
+  if(!el) return;
+  el.innerHTML = ['24','30','36'].map(function(z){
+    return '<button class="'+(z===descSelectedPlazo?'active':'')+'" onclick="descSetPlazo(\''+z+'\')">'+z+' meses</button>';
+  }).join('');
+}
+
+function renderDescList(){
+  const el = document.getElementById('desc-list');
+  if(!el) return;
+  const all = [...CAT.ios, ...CAT.android];
+  const groups = {inc:[], '70':[], '50':[], '30':[], '10':[]};
+
+  all.forEach(function(d){
+    if(!isVigent(d.id)) return;
+    const pi = (typeof PRICES !== 'undefined') ? PRICES[d.id] : null;
+    const contado = pi ? pi.contado : null;
+    if(!contado) return;
+    const promo = resolvePrice(d.id, descSelectedPlan, descSelectedPlazo);
+    if(promo === null || promo === undefined) return;
+    const pct = ((contado - promo) / contado) * 100;
+    if(promo !== 0 && pct < 10) return;
+    const k = promo === 0 ? 'inc' : pct >= 70 ? '70' : pct >= 50 ? '50' : pct >= 30 ? '30' : '10';
+    groups[k].push({d:d, contado:contado, promo:promo, pct:pct});
+  });
+
+  const fmx = function(n){ return '$' + Math.round(n).toLocaleString('es-MX'); };
+  let h = '', first = true;
+
+  DESC_BRACKETS.forEach(function(b){
+    const arr = groups[b.k];
+    if(!arr.length) return;
+    arr.sort(function(a,x){ return x.pct - a.pct; });
+
+    h += '<div style="background:linear-gradient(90deg,'+b.color+'15,transparent);padding:10px 14px;'+(first?'':'border-top:0.5px solid var(--sep);')+'font-size:11px;font-weight:700;color:'+b.color+';letter-spacing:.5px;display:flex;align-items:center;justify-content:space-between">';
+    h += '<span>'+b.label+'</span><span style="font-weight:800;font-size:13px">'+arr.length+' equipos</span>';
+    h += '</div>';
+    first = false;
+
+    const visibles = descExpanded.has(b.k) ? arr : arr.slice(0, 3);
+    visibles.forEach(function(it){
+      const imgEl = (typeof IMG !== 'undefined' && IMG[it.d.id])
+        ? '<img src="'+IMG[it.d.id]+'" alt="">'
+        : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>';
+      const pctStr = it.promo === 0 ? 'Incluido' : '\u2212' + Math.round(it.pct) + '%';
+      // storage en el detalle: distingue variantes que comparten nombre (Pixel 10 Pro 256/512).
+      h += '<div class="top-comm-item" onclick="showFicha(\''+it.d.id+'\')">';
+      h += '<div class="top-comm-thumb">'+imgEl+'</div>';
+      h += '<div class="top-comm-info">';
+      h += '<div class="top-comm-brand">'+it.d.brand+'</div>';
+      h += '<div class="top-comm-name">'+it.d.name+'</div>';
+      h += '<div class="top-comm-detail"><s>'+fmx(it.contado)+'</s> · '+it.d.storage+'</div>';
+      h += '</div>';
+      h += '<div style="flex-shrink:0;text-align:right;font-size:17px;font-weight:800;color:'+b.color+'">'+fmx(it.promo)+'<small style="display:block;font-size:9px;font-weight:700;opacity:.8;margin-top:1px">'+pctStr+'</small></div>';
+      h += '</div>';
+    });
+
+    if(arr.length > 3){
+      h += '<div style="padding:9px 14px;border-top:0.5px solid var(--sep);font-size:11px;font-weight:600;color:#00A8E0;text-align:center;cursor:pointer" onclick="descToggle(\''+b.k+'\')">'+(descExpanded.has(b.k) ? 'Ver menos' : 'Ver los '+arr.length)+'</div>';
+    }
+  });
+
+  if(!h){
+    h = '<div style="padding:24px;text-align:center;color:var(--label3);font-size:13px">No hay equipos con descuento para este plan y plazo</div>';
+  }
+  el.innerHTML = h;
+}
+
 // ── PDF SPECS ───────────────────────────────────────────────────────────────
 // [v1.9.27] Ficha técnica con estilo limpio claro (mismos colores del flyer-v3)
 function buildSpecsPDFHTML(dev){

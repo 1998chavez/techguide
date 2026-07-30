@@ -11,10 +11,10 @@
      otro script, porque catalog.js/vendors.js la usan para el cache-busting y
      el registro del SW la compara. Si HTML y SW no coinciden → recarga forzada.
      Al empacar cada versión, este número se actualiza igual que el cache del SW. -->
-<script>window.BUILD_ID = '1788500001';
+<script>window.BUILD_ID = '1788500002';
 // [v1.11.61] APP_VERSION vive aquí desde que el bloque principal salió a app.js.
 // El ritual de release NO cambia: 2 constantes aquí + 2 en sw.js.
-const APP_VERSION = 'v1.11.84';</script>
+const APP_VERSION = 'v1.11.85';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -2394,6 +2394,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 .top-comm-detail{font-size:10px;color:var(--label3);margin-top:2px}
 .top-comm-amount{font-size:18px;font-weight:800;color:#FF6F00;flex-shrink:0}
 .top-comm-amount small{font-size:11px;font-weight:600;color:var(--label3);display:block;text-align:right}
+/* [v1.11.85] DESCUENTOS — reusa la piel top-comm; aquí solo lo propio del módulo */
+#s-descuentos .top-comm-hero{background:linear-gradient(135deg,#00A8E0 0%,#005F8F 100%)}
+#s-descuentos .top-comm-plan-pill.active{color:#0091C2}
+.desc-seg{display:flex;background:#E4E4E9;border-radius:9px;padding:2px;margin-bottom:12px}
+.desc-seg button{flex:1;border:none;font-size:12px;font-weight:600;padding:6px 0;border-radius:7px;cursor:pointer;background:transparent;color:var(--label);font-family:inherit;-webkit-tap-highlight-color:transparent}
+.desc-seg button.active{background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+[data-theme="dark"] .desc-seg{background:#2C2C2E}
 
 
 
@@ -4831,6 +4838,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
       <span class="hv2-cta-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
     </button>
 
+    <!-- [v1.11.85] DESCUENTOS — equipos por % de descuento según plan y plazo -->
+    <button class="hv2-cta hv2-rise" onclick="showDescuentos()" style="--d:0.35s;margin-top:14px">
+      <span class="hv2-cta-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 15l6-6"/><circle cx="9.3" cy="9.3" r="1.1"/><circle cx="14.7" cy="14.7" r="1.1"/></svg></span>
+      <span class="hv2-cta-text">
+        <span class="hv2-cta-title">Descuentos</span>
+        <span class="hv2-cta-sub">Equipos por % de descuento</span>
+      </span>
+      <span class="hv2-cta-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    </button>
+
     <!-- COMISIONES — ACTIVO. Para ocultar de nuevo: agregar ;display:none al style del botón de abajo. -->
     <button class="hv2-cta hv2-rise" onclick="abrirComisiones()" style="--d:0.3s;margin-top:14px;display:none">
       <span class="hv2-cta-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.2v9.6M14.6 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.6 0-2.7.9-2.7 2.1s1.1 1.8 2.7 2.1 2.7.9 2.7 2.1-1.1 2.1-2.7 2.1c-1.1 0-2.1-.5-2.6-1.3"/></svg></span>
@@ -5122,6 +5139,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
       <div style="font-size:11px;color:var(--label3);text-align:center;margin-top:14px;margin-bottom:20px;font-style:italic;line-height:1.5">
         Comisión = plan + incentivo de equipo<br>
         Sujeto a cumplimiento de cuota de tienda ≥80%
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ [v1.11.85] DESCUENTOS — equipos por % de descuento (plan × plazo) ═══ -->
+<div class="screen" id="s-descuentos">
+  <div class="nav">
+    <button class="nav-back" onclick="show('s-home')"><svg viewBox="0 0 9 15" fill="none"><path d="M7.5 1L1 7.5 7.5 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Inicio</button>
+    <span class="nav-title">Descuentos</span>
+    <span style="width:60px"></span>
+  </div>
+  <div class="scroll-area">
+    <div class="container" style="padding-bottom:40px">
+      <div class="top-comm-hero">
+        <div class="top-comm-hero-title">Equipos en descuento</div>
+        <div class="top-comm-hero-sub">Según el plan y plazo que selecciones</div>
+        <div class="top-comm-plan-pills" id="desc-plan-pills"></div>
+      </div>
+      <div class="desc-seg" id="desc-plazo-seg"></div>
+      <div class="top-comm-list" id="desc-list"></div>
+      <div style="font-size:11px;color:var(--label3);text-align:center;margin-top:14px;margin-bottom:20px;font-style:italic;line-height:1.5">
+        Descuento sobre precio de contado · Solo equipos vigentes
       </div>
     </div>
   </div>
