@@ -9,12 +9,12 @@
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v1189-flyer-legal-jul31';
+const CACHE_NAME = 'techguide-v1190-visor3d-jul31';
 const SCOPE = '/techguide/';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1788500006';
+const BUILD_ID = '1788500007';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la
@@ -156,6 +156,36 @@ self.addEventListener('fetch', function(event){
      url.hostname.indexOf('firebaseio.com') >= 0 ||
      url.hostname.indexOf('firebase.googleapis.com') >= 0){
     return; // Let the browser handle it directly.
+  }
+
+  // [v1.11.90] MODELOS 3D (.glb) y el script de <model-viewer> — CACHE-FIRST
+  // con guardado tras el primer fetch. NO van en OFFLINE_ASSETS: se descargan
+  // solo cuando un asesor abre el visor. Una vez vistos quedan en caché, así
+  // que la segunda vez abre al instante y funciona sin señal.
+  // Ojo: el script viene de CDN (type 'cors'), por eso aquí NO se exige
+  // response.type === 'basic' como en los bundles propios.
+  const es3D = /\.glb(\?.*)?$/i.test(url.pathname) ||
+               (url.hostname === 'unpkg.com' && url.pathname.indexOf('model-viewer') >= 0);
+  if(es3D){
+    event.respondWith(
+      caches.match(req).then(function(cached){
+        if(cached) return cached;
+        return fetch(req).then(function(response){
+          if(response && (response.status === 200 || response.type === 'opaque')){
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(function(cache){
+              return cache.put(req, clone);
+            }).catch(function(err){
+              console.warn('[SW] cache.put 3D falló:', err && err.message);
+            });
+          }
+          return response;
+        });
+      }).catch(function(){
+        return caches.match(req);
+      })
+    );
+    return;
   }
 
   // [v1.10.35] catalog.js y vendors.js — CACHE-FIRST.

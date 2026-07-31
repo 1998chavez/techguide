@@ -831,6 +831,10 @@ function showFicha(id){
 
   // Specs tab
   h+='<div id="tp-specs" class="tp">';
+  // [v1.11.90] Botón 3D: va HASTA ARRIBA del panel, antes de la ficha técnica.
+  // El orden de las specs y la imagen del hero quedan intactos. Solo se pinta
+  // si el equipo tiene entrada en MODEL3D.
+  h+=_model3dBtn(id);
   h+='<div class="spec-card"><div class="spec-head">Ficha técnica</div>';
   Object.entries(d.specs).forEach(function(e){
     h+='<div class="spec-r"><span class="spec-k">'+e[0]+'</span><span class="spec-v">'+e[1]+'</span></div>';
@@ -2598,6 +2602,111 @@ function renderTopCommList(){
 }
 
 
+
+// ── [v1.11.90] VISOR 3D ─────────────────────────────────────────────────────
+// <model-viewer> (componente web de Google) montado bajo demanda: el script
+// pesa ~1MB y NO se carga en el arranque, solo la primera vez que un asesor
+// toca el botón. Los .glb tampoco entran al precache. Si el equipo no tiene
+// modelo, el botón no existe y no hay nada que fallar.
+
+const MODEL_VIEWER_SRC='https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js';
+let _mvLoading=null;
+
+function _model3dGet(id){
+  /* Resuelve alias (string → otra clave) y variantes de almacenamiento. */
+  if(typeof MODEL3D==='undefined'||!MODEL3D) return null;
+  let e=MODEL3D[id];
+  if(typeof e==='string') e=MODEL3D[e];
+  if(e) return e;
+  // Si el id es variante de una base que sí tiene modelo, la reusa.
+  if(typeof STORAGE_VARIANTS!=='undefined'){
+    for(const bid in STORAGE_VARIANTS){
+      if(STORAGE_VARIANTS[bid].some(function(v){return v[1]===id;})){
+        let b=MODEL3D[bid];
+        if(typeof b==='string') b=MODEL3D[b];
+        if(b) return b;
+      }
+    }
+  }
+  return null;
+}
+
+function _model3dBtn(id){
+  const m=_model3dGet(id);
+  if(!m) return '';
+  return '<div class="m3d-cta" onclick="openModel3D(\''+id+'\')">'
+    +'<span class="m3d-cta-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 20 7v10l-8 4.2L4 17V7z"/><path d="M4 7l8 4.2L20 7M12 11.2V21"/></svg></span>'
+    +'<span class="m3d-cta-txt"><span class="m3d-cta-t">Ver en 3D</span>'
+    +'<span class="m3d-cta-s">G\u00edralo y m\u00edralo en tu espacio</span></span>'
+    +'<span class="m3d-cta-arw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>'
+    +'</div>';
+}
+
+function _loadModelViewer(){
+  if(window.customElements && customElements.get('model-viewer')) return Promise.resolve();
+  if(_mvLoading) return _mvLoading;
+  _mvLoading=new Promise(function(res,rej){
+    const s=document.createElement('script');
+    s.type='module'; s.src=MODEL_VIEWER_SRC;
+    s.onload=function(){ res(); };
+    s.onerror=function(){ _mvLoading=null; rej(new Error('no se pudo cargar el visor')); };
+    document.head.appendChild(s);
+  });
+  return _mvLoading;
+}
+
+function openModel3D(id){
+  const m=_model3dGet(id);
+  if(!m) return;
+  const os=CAT.ios.find(function(x){return x.id===id;})?'ios':'android';
+  const d=CAT[os].find(function(x){return x.id===id;});
+  const ov=document.getElementById('m3d-modal');
+  const body=document.getElementById('m3d-body');
+  if(!ov||!body) return;
+
+  document.getElementById('m3d-title').textContent=d?d.name:'Vista 3D';
+  body.innerHTML='<div class="m3d-load"><div class="m3d-spin"></div><span>Cargando modelo\u2026</span></div>';
+  ov.classList.add('open');
+  document.body.style.overflow='hidden';
+
+  _loadModelViewer().then(function(){
+    let cred='';
+    if(m.by){
+      cred='<div class="m3d-cred">Modelo 3D por <b>'+m.by+'</b>'
+        +(m.lic?' \u00b7 <a href="'+(m.licUrl||'#')+'" target="_blank" rel="noopener">'+m.lic+'</a>':'')
+        +(m.mod?' \u00b7 optimizado para web por Prime MX':'')+'</div>';
+    }
+    body.innerHTML='<model-viewer id="m3d-mv" src="'+m.src+'" alt="Modelo 3D de '+(d?d.name:'')+'"'
+      +' camera-controls touch-action="pan-y" auto-rotate auto-rotate-delay="800"'
+      +' rotation-per-second="18deg" shadow-intensity="1" shadow-softness="0.8"'
+      +' exposure="1.05" environment-image="neutral"'
+      +' ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed">'
+      +'<button slot="ar-button" class="m3d-ar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg> Ver en tu espacio</button>'
+      +'</model-viewer>'
+      +'<div class="m3d-hint">Arrastra para girar \u00b7 pellizca para acercar</div>'
+      +cred;
+    const mv=document.getElementById('m3d-mv');
+    if(mv){
+      mv.addEventListener('load',function(){
+        if(!mv.canActivateAR){ const b=mv.querySelector('.m3d-ar'); if(b) b.style.display='none'; }
+      });
+      mv.addEventListener('error',function(){
+        body.innerHTML='<div class="m3d-load">No se pudo cargar el modelo.</div>';
+      });
+    }
+  }).catch(function(){
+    body.innerHTML='<div class="m3d-load">El visor 3D necesita conexi\u00f3n la primera vez.<br>Int\u00e9ntalo de nuevo con se\u00f1al.</div>';
+  });
+}
+
+function closeModel3D(){
+  const ov=document.getElementById('m3d-modal');
+  if(!ov) return;
+  ov.classList.remove('open');
+  document.body.style.overflow='';
+  const b=document.getElementById('m3d-body');
+  if(b) b.innerHTML='';   // libera el modelo de memoria
+}
 
 // ── [v1.11.85] DESCUENTOS ───────────────────────────────────────────────────
 // Equipos agrupados por % de descuento según plan y plazo. TODO se deriva en

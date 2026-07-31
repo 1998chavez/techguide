@@ -11,10 +11,10 @@
      otro script, porque catalog.js/vendors.js la usan para el cache-busting y
      el registro del SW la compara. Si HTML y SW no coinciden → recarga forzada.
      Al empacar cada versión, este número se actualiza igual que el cache del SW. -->
-<script>window.BUILD_ID = '1788500006';
+<script>window.BUILD_ID = '1788500007';
 // [v1.11.61] APP_VERSION vive aquí desde que el bloque principal salió a app.js.
 // El ritual de release NO cambia: 2 constantes aquí + 2 en sw.js.
-const APP_VERSION = 'v1.11.89';</script>
+const APP_VERSION = 'v1.11.90';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -2394,6 +2394,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 .top-comm-detail{font-size:10px;color:var(--label3);margin-top:2px}
 .top-comm-amount{font-size:18px;font-weight:800;color:#FF6F00;flex-shrink:0}
 .top-comm-amount small{font-size:11px;font-weight:600;color:var(--label3);display:block;text-align:right}
+/* [v1.11.90] VISOR 3D — botón en Especificaciones + modal */
+.m3d-cta{background:var(--surface);border-radius:var(--r-lg);margin:10px 16px 0;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.06);-webkit-tap-highlight-color:transparent}
+.m3d-cta:active{opacity:.65}
+.m3d-cta-ico{width:36px;height:36px;border-radius:10px;background:rgba(0,168,224,.12);color:#00A8E0;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.m3d-cta-ico svg{width:20px;height:20px}
+.m3d-cta-txt{flex:1;min-width:0;display:flex;flex-direction:column}
+.m3d-cta-t{font-size:14px;font-weight:600;color:var(--label);letter-spacing:-.01em}
+.m3d-cta-s{font-size:11px;color:var(--label3);margin-top:1px}
+.m3d-cta-arw{color:var(--label3);flex-shrink:0}
+.m3d-cta-arw svg{width:16px;height:16px;display:block}
+.m3d-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);z-index:9000;display:none;align-items:flex-end;justify-content:center}
+.m3d-modal.open{display:flex}
+.m3d-sheet{background:var(--bg);width:100%;max-width:560px;max-height:92vh;border-radius:18px 18px 0 0;overflow:hidden;display:flex;flex-direction:column;animation:m3dUp .26s cubic-bezier(.32,.72,0,1)}
+@keyframes m3dUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.m3d-head{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:0.5px solid var(--sep);background:var(--surface)}
+.m3d-head-t{flex:1;font-size:16px;font-weight:600;color:var(--label);letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m3d-x{background:none;border:none;color:var(--ios-blue);font-size:15px;font-family:inherit;padding:4px;cursor:pointer}
+.m3d-body{overflow-y:auto;-webkit-overflow-scrolling:touch;position:relative}
+.m3d-body model-viewer{width:100%;height:56vh;min-height:320px;background:linear-gradient(180deg,var(--surface) 0%,var(--surface2) 100%);display:block}
+.m3d-ar{position:absolute;bottom:64px;right:16px;background:#00A8E0;color:#fff;border:none;border-radius:999px;padding:10px 16px;font-size:13px;font-weight:600;font-family:inherit;box-shadow:0 4px 14px rgba(0,168,224,.35);display:flex;align-items:center;gap:6px;cursor:pointer}
+.m3d-ar svg{width:15px;height:15px}
+.m3d-hint{text-align:center;font-size:11px;color:var(--label3);padding:9px}
+.m3d-cred{font-size:9.5px;color:var(--label3);line-height:1.5;padding:0 16px 16px;text-align:center}
+.m3d-cred a{color:var(--label3);text-decoration:underline}
+.m3d-load{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:320px;height:56vh;font-size:13px;color:var(--label3);text-align:center;padding:20px;line-height:1.5}
+.m3d-spin{width:26px;height:26px;border:2.5px solid var(--sep);border-top-color:#00A8E0;border-radius:50%;animation:m3dSpin .8s linear infinite}
+@keyframes m3dSpin{to{transform:rotate(360deg)}}
 /* [v1.11.85] DESCUENTOS — reusa la piel top-comm; aquí solo lo propio del módulo */
 #s-descuentos .top-comm-hero{background:linear-gradient(135deg,#00A8E0 0%,#005F8F 100%)}
 #s-descuentos .top-comm-plan-pill.active{color:#0091C2}
@@ -5156,6 +5183,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
         Descuento sobre precio de contado · Solo equipos vigentes
       </div>
     </div>
+  </div>
+</div>
+
+<!-- [v1.11.90] VISOR 3D — se llena al vuelo desde openModel3D() -->
+<div class="m3d-modal" id="m3d-modal" onclick="if(event.target===this)closeModel3D()">
+  <div class="m3d-sheet">
+    <div class="m3d-head">
+      <span class="m3d-head-t" id="m3d-title"></span>
+      <button class="m3d-x" onclick="closeModel3D()">Cerrar</button>
+    </div>
+    <div class="m3d-body" id="m3d-body"></div>
   </div>
 </div>
 
