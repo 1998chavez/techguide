@@ -10774,11 +10774,12 @@ var FLYER_PLAN_ACCENTS = {
 function _flyerFmx(n){ return n.toLocaleString('es-MX'); }
 
 function _flyerHead(){
-  const _hoy=new Date();
-  const _meses=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  /* [v1.11.87] Rediseño aprobado: marca a la izquierda, AT&T a la derecha.
+     La fecha de generación se movió a la línea legal del pie. Cuando llegue
+     el asset oficial del globo AT&T, sustituir el texto por <img>. */
   let h='<div class="flyer-v3-head">';
   h+='<div class="flyer-v3-brand"><span class="a">PR</span><span class="sep">|</span><span class="a">ME</span><span class="mx">MX</span></div>';
-  h+='<div class="flyer-v3-date">'+_hoy.getDate()+' '+_meses[_hoy.getMonth()]+' '+_hoy.getFullYear()+'</div>';
+  h+='<div style="font-size:15px;font-weight:700;letter-spacing:-.02em;color:#0091C2">AT&amp;T</div>';
   h+='</div>';
   return h;
 }
@@ -10846,7 +10847,7 @@ function _flyerTitanio(restoExtra){
 /* discExtra: cláusula extra en la leyenda legal. La comparativa agrega
    "Sujeto a vigencias y disponibilidades". Si un día la quieres también en la
    cotización de un plan, se pasa el mismo texto desde buildFlyerHTML. */
-function _flyerFooter(discExtra){
+function _flyerFooter(discExtra, conRedes){
   let h='<div class="flyer-v3-foot">';
   if(typeof asesorData !== 'undefined' && asesorData && asesorData.name){
     const _p=(typeof getPerfilEfectivo==='function')?getPerfilEfectivo():{
@@ -10870,7 +10871,15 @@ function _flyerFooter(discExtra){
     }
     h+='</div></div>';
   }
-  h+='<div class="flyer-v3-disc">* Pago inicial sujeto a aprobación crediticia · '+(discExtra?discExtra+' · ':'')+'Cotización generada por Prime MX · Precios sujetos a cambio sin previo aviso</div>';
+  const _hoy=new Date();
+  const _M=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  const _fecha=_hoy.getDate()+' '+_M[_hoy.getMonth()]+' '+_hoy.getFullYear();
+  /* [v1.11.87] Marcadores: en el comparativo * = redes ilimitadas y ** = pago
+     inicial; en el individual sigue el * de siempre para pago inicial. */
+  const _ini = conRedes
+    ? '*Redes ilimitadas: aplican pol\u00edticas de uso justo AT&T \u00b7 **Pago inicial sujeto a aprobaci\u00f3n crediticia'
+    : '* Pago inicial sujeto a aprobaci\u00f3n crediticia';
+  h+='<div class="flyer-v3-disc">'+_ini+' \u00b7 '+(discExtra?discExtra+' \u00b7 ':'')+'Cotizaci\u00f3n generada por Prime MX el '+_fecha+' \u00b7 Precios sujetos a cambio sin previo aviso</div>';
   h+='</div>';
   return h;
 }
@@ -10988,15 +10997,125 @@ function cotCalcPlan(state, planName, plazoOpt){
            totalMensual:totalMensual, totalMensualPort:totalMensualPort };
 }
 
+
+// ── [v1.11.87] FLYER V4: GB + redes + beneficios (rediseño aprobado) ─────────
+// Trazos: simple-icons v13 (LinkedIn del set histórico, ya retirado del paquete
+// como Rappi/DiDi) + Rappi/DiDi procesados en base64 desde los logos oficiales.
+// TODO inline (SVG path o data URI): html2canvas no toca red ni webfonts.
+const FLYER_SOCIAL=[
+  {n:'Facebook',bg:'#1877F2',d:'M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z'},
+  {n:'WhatsApp',bg:'#25D366',d:'M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z'},
+  {n:'Instagram',bg:'#E4405F',d:'M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077'},
+  {n:'Messenger',bg:'#0084FF',d:'M12 0C5.24 0 0 4.952 0 11.64c0 3.499 1.434 6.521 3.769 8.61a.96.96 0 0 1 .323.683l.065 2.135a.96.96 0 0 0 1.347.85l2.381-1.053a.96.96 0 0 1 .641-.046A13 13 0 0 0 12 23.28c6.76 0 12-4.952 12-11.64S18.76 0 12 0m6.806 7.44c.522-.03.971.567.63 1.094l-4.178 6.457a.707.707 0 0 1-.977.208l-3.87-2.504a.44.44 0 0 0-.49.007l-4.363 3.01c-.637.438-1.415-.317-.995-.966l4.179-6.457a.706.706 0 0 1 .977-.21l3.87 2.505c.15.097.344.094.491-.007l4.362-3.008a.7.7 0 0 1 .364-.13'},
+  {n:'TikTok',bg:'#010101',d:'M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z'},
+  {n:'X',bg:'#1D1D1F',d:'M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z'},
+  {n:'Snapchat',bg:'#FFFC00',fg:'#1D1D1F',d:'M12.206.793c.99 0 4.347.276 5.93 3.821.529 1.193.403 3.219.299 4.847l-.003.06c-.012.18-.022.345-.03.51.075.045.203.09.401.09.3-.016.659-.12 1.033-.301.165-.088.344-.104.464-.104.182 0 .359.029.509.09.45.149.734.479.734.838.015.449-.39.839-1.213 1.168-.089.029-.209.075-.344.119-.45.135-1.139.36-1.333.81-.09.224-.061.524.12.868l.015.015c.06.136 1.526 3.475 4.791 4.014.255.044.435.27.42.509 0 .075-.015.149-.045.225-.24.569-1.273.988-3.146 1.271-.059.091-.12.375-.164.57-.029.179-.074.36-.134.553-.076.271-.27.405-.555.405h-.03c-.135 0-.313-.031-.538-.074-.36-.075-.765-.135-1.273-.135-.3 0-.599.015-.913.074-.6.104-1.123.464-1.723.884-.853.599-1.826 1.288-3.294 1.288-.06 0-.119-.015-.18-.015h-.149c-1.468 0-2.427-.675-3.279-1.288-.599-.42-1.107-.779-1.707-.884-.314-.045-.629-.074-.928-.074-.54 0-.958.089-1.272.149-.211.043-.391.074-.54.074-.374 0-.523-.224-.583-.42-.061-.192-.09-.389-.135-.567-.046-.181-.105-.494-.166-.57-1.918-.222-2.95-.642-3.189-1.226-.031-.063-.052-.15-.055-.225-.015-.243.165-.465.42-.509 3.264-.54 4.73-3.879 4.791-4.02l.016-.029c.18-.345.224-.645.119-.869-.195-.434-.884-.658-1.332-.809-.121-.029-.24-.074-.346-.119-1.107-.435-1.257-.93-1.197-1.273.09-.479.674-.793 1.168-.793.146 0 .27.029.383.074.42.194.789.3 1.104.3.234 0 .384-.06.465-.105l-.046-.569c-.098-1.626-.225-3.651.307-4.837C7.392 1.077 10.739.807 11.727.807l.419-.015h.06z'},
+  {n:'Telegram',bg:'#26A5E4',d:'M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z'},
+  {n:'LinkedIn',bg:'#0A66C2',d:'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z'},
+  {n:'Pinterest',bg:'#BD081C',d:'M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.401.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.39 18.592.026 11.985.026L12.017 0z'},
+  {n:'Uber',bg:'#000000',d:'M0 7.97v4.958c0 1.867 1.302 3.101 3 3.101.826 0 1.562-.316 2.094-.87v.736H6.27V7.97H5.082v4.888c0 1.257-.85 2.106-1.947 2.106-1.11 0-1.946-.827-1.946-2.106V7.971H0zm7.44 0v7.925h1.13v-.725c.521.532 1.257.86 2.06.86a3.006 3.006 0 0 0 3.034-3.01 3.01 3.01 0 0 0-3.033-3.024 2.86 2.86 0 0 0-2.049.861V7.971H7.439zm9.869 2.038c-1.687 0-2.965 1.37-2.965 3 0 1.72 1.334 3.01 3.066 3.01 1.053 0 1.913-.463 2.49-1.233l-.826-.611c-.43.577-.996.847-1.664.847-.973 0-1.753-.7-1.912-1.64h4.697v-.373c0-1.72-1.222-3-2.886-3zm6.295.068c-.634 0-1.098.294-1.381.758v-.713h-1.131v5.774h1.142V12.61c0-.894.544-1.47 1.291-1.47H24v-1.065h-.396zm-6.319.928c.85 0 1.564.588 1.756 1.47H15.52c.203-.882.916-1.47 1.765-1.47zm-6.732.012c1.086 0 1.98.883 1.98 2.004a1.993 1.993 0 0 1-1.98 2.001A1.989 1.989 0 0 1 8.56 13.02a1.99 1.99 0 0 1 1.992-2.004z'},
+  {n:'Uber Eats',bg:'#06C167',d:'M0 2.8645v4.9972c0 1.8834 1.3315 3.1297 3.0835 3.1297a2.9652 2.9652 0 0 0 2.1502-.876v.7425H6.445V2.8645H5.223v4.9339c0 1.2642-.8696 2.1198-1.9954 2.122-1.1386-.0023-1.997-.834-1.997-2.122V2.8645zm7.3625 0v7.9934h1.163v-.7318a2.9915 2.9915 0 0 0 2.1177.876c1.714.048 3.1295-1.3283 3.1295-3.0429s-1.4155-3.091-3.1295-3.0429a2.9674 2.9674 0 0 0-2.107.876V2.8645zm9.8857 2.0561c-1.6752-.0074-3.0369 1.3492-3.0356 3.0245 0 1.7366 1.3732 3.0373 3.1537 3.0373a3.123 3.123 0 0 0 2.5578-1.2438l-.8495-.6177a2.0498 2.0498 0 0 1-1.7083.8585c-.9763.0126-1.8147-.6915-1.971-1.6553h4.818v-.379c0-1.734-1.254-3.0238-2.9638-3.0245zm6.1632.0667a1.5943 1.5943 0 0 0-1.376.7657v-.7186h-1.163v5.8235h1.1741V7.5465c0-.9023.5581-1.4847 1.3268-1.4847h.4949V4.9886c-.1576.0013-.3186-.0009-.4568-.0013zm-6.2034.944a1.844 1.844 0 0 1 1.8337 1.486H15.424a1.844 1.844 0 0 1 1.784-1.486zm-6.6589.0056c1.1223-.0084 2.0365.8992 2.0364 2.0215-.0026 1.1203-.914 2.0258-2.0343 2.021a2.0151 2.0151 0 0 1-1.4159-.5987A2.0152 2.0152 0 0 1 8.55 7.9592a2.0152 2.0152 0 0 1 .5838-1.422 2.0152 2.0152 0 0 1 1.4153-.6003zM0 12.9864v7.9716h5.7222v-1.3666H1.5458v-1.971h4.0647v-1.314H1.5458v-1.9556h4.1764v-1.3644zm14.5608.4097v1.6861h-1.1519v1.338h1.1545v3.143c0 .7927.5712 1.4209 1.6005 1.4209h1.6425L17.8 19.646h-1.1412c-.3482 0-.5714-.1509-.5714-.464v-2.7683H17.8v-1.3316h-1.7062v-1.686zm-5.2974 1.5275c-1.7348-.0103-3.141 1.4035-3.1214 3.1382.0196 1.7346 1.4575 3.1163 3.1915 3.0668a2.9915 2.9915 0 0 0 1.912-.6655v.532h1.5175v-5.9129h-1.509v.5257a3.0047 3.0047 0 0 0-1.9205-.6835c-.0244-.0007-.0492-.0006-.0701-.0008zm11.771.0077c-1.5855 0-2.7002.6437-2.7002 1.8854 0 .8607.6132 1.4213 1.936 1.695l1.4478.3286c.5694.1095.7224.2585.7224.4906 0 .3701-.438.6022-1.1279.6022-.876 0-1.3774-.1907-1.5723-.8477h-1.533c.219 1.2307 1.1563 2.05 3.0484 2.05h.0022c1.752 0 2.7422-.819 2.7422-1.9534 0-.8059-.5847-1.4084-1.8089-1.6668l-1.2943-.2605c-.7511-.1358-.988-.2738-.988-.5454 0-.357.3616-.5757 1.0295-.5757.7227 0 1.2527.1925 1.406.8473h1.5175c-.0854-1.2286-.9899-2.0497-2.8273-2.0497zM9.467 16.1815c1.0092.0096 1.8188.8369 1.8067 1.8461.0014 1.0046-.8198 1.816-1.8243 1.8025-1.0075-.0048-1.8203-.8256-1.8155-1.833.0048-1.0076.8255-1.8204 1.833-1.8156z'},
+  {n:'Waze',bg:'#33CCFF',d:'M13.218 0C9.915 0 6.835 1.49 4.723 4.148c-1.515 1.913-2.31 4.272-2.31 6.706v1.739c0 .894-.62 1.738-1.862 1.813-.298.025-.547.224-.547.522-.05.82.82 2.31 2.012 3.502.82.844 1.788 1.515 2.832 2.036a3 3 0 0 0 2.955 3.528 2.966 2.966 0 0 0 2.931-2.385h2.509c.323 1.689 2.086 2.856 3.974 2.21 1.64-.546 2.36-2.409 1.763-3.924a12.84 12.84 0 0 0 1.838-1.465 10.73 10.73 0 0 0 3.18-7.65c0-2.882-1.118-5.589-3.155-7.625A10.899 10.899 0 0 0 13.218 0zm0 1.217c2.558 0 4.967.994 6.78 2.807a9.525 9.525 0 0 1 2.807 6.78A9.526 9.526 0 0 1 20 17.585a9.647 9.647 0 0 1-6.78 2.807h-2.46a3.008 3.008 0 0 0-2.93-2.41 3.03 3.03 0 0 0-2.534 1.367v.024a8.945 8.945 0 0 1-2.41-1.788c-.844-.844-1.316-1.614-1.515-2.11a2.858 2.858 0 0 0 1.441-.846 2.959 2.959 0 0 0 .795-2.036v-1.789c0-2.11.696-4.197 2.012-5.861 1.863-2.385 4.62-3.726 7.6-3.726zm-2.41 5.986a1.192 1.192 0 0 0-1.191 1.192 1.192 1.192 0 0 0 1.192 1.193A1.192 1.192 0 0 0 12 8.395a1.192 1.192 0 0 0-1.192-1.192zm7.204 0a1.192 1.192 0 0 0-1.192 1.192 1.192 1.192 0 0 0 1.192 1.193 1.192 1.192 0 0 0 1.192-1.193 1.192 1.192 0 0 0-1.192-1.192zm-7.377 4.769a.596.596 0 0 0-.546.845 4.813 4.813 0 0 0 4.346 2.757 4.77 4.77 0 0 0 4.347-2.757.596.596 0 0 0-.547-.845h-.025a.561.561 0 0 0-.521.348 3.59 3.59 0 0 1-3.254 2.061 3.591 3.591 0 0 1-3.254-2.061.64.64 0 0 0-.546-.348z'},
+  {n:'Rappi',bg:'#FF441F',img:'data:image/png;base64,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',w:17},
+  {n:'DiDi',bg:'#FF7C41',img:'data:image/png;base64,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',w:14}
+];
+
+function _flyerGb(plan){
+  if(typeof PLANS_DATA==='undefined') return null;
+  for(let i=0;i<PLANS_DATA.length;i++) if(PLANS_DATA[i].name===plan) return PLANS_DATA[i].gb||null;
+  return null;
+}
+
+function _flyerVigStr(state){
+  /* Vigencia REAL del equipo cotizado; si es indefinida, la leyenda genérica. */
+  try{
+    const v=(typeof VIGENCY!=='undefined')?VIGENCY[state.device.id]:null;
+    if(v && v!=='indefinido'){
+      const p=v.split('-');
+      const M=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+      return 'Precios v\u00e1lidos al '+parseInt(p[2],10)+' '+M[parseInt(p[1],10)-1]+' '+p[0];
+    }
+  }catch(e){}
+  return 'Sujeto a vigencias y disponibilidad';
+}
+
+function _flyerTituloV4(state){
+  let h='<div style="text-align:center;padding:18px 26px 4px">';
+  h+='<div style="font-size:24px;font-weight:800;letter-spacing:-.03em;color:#1D1D1F">Tu <span style="color:#0091C2">cotizaci\u00f3n</span> personalizada</div>';
+  h+='<div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-top:8px">';
+  h+='<span style="flex:1;max-width:90px;height:1px;background:#D8D8DC"></span>';
+  h+='<span style="font-size:14px;color:#515154;font-weight:600">'+state.device.name+'</span>';
+  h+='<span style="flex:1;max-width:90px;height:1px;background:#D8D8DC"></span>';
+  h+='</div></div>';
+  return h;
+}
+
+function _flyerProdCardV4(state){
+  const dev=state.device;
+  const img=(typeof IMG!=='undefined' && IMG[dev.id])
+    ? '<img src="'+IMG[dev.id]+'" alt="" style="max-width:100%;max-height:100%;object-fit:contain">'
+    : '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>';
+  let h='<div style="margin:14px 26px 0;background:#fff;border:1px solid #ECECEC;border-radius:14px;padding:14px 20px;display:flex;align-items:center;gap:20px">';
+  h+='<div style="width:78px;height:96px;border-radius:12px;background:#F5F5F7;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">'+img+'</div>';
+  h+='<div>';
+  h+='<div style="font-size:10px;color:#86868B;text-transform:uppercase;letter-spacing:1.4px;font-weight:700">'+dev.brand+'</div>';
+  h+='<div style="font-size:21px;font-weight:800;letter-spacing:-.03em;color:#1D1D1F">'+dev.name+'</div>';
+  h+='<div style="font-size:13px;color:#86868B;margin-top:2px">'+dev.storage+'</div>';
+  h+='<div style="font-size:12px;color:#515154;margin-top:8px">Precio de contado: <s style="font-size:15px;color:#86868B;text-decoration-color:#E24B4A">$'+_flyerFmx(Math.round(state.contado))+'</s></div>';
+  h+='</div></div>';
+  return h;
+}
+
+function _flyerRedes(){
+  let h='<div style="margin:12px 26px 0;background:#fff;border:1px solid #ECECEC;border-radius:12px;padding:11px 14px;text-align:center">';
+  h+='<div style="font-size:10px;color:#515154;font-weight:600;margin-bottom:8px">Elige tus 6 redes ilimitadas* entre:</div>';
+  h+='<div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap">';
+  FLYER_SOCIAL.forEach(function(s){
+    h+='<span style="width:24px;height:24px;border-radius:6px;background:'+s.bg+';display:inline-flex;align-items:center;justify-content:center;overflow:hidden">';
+    if(s.img){
+      h+='<img src="'+s.img+'" alt="'+s.n+'" style="width:'+(s.w||16)+'px;height:auto;display:block">';
+    } else {
+      h+='<svg width="16" height="16" viewBox="0 0 24 24" fill="'+(s.fg||'#fff')+'"><path d="'+s.d+'"/></svg>';
+    }
+    h+='</span>';
+  });
+  h+='</div></div>';
+  return h;
+}
+
+function _flyerBeneficiosStrip(){
+  const ic={
+    tel:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2z"/></svg>',
+    esc:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>',
+    ine:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M5.5 15.5c.6-1.1 1.5-1.6 2.5-1.6s1.9.5 2.5 1.6M14 9h5M14 12h5M14 15h3"/></svg>'
+  };
+  const items=[
+    [ic.tel,'Minutos y SMS<br>ilimitados MEX\u00b7EUA\u00b7CAN'],
+    [ic.esc,'Sin tarjeta<br>de cr\u00e9dito'],
+    [ic.ine,'Solo necesitas<br>tu INE vigente']
+  ];
+  let h='<div style="margin:10px 26px 0;background:#fff;border:1px solid #ECECEC;border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
+  items.forEach(function(it){
+    h+='<div style="display:flex;align-items:center;gap:8px">';
+    h+='<span style="width:32px;height:32px;border-radius:50%;background:#0091C2;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+it[0]+'</span>';
+    h+='<span style="font-size:10px;color:#1D1D1F;line-height:1.3">'+it[1]+'</span>';
+    h+='</div>';
+  });
+  h+='</div>';
+  return h;
+}
+
 function buildFlyerMultiHTML(state){
-  /* [v1.11.79] Columnas = la del cotizador + las comparadas. Cada una es una
-     combinación plan+plazo, así se puede poner Black a 36m junto a Oro a 24m,
-     o el mismo plan a dos plazos. Se descarta cualquiera sin precio. */
+  /* [v1.11.87] Layout v4 aprobado por Diego: título central, tarjeta de
+     producto, tarjetas de plan con header de color (FLYER_PLAN_ACCENTS),
+     GB por plan (PLANS_DATA.gb), banda con el pool de 15 redes, franja de
+     beneficios, y pie con vigencia REAL del equipo. La mecánica de columnas
+     es la misma de v1.11.79: cotizador + comparadas, cada una plan+plazo,
+     se descarta cualquiera sin precio, tope de 3. */
   const pedidas=[{plan:state.plan, plazo:state.plazo}].concat(state.comparar||[]);
   const cols=[];
   pedidas.forEach(function(q){
     const plan=q.plan, plazo=q.plazo||state.plazo;
-    /* dedupe por plan Y plazo, no solo por plan */
     if(cols.some(function(c){return c.plan===plan && String(c.plazo)===String(plazo);})) return;
     const c=cotCalcPlan(state, plan, plazo);
     if(c) cols.push(c);
@@ -11007,51 +11126,59 @@ function buildFlyerMultiHTML(state){
       return d!==0 ? d : (x.plazo-y.plazo);
     });
   }
-  /* Salvavidas: si quedó una sola columna, cae al flyer normal */
   if(cols.length<2) return buildFlyerHTML(state);
 
   let h='<div class="flyer-v3">';
   h+=_flyerHead();
-  h+=_flyerGreet(state);
-  h+=_flyerProducto(state, ' · contado $'+_flyerFmx(Math.round(state.contado)));
+  h+=_flyerTituloV4(state);
+  h+=_flyerProdCardV4(state);
 
-  h+='<div class="flyer-v3-cmp-lbl">Elige tu plan</div>';
-  h+='<div class="flyer-v3-cmp'+(cols.length===2?' c2':'')+'">';
+  h+='<div style="padding:14px 26px 0;display:grid;grid-template-columns:repeat('+(cols.length===2?'2':'3')+',minmax(0,1fr));gap:10px">';
   let hayGratis=false;
   cols.forEach(function(c){
     const accent=FLYER_PLAN_ACCENTS[c.plan]||'#185FA5';
-    h+='<div class="flyer-v3-cmpcard">';
-    h+='<div class="flyer-v3-cmpcard-bar" style="background:'+accent+'"></div>';
-    h+='<div class="flyer-v3-cmpcard-in">';
-    h+='<div class="flyer-v3-cmp-plan">'+c.plan+'</div>';
-    h+='<div class="flyer-v3-cmp-renta">$'+_flyerFmx(c.renta)+' renta · '+c.plazo+' meses</div>';
-    h+='<div class="flyer-v3-cmp-k">Equipo</div>';
+    const gb=_flyerGb(c.plan);
+    const ahorro=Math.max(0, Math.round(state.contado - c.promo));
+    h+='<div style="border-radius:12px;overflow:hidden;border:1px solid #ECECEC;background:#fff">';
+    h+='<div style="background:'+accent+';color:#fff;text-align:center;padding:9px 6px;font-size:13px;font-weight:700">AT&amp;T '+c.plan+'</div>';
+    h+='<div style="text-align:center;padding:9px 8px 7px">';
+    if(gb) h+='<div style="font-size:19px;font-weight:800;letter-spacing:-.02em;color:#1D1D1F">'+gb+' GB</div>';
+    h+='<div style="font-size:9.5px;color:#515154;margin-top:1px">6 redes ilimitadas* a elegir</div>';
+    h+='<div style="font-size:9px;color:#86868B;margin-top:2px">$'+_flyerFmx(c.renta)+' renta \u00b7 '+c.plazo+' meses</div>';
+    h+='</div>';
+    h+='<div style="margin:0 8px 10px;background:#FAFAF8;border:1px solid #F0F0F0;border-radius:10px;padding:9px 10px 11px">';
     if(c.promo===0){
       hayGratis=true;
-      h+='<div class="flyer-v3-cmp-free">Sin costo<span class="ast">*</span></div>';
+      h+='<div style="font-size:10px;color:#86868B">De: <s>$'+_flyerFmx(Math.round(state.contado))+'</s></div>';
+      h+='<div style="font-size:18px;font-weight:800;letter-spacing:-.02em;color:#16A34A;line-height:1.15;margin-top:3px">Sin costo\u2020</div>';
     } else {
-      h+='<div class="flyer-v3-cmp-v">$'+_flyerFmx(Math.round(c.promo))+'</div>';
+      h+='<div style="font-size:10px;color:#86868B">De: <s>$'+_flyerFmx(Math.round(state.contado))+'</s> &nbsp;A:</div>';
+      h+='<div style="font-size:20px;font-weight:800;letter-spacing:-.03em;color:#0091C2;line-height:1.15">$'+_flyerFmx(Math.round(c.promo))+'</div>';
+      if(ahorro>0){
+        h+='<div style="display:inline-block;background:#1D1D1F;color:#34D399;font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:6px;margin-top:5px">Ahorras $'+_flyerFmx(ahorro)+'</div>';
+      }
     }
-    h+='<div class="flyer-v3-cmp-k">Pago inicial</div>';
-    h+='<div class="flyer-v3-cmp-v">$'+_flyerFmx(c.totalInicial)+'<span class="ast">*</span></div>';
-    h+='<div class="flyer-v3-cmp-k">Al mes</div>';
-    h+='<div class="flyer-v3-cmp-big">$'+_flyerFmx(c.totalMensual)+'</div>';
+    h+='<div style="border-top:1px solid #ECECEC;margin-top:8px;padding-top:6px;font-size:9.5px;color:#515154">Pago inicial<br><span style="font-size:12px;font-weight:700;color:#1D1D1F">desde $'+_flyerFmx(c.totalInicial)+'<span style="font-size:9px;color:#86868B;vertical-align:super">**</span></span></div>';
+    h+='<div style="border-top:1px solid #ECECEC;margin-top:6px;padding-top:6px;font-size:9.5px;color:#515154">Al mes</div>';
+    h+='<div style="font-size:19px;font-weight:800;letter-spacing:-.03em;color:#0091C2;line-height:1.15">$'+_flyerFmx(c.totalMensual)+'</div>';
     if(state.port){
-      h+='<div class="flyer-v3-cmp-port">Con portabilidad $'+_flyerFmx(c.totalMensualPort)+'/mes el primer año</div>';
+      h+='<div style="font-size:9px;color:#1A8038;font-weight:600;margin-top:3px;line-height:1.3">Con portabilidad<br>$'+_flyerFmx(c.totalMensualPort)+'/mes el primer a\u00f1o</div>';
     }
     h+='</div></div>';
   });
   h+='</div>';
 
   if(hayGratis){
-    h+='<div class="flyer-v3-cmp-note">* Equipo sin costo sujeto a permanencia. Cancelación anticipada genera cobro del equipo.</div>';
+    h+='<div style="margin:10px 26px 0;font-size:9px;color:#86868B;font-style:italic;line-height:1.5">\u2020 Equipo sin costo sujeto a permanencia. Cancelaci\u00f3n anticipada genera cobro del equipo.</div>';
   }
 
+  h+=_flyerRedes();
+  h+=_flyerBeneficiosStrip();
   h+=_flyerAccesorios();
   if(cols.some(function(c){return c.plan==='Titanio';})){
-    h+=_flyerTitanio('Aplica solo al plan Titanio · Sujeto a disponibilidad');
+    h+=_flyerTitanio('Aplica solo al plan Titanio \u00b7 Sujeto a disponibilidad');
   }
-  h+=_flyerFooter('Sujeto a vigencias y disponibilidades');
+  h+=_flyerFooter(_flyerVigStr(state), true);
   h+='</div>';
   return h;
 }
@@ -11178,7 +11305,7 @@ function buildFlyerHTML(state){
   
   if(state.plan==='Titanio') h+=_flyerTitanio();
   
-  h+=_flyerFooter();
+  h+=_flyerFooter(_flyerVigStr(state));
   
   h+='</div>';
   return h;
