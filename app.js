@@ -10871,15 +10871,12 @@ function _flyerFooter(discExtra, conRedes){
     }
     h+='</div></div>';
   }
-  const _hoy=new Date();
-  const _M=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
-  const _fecha=_hoy.getDate()+' '+_M[_hoy.getMonth()]+' '+_hoy.getFullYear();
-  /* [v1.11.87] Marcadores: en el comparativo * = redes ilimitadas y ** = pago
-     inicial; en el individual sigue el * de siempre para pago inicial. */
+  /* [v1.11.89] Diego pidió pie más limpio: fuera la vigencia con fecha y el
+     "generada por Prime MX el …"; entra "Consulta t\u00e9rminos y condiciones". */
   const _ini = conRedes
     ? '*Redes ilimitadas: aplican pol\u00edticas de uso justo AT&T \u00b7 **Pago inicial sujeto a aprobaci\u00f3n crediticia'
     : '* Pago inicial sujeto a aprobaci\u00f3n crediticia';
-  h+='<div class="flyer-v3-disc">'+_ini+' \u00b7 '+(discExtra?discExtra+' \u00b7 ':'')+'Cotizaci\u00f3n generada por Prime MX el '+_fecha+' \u00b7 Precios sujetos a cambio sin previo aviso</div>';
+  h+='<div class="flyer-v3-disc">'+_ini+' \u00b7 '+(discExtra?discExtra+' \u00b7 ':'')+'Consulta t\u00e9rminos y condiciones \u00b7 Precios sujetos a cambio sin previo aviso</div>';
   h+='</div>';
   return h;
 }
@@ -11026,30 +11023,13 @@ function _flyerGb(plan){
   return null;
 }
 
-function _flyerVigStr(state){
-  /* Vigencia REAL del equipo cotizado; si es indefinida, la leyenda genérica. */
-  try{
-    const v=(typeof VIGENCY!=='undefined')?VIGENCY[state.device.id]:null;
-    if(v && v!=='indefinido'){
-      const p=v.split('-');
-      const M=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
-      return 'Precios v\u00e1lidos al '+parseInt(p[2],10)+' '+M[parseInt(p[1],10)-1]+' '+p[0];
-    }
-  }catch(e){}
-  return 'Sujeto a vigencias y disponibilidad';
-}
 
 function _flyerTituloV4(state){
+  /* [v1.11.89] Diego pidió quitar el nombre del equipo de aquí: ya vive en la
+     tarjeta de producto de abajo. Queda título + "Preparada para" si hay
+     cliente capturado (v1.11.88). */
   let h='<div style="text-align:center;padding:18px 26px 4px">';
   h+='<div style="font-size:24px;font-weight:800;letter-spacing:-.03em;color:#1D1D1F">Tu <span style="color:#0091C2">cotizaci\u00f3n</span> personalizada</div>';
-  h+='<div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-top:8px">';
-  h+='<span style="flex:1;max-width:90px;height:1px;background:#D8D8DC"></span>';
-  h+='<span style="font-size:14px;color:#515154;font-weight:600">'+state.device.name+'</span>';
-  h+='<span style="flex:1;max-width:90px;height:1px;background:#D8D8DC"></span>';
-  h+='</div>';
-  /* [v1.11.88] El nombre del cliente se perdió en el rediseño v4 (la referencia
-     no traía saludo). Vuelve aquí, con la misma regla del greet clásico:
-     primer nombre solamente. */
   const _nom=(state.cliente||'').trim().split(/\s+/)[0].replace(/[<>&]/g,'');
   if(_nom){
     h+='<div style="font-size:12px;color:#86868B;margin-top:7px">Preparada para <span style="font-weight:700;color:#1D1D1F">'+_nom+'</span></div>';
@@ -11186,7 +11166,7 @@ function buildFlyerMultiHTML(state){
   if(cols.some(function(c){return c.plan==='Titanio';})){
     h+=_flyerTitanio('Aplica solo al plan Titanio \u00b7 Sujeto a disponibilidad');
   }
-  h+=_flyerFooter(_flyerVigStr(state), true);
+  h+=_flyerFooter(null, true);
   h+='</div>';
   return h;
 }
@@ -11313,7 +11293,7 @@ function buildFlyerHTML(state){
   
   if(state.plan==='Titanio') h+=_flyerTitanio();
   
-  h+=_flyerFooter(_flyerVigStr(state));
+  h+=_flyerFooter();
   
   h+='</div>';
   return h;
