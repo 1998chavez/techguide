@@ -75,8 +75,21 @@ var MODEL3D={
     licUrl:'https://creativecommons.org/licenses/by/4.0/',
     mod:true            // se comprimió para web; CC BY obliga a señalarlo
   },
-  ip17pro_512:'ip17pro'  // misma pieza física, distinto almacenamiento
+  ip17pro_512:'ip17pro',  // misma pieza física, distinto almacenamiento
+  ip17promax:{
+    src:'models/ip17promax.glb',
+    ios:'models/ip17promax.usdz',   // [v1.11.93] ver nota abajo
+    by:'MajdyModels',
+    lic:'CC BY 4.0',
+    licUrl:'https://creativecommons.org/licenses/by/4.0/',
+    mod:true
+  },
+  ip17promax_512:'ip17promax'
 };
+// [v1.11.93] Campo `ios`: ruta a un .usdz. Sin él, el visor genera uno al vuelo,
+// pero esa vía solo corre en Safari (Chrome de iOS se queda sin AR) y además
+// pierde el tamaño real: el cliente puede reescalar el equipo con los dedos.
+// Con el .usdz propio, ambas cosas quedan bien en iPhone.
 
 var YT={
   // iOS

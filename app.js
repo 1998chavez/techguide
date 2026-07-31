@@ -2720,7 +2720,11 @@ function openModel3D(id){
         +(m.mod?' \u00b7 optimizado para web por Prime MX':'')+'</div>';
     }
     const _url=_model3dUrl(m.src);
-    body.innerHTML='<model-viewer id="m3d-mv" src="'+_url+'" alt="Modelo 3D de '+(d?d.name:'')+'"'
+    /* [v1.11.93] Si el modelo trae .usdz propio se lo pasamos a iOS. Sin esto
+       el visor improvisa uno, que solo sirve en Safari y deja al cliente
+       reescalar el equipo — justo lo que ar-scale="fixed" quiere impedir. */
+    const _ios=m.ios ? ' ios-src="'+_model3dUrl(m.ios)+'"' : '';
+    body.innerHTML='<model-viewer id="m3d-mv" src="'+_url+'"'+_ios+' alt="Modelo 3D de '+(d?d.name:'')+'"'
       +' camera-controls touch-action="pan-y" auto-rotate auto-rotate-delay="800"'
       +' rotation-per-second="18deg" shadow-intensity="1" shadow-softness="0.8"'
       +' exposure="1.05" environment-image="neutral"'
