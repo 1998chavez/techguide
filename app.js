@@ -11046,7 +11046,15 @@ function _flyerTituloV4(state){
   h+='<span style="flex:1;max-width:90px;height:1px;background:#D8D8DC"></span>';
   h+='<span style="font-size:14px;color:#515154;font-weight:600">'+state.device.name+'</span>';
   h+='<span style="flex:1;max-width:90px;height:1px;background:#D8D8DC"></span>';
-  h+='</div></div>';
+  h+='</div>';
+  /* [v1.11.88] El nombre del cliente se perdió en el rediseño v4 (la referencia
+     no traía saludo). Vuelve aquí, con la misma regla del greet clásico:
+     primer nombre solamente. */
+  const _nom=(state.cliente||'').trim().split(/\s+/)[0].replace(/[<>&]/g,'');
+  if(_nom){
+    h+='<div style="font-size:12px;color:#86868B;margin-top:7px">Preparada para <span style="font-weight:700;color:#1D1D1F">'+_nom+'</span></div>';
+  }
+  h+='</div>';
   return h;
 }
 
