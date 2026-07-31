@@ -553,6 +553,14 @@ function _onBack(ev){
     platsheet.classList.remove('open');
     return;
   }
+  // [v1.11.92] 1.5) Visor 3D abierto → cerrarlo. Faltaba en la lista: el
+  // "atrás" se lo saltaba, navegaba al home DEBAJO del visor y dejaba
+  // body.overflow en 'hidden' — la app quedaba sin scroll y con la escena
+  // WebGL viva consumiendo memoria. Ese era el "se traba todo".
+  if(typeof _model3dAbierto==='function' && _model3dAbierto()){
+    closeModel3D();
+    return;
+  }
   // 2) Overlay/modal abierto (cotización, vista previa flyer) → cerrarlo.
   var overlayAbierto = document.querySelector('.cot-overlay.show, .flyer-preview-overlay.show');
   if(overlayAbierto){
@@ -2681,6 +2689,15 @@ function _model3dDiag(url, body){
   });
 }
 
+// [v1.11.92] Si el asesor se va a WhatsApp con el visor abierto, cerrarlo:
+// una escena WebGL viva en segundo plano sigue reservando memoria de video y
+// es justo cuando el sistema empieza a matar procesos.
+document.addEventListener('visibilitychange', function(){
+  if(document.hidden && typeof _model3dAbierto==='function' && _model3dAbierto()){
+    closeModel3D();
+  }
+});
+
 function openModel3D(id){
   const m=_model3dGet(id);
   if(!m) return;
@@ -2731,8 +2748,23 @@ function closeModel3D(){
   if(!ov) return;
   ov.classList.remove('open');
   document.body.style.overflow='';
+  /* [v1.11.92] Liberar el modelo EN SERIO. Antes solo se vaciaba el innerHTML,
+     pero <model-viewer> monta una escena WebGL con todas las texturas en
+     memoria de video; quitarlo del DOM de golpe no siempre suelta el contexto
+     y el teléfono se quedaba arrastrando decenas de MB de GPU. Quitar el src
+     primero fuerza la descarga de la escena antes de destruir el elemento. */
+  const mv=document.getElementById('m3d-mv');
+  if(mv){
+    try{ mv.removeAttribute('src'); }catch(e){}
+    try{ mv.remove(); }catch(e){}
+  }
   const b=document.getElementById('m3d-body');
-  if(b) b.innerHTML='';   // libera el modelo de memoria
+  if(b) b.innerHTML='';
+}
+
+function _model3dAbierto(){
+  const ov=document.getElementById('m3d-modal');
+  return !!(ov && ov.classList.contains('open'));
 }
 
 // ── [v1.11.85] DESCUENTOS ───────────────────────────────────────────────────
