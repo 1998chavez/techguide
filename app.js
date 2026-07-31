@@ -2655,6 +2655,32 @@ function _loadModelViewer(){
   return _mvLoading;
 }
 
+function _model3dUrl(src){
+  /* [v1.11.91] Resuelve la ruta contra la carpeta real de la app en vez de
+     depender de la URL del documento. La app vive en /techguide/, así que un
+     relativo suelto podía apuntar a otro lado según cómo se abriera. */
+  if(/^https?:/i.test(src)) return src;
+  const base=location.pathname.replace(/[^/]*$/,'');
+  return base+src.replace(/^\.?\//,'');
+}
+
+function _model3dDiag(url, body){
+  /* Si el modelo no carga, decir POR QUÉ: casi siempre es que el .glb no se
+     subió al repo junto con los demás archivos. */
+  fetch(url,{method:'GET',cache:'no-store'}).then(function(r){
+    if(r.status===404){
+      body.innerHTML='<div class="m3d-load">No se encontr\u00f3 el archivo del modelo.<br>'
+        +'Falta subir <code>'+url+'</code> al servidor.</div>';
+    } else if(!r.ok){
+      body.innerHTML='<div class="m3d-load">El servidor respondi\u00f3 '+r.status+' al pedir el modelo.</div>';
+    } else {
+      body.innerHTML='<div class="m3d-load">El archivo existe pero el visor no pudo leerlo.<br>Puede estar da\u00f1ado o incompleto.</div>';
+    }
+  }).catch(function(){
+    body.innerHTML='<div class="m3d-load">Sin conexi\u00f3n para descargar el modelo.<br>La primera vez necesita se\u00f1al.</div>';
+  });
+}
+
 function openModel3D(id){
   const m=_model3dGet(id);
   if(!m) return;
@@ -2676,7 +2702,8 @@ function openModel3D(id){
         +(m.lic?' \u00b7 <a href="'+(m.licUrl||'#')+'" target="_blank" rel="noopener">'+m.lic+'</a>':'')
         +(m.mod?' \u00b7 optimizado para web por Prime MX':'')+'</div>';
     }
-    body.innerHTML='<model-viewer id="m3d-mv" src="'+m.src+'" alt="Modelo 3D de '+(d?d.name:'')+'"'
+    const _url=_model3dUrl(m.src);
+    body.innerHTML='<model-viewer id="m3d-mv" src="'+_url+'" alt="Modelo 3D de '+(d?d.name:'')+'"'
       +' camera-controls touch-action="pan-y" auto-rotate auto-rotate-delay="800"'
       +' rotation-per-second="18deg" shadow-intensity="1" shadow-softness="0.8"'
       +' exposure="1.05" environment-image="neutral"'
@@ -2691,7 +2718,7 @@ function openModel3D(id){
         if(!mv.canActivateAR){ const b=mv.querySelector('.m3d-ar'); if(b) b.style.display='none'; }
       });
       mv.addEventListener('error',function(){
-        body.innerHTML='<div class="m3d-load">No se pudo cargar el modelo.</div>';
+        _model3dDiag(_url, body);
       });
     }
   }).catch(function(){
