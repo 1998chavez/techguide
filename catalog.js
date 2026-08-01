@@ -69,8 +69,12 @@ var PRICES={"ip15":{"contado":17499.0,"planes":{"Azul 1":{"24":null,"30":null,"3
 // Alias: un string en lugar de objeto reusa el modelo de otra variante.
 var MODEL3D={
   ip17pro:{
+    // [v1.11.94] Reemplazo del modelo de Ibrahim.Bhl: aquel traía 16 texturas
+    // de 1024 (16 MB de memoria de video) y hacía arrastrar la app. Este pesa
+    // 1.9 MB de GPU y además viene con .usdz para el AR de iPhone.
     src:'models/ip17pro.glb',
-    by:'Ibrahim.Bhl',
+    ios:'models/ip17pro.usdz',
+    by:'Ranguel',
     lic:'CC BY 4.0',
     licUrl:'https://creativecommons.org/licenses/by/4.0/',
     mod:true            // se comprimió para web; CC BY obliga a señalarlo
