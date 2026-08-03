@@ -619,7 +619,23 @@ function goHome(){show('s-home');document.getElementById('search-in').value=''}
 // [v1.10.41] HOJA SELECTORA DE PLATAFORMA — el botón "Nueva cotización" del
 // home abre esta hoja para que el asesor elija iOS o Android, y de ahí al
 // catálogo. Antes el botón iba directo a iOS, lo cual era un error.
+// [v1.11.98] INTERRUPTOR MAESTRO DE COMISIONES.
+// El esquema cambió y los cinco tableros siguen calculando con el de julio:
+// mostrar números viejos a 48 ejecutivos es peor que no mostrar nada.
+// Esta bandera corta TODAS las vías de entrada de una sola vez (CTA del home,
+// drawer, pmdGo, router por hash y enlaces directos), así no queda ninguna
+// puerta abierta por descuido.
+// PARA REACTIVAR, tres pasos:
+//   1) COMISIONES_OFF = false  (aquí)
+//   2) quitar ;display:none del CTA del home en index.html ("COMISIONES — ACTIVO")
+//   3) quitar style="display:none" de la entrada del drawer en index.html
+window.COMISIONES_OFF = true;
+
 function abrirComisiones(){
+  if(window.COMISIONES_OFF){
+    if(typeof admToast==='function') admToast('Comisiones en actualizaci\u00f3n por el nuevo esquema');
+    return;
+  }
   var map={asesor:'ejecutivo',gerente:'gerente',regional:'regional',director:'director',director_nacional:'dn'};
   var rol=String((typeof asesorData!=='undefined'&&asesorData&&asesorData.rol)||'asesor').toLowerCase();
   location.href='comisiones-'+(map[rol]||'ejecutivo')+'.html';
