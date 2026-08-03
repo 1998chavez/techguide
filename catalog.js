@@ -83,7 +83,17 @@ var MODEL3D={
     licUrl:'https://creativecommons.org/licenses/by/4.0/',
     mod:true
   },
-  ip17promax_512:'ip17promax'
+  ip17promax_512:'ip17promax',
+  ip15:{
+    // [v1.11.96] El original venia rotado en un eje diagonal (se veia acostado);
+    // se enderezo por PCA antes de optimizar. Sin variantes de almacenamiento.
+    src:'models/ip15.glb',
+    ios:'models/ip15.usdz',
+    by:'namamae e',
+    lic:'CC BY 4.0',
+    licUrl:'https://creativecommons.org/licenses/by/4.0/',
+    mod:true
+  }
 };
 
 var YT={
