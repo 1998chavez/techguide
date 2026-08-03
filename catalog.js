@@ -93,6 +93,16 @@ var MODEL3D={
     lic:'CC BY 4.0',
     licUrl:'https://creativecommons.org/licenses/by/4.0/',
     mod:true
+  },
+  ss26ultra:{
+    // [v1.11.97] Primer Android del set. Orientacion correcta de origen
+    // (78.0 mm de ancho vs 77.6 reales), solo se optimizo.
+    src:'models/ss26ultra.glb',
+    ios:'models/ss26ultra.usdz',
+    by:'Sagar Modi',
+    lic:'CC BY 4.0',
+    licUrl:'https://creativecommons.org/licenses/by/4.0/',
+    mod:true
   }
 };
 
