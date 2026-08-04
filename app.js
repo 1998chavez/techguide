@@ -1086,8 +1086,14 @@ function selectPlan(planName){
   // solo toca catalog.js. Se habilitan los plazos que tengan precio y se
   // selecciona el primero disponible si el actual quedó sin precio.
   const _titanioPlazos=[];
+  try{
   if(planName==='Titanio' && typeof PRICES!=='undefined' && curFichaId && PRICES[curFichaId]){
-    const _tp=PRICES[curFichaId].planes && PRICES[curDev].planes['Titanio'];
+    // [v1.11.101] Aquí quedó 'curDev' (variable inexistente) al renombrar en la
+    // v1.11.100: reventaba selectPlan ANTES de renderPriceResult, así que al
+    // pasar a Titanio el precio se quedaba con el del plan anterior hasta que
+    // el asesor tocaba un plazo. Nunca dos nombres para lo mismo.
+    const _planes=PRICES[curFichaId].planes;
+    const _tp=_planes && _planes['Titanio'];
     if(_tp) ['24','30','36'].forEach(function(z){
       if(_tp[z]!==null && _tp[z]!==undefined) _titanioPlazos.push(Number(z));
     });
@@ -1107,6 +1113,7 @@ function selectPlan(planName){
     }
   });
   // Si el plazo activo quedó deshabilitado, saltar al primero con precio.
+  // (El try/catch de arriba garantiza que renderPriceResult siempre corra.)
   if(planName==='Titanio' && _titanioPlazos.length && _titanioPlazos.indexOf(curPlazo)<0){
     const destino=_titanioPlazos[0];
     document.querySelectorAll('.plazo-btn').forEach(function(x){
@@ -1115,6 +1122,10 @@ function selectPlan(planName){
       x.classList.toggle('active', !!activo);
     });
     curPlazo=destino;
+  }
+  }catch(e){
+    // Pase lo que pase con los plazos de Titanio, el precio SIEMPRE se repinta.
+    console.warn('[selectPlan] plazos Titanio:', e && e.message);
   }
   renderPriceResult();
 }
