@@ -1081,25 +1081,41 @@ function selectPlan(planName){
   document.querySelectorAll('.plan-chip').forEach(c=>{
     c.classList.toggle('active',c.dataset.plan===planName);
   });
-  // [v1.8] Titanio solo soporta plazo 24m: forzar y deshabilitar 30/36
+  // [v1.11.100] Titanio cambió de 24 a 30 meses (flyer ago-26). El plazo ya no
+  // se escribe a mano: se deduce de PRICES, así el próximo cambio de esquema
+  // solo toca catalog.js. Se habilitan los plazos que tengan precio y se
+  // selecciona el primero disponible si el actual quedó sin precio.
+  const _titanioPlazos=[];
+  if(planName==='Titanio' && typeof PRICES!=='undefined' && curFichaId && PRICES[curFichaId]){
+    const _tp=PRICES[curFichaId].planes && PRICES[curDev].planes['Titanio'];
+    if(_tp) ['24','30','36'].forEach(function(z){
+      if(_tp[z]!==null && _tp[z]!==undefined) _titanioPlazos.push(Number(z));
+    });
+  }
   document.querySelectorAll('.plazo-btn').forEach(function(b){
     const txt=(b.textContent||'').trim();
     if(planName==='Titanio'){
-      const is24=txt.indexOf('24')>=0;
-      b.style.opacity=is24?'1':'0.4';
-      b.style.pointerEvents=is24?'':'none';
-      if(!is24) b.classList.remove('active');
-      if(is24 && !b.classList.contains('active')){
-        // Forzar selección de 24m
-        document.querySelectorAll('.plazo-btn').forEach(x=>x.classList.remove('active'));
-        b.classList.add('active');
-        curPlazo=24;
-      }
+      const m=txt.match(/\d+/);
+      const z=m?Number(m[0]):0;
+      const ok=_titanioPlazos.indexOf(z)>=0;
+      b.style.opacity=ok?'1':'0.4';
+      b.style.pointerEvents=ok?'':'none';
+      if(!ok) b.classList.remove('active');
     } else {
       b.style.opacity='';
       b.style.pointerEvents='';
     }
   });
+  // Si el plazo activo quedó deshabilitado, saltar al primero con precio.
+  if(planName==='Titanio' && _titanioPlazos.length && _titanioPlazos.indexOf(curPlazo)<0){
+    const destino=_titanioPlazos[0];
+    document.querySelectorAll('.plazo-btn').forEach(function(x){
+      const m=(x.textContent||'').match(/\d+/);
+      const activo=m && Number(m[0])===destino;
+      x.classList.toggle('active', !!activo);
+    });
+    curPlazo=destino;
+  }
   renderPriceResult();
 }
 
@@ -1784,7 +1800,7 @@ function cotRender(){
   }
   
   if(cotState.port){
-    h += '<div style="font-size:10px;color:var(--label3);text-align:right;margin-top:4px;font-style:italic">Descuento por 12 meses, después: $'+fmx(cotState.planRenta + equipoMensual + seguroPrice + controlPrice)+'/mes</div>';
+    h += '<div style="font-size:10px;color:var(--label3);text-align:right;margin-top:4px;font-style:italic">Descuento por 6 meses, después: $'+fmx(cotState.planRenta + equipoMensual + seguroPrice + controlPrice)+'/mes</div>';
   }
   
   document.getElementById('cot-resumen').innerHTML = h;
@@ -1986,7 +2002,7 @@ function cotSend(){
     msg += '🏷️ Descuento: ' + cotState.descPct + '%\n';
   }
   if(cotState.port){
-    msg += '🔄 Cliente con portabilidad: ' + (cotState.plan==='Titanio'?'10':'20') + '% desc. plan x 12 meses\n';
+    msg += '🔄 Cliente con portabilidad: ' + (cotState.plan==='Titanio'?'10':'20') + '% desc. plan x 6 meses\n';
   }
   msg += '\n';
   
@@ -8987,7 +9003,7 @@ let aiIsSending = false;
 // capacidades para que pueda guiar correctamente al asesor.
 const AI_APP_CAPABILITIES = {
   flujo_cotizacion: [
-    "Desde la ficha del equipo, el asesor selecciona PLAN (Azul 1-3, Plata, Oro, Black, Platino, Diamante, Titanio) y PLAZO (24, 30 o 36 meses).",
+    "Desde la ficha del equipo, el asesor selecciona PLAN (Azul 1-3, Plata, Oro, Black, Platino, Diamante, Titanio) y PLAZO (24, 30 o 36 meses). Titanio maneja plazo de 30 meses desde el esquema de agosto 2026 (antes 24).",
     "Tap en 'Cotizar' abre el modal donde el asesor configura: enganche (0/10/20/30/40/50% o monto personalizado), rentas en garantía (0-3), depósito de garantía, portabilidad, seguro AT&T Protección, control AT&T.",
     "Puede agregar el nombre del cliente para que el WhatsApp salga personalizado.",
     "La cotización se envía por 2 canales: TEXTO (mensaje de WhatsApp con formato) o IMAGEN (flyer profesional generado, se comparte o descarga).",
@@ -9015,7 +9031,7 @@ const AI_APP_CAPABILITIES = {
     nota: "Requiere acceso CRM autorizado (DC499W lo tiene; otros asesores según su rol o tienda)."
   },
   portabilidad: {
-    descripcion: "Si el cliente porta un número de otra compañía a AT&T, recibe descuento de 20% en su renta mensual durante los primeros 12 meses.",
+    descripcion: "Si el cliente porta un número de otra compañía a AT&T, recibe descuento de 20% en su renta mensual durante los primeros 6 meses (esquema vigente desde agosto 2026; antes eran 12). Aplica de Azul 1 a Diamante con smartphone nuevo, e incluye condonación del cargo por activación y TikTok ilimitado.",
     excepcion_titanio: "En plan Titanio el descuento es del 10%, no 20%."
   },
   seguro_proteccion: {
@@ -9652,7 +9668,7 @@ function aiSystemPrompt(){
     + '• Prime MX es distribuidor AT&T México. Vende equipos con plan pospago en planes Azul 1/2/3, Plata, Oro, Black, Platino, Diamante, Titanio.\n'
     + '• "Incluido en el plan" significa equipo sin costo SUJETO a permanencia del plazo. Cancelación anticipada genera cobro del equipo.\n'
     + '• Plazos disponibles: 24, 30 o 36 meses.\n'
-    + '• Portabilidad: 20% descuento en renta x 12 meses (10% en Titanio).\n\n'
+    + '• Portabilidad: 20% descuento en renta x 6 meses (10% en Titanio, también 6 meses). Incluye condonación del cargo por activación y TikTok ilimitado.\n\n'
     + 'FUNCIONALIDADES DE TECHGUIDE (la app que está usando el asesor):\n'
     + '• Catálogo de equipos iOS y Android con specs, sell points, objeciones, bundles.\n'
     + '• Modal de cotización: enganche, rentas en garantía, depósito, portabilidad, seguro AT&T, plan Control, ACCESORIOS.\n'
@@ -11338,7 +11354,7 @@ function buildFlyerMultiHTML(state){
     h+='<div style="border-top:1px solid #ECECEC;margin-top:6px;padding-top:6px;font-size:9.5px;color:#515154">Al mes</div>';
     h+='<div style="font-size:19px;font-weight:800;letter-spacing:-.03em;color:#0091C2;line-height:1.15">$'+_flyerFmx(c.totalMensual)+'</div>';
     if(state.port){
-      h+='<div style="font-size:9px;color:#1A8038;font-weight:600;margin-top:3px;line-height:1.3">Con portabilidad<br>$'+_flyerFmx(c.totalMensualPort)+'/mes el primer a\u00f1o</div>';
+      h+='<div style="font-size:9px;color:#1A8038;font-weight:600;margin-top:3px;line-height:1.3">Con portabilidad<br>$'+_flyerFmx(c.totalMensualPort)+'/mes los primeros 6 meses</div>';
     }
     h+='</div></div>';
   });
@@ -11438,9 +11454,9 @@ function buildFlyerHTML(state){
     h+='<div class="flyer-v3-port-info">';
     h+='<div class="flyer-v3-port-title">Promoción por portabilidad</div>';
     if(portSavings > 0){
-      h+='<div class="flyer-v3-port-desc">'+(state.plan==='Titanio'?'10':'20')+'% descuento en plan · paga <b>$'+fmx(totalMensualWithPort)+'/mes</b> el primer año · ahorras <b>$'+fmx(portSavings)+'/mes</b></div>';
+      h+='<div class="flyer-v3-port-desc">'+(state.plan==='Titanio'?'10':'20')+'% descuento en plan · paga <b>$'+fmx(totalMensualWithPort)+'/mes</b> los primeros 6 meses · ahorras <b>$'+fmx(portSavings)+'/mes</b></div>';
     } else {
-      h+='<div class="flyer-v3-port-desc">'+(state.plan==='Titanio'?'10':'20')+'% descuento en plan durante 12 meses</div>';
+      h+='<div class="flyer-v3-port-desc">'+(state.plan==='Titanio'?'10':'20')+'% descuento en plan durante 6 meses</div>';
     }
     h+='</div>';
     h+='</div>';
