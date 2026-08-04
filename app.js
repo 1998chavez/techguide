@@ -10989,12 +10989,12 @@ var FLYER_PLAN_ACCENTS = {
 function _flyerFmx(n){ return n.toLocaleString('es-MX'); }
 
 function _flyerHead(){
-  /* [v1.11.87] Rediseño aprobado: marca a la izquierda, AT&T a la derecha.
-     La fecha de generación se movió a la línea legal del pie. Cuando llegue
-     el asset oficial del globo AT&T, sustituir el texto por <img>. */
+  /* [v1.11.102] Fuera la marca AT&T de la cabecera por decisión de Diego: el
+     flyer lo emite Prime MX, y la referencia a AT&T se queda donde toca —
+     los nombres de plan ("AT&T Oro") y el pie legal. La fecha de generación
+     vive en la línea legal desde la v1.11.89. */
   let h='<div class="flyer-v3-head">';
   h+='<div class="flyer-v3-brand"><span class="a">PR</span><span class="sep">|</span><span class="a">ME</span><span class="mx">MX</span></div>';
-  h+='<div style="font-size:15px;font-weight:700;letter-spacing:-.02em;color:#0091C2">AT&amp;T</div>';
   h+='</div>';
   return h;
 }
