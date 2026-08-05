@@ -9,12 +9,19 @@
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v11102-flyer-sin-att-ago04';
+const CACHE_NAME = 'techguide-v11103-cache-split-ago04';
+// [v1.11.103] Caché SEPARADO y ESTABLE para los pesados que NO cambian entre
+// versiones: vendors.js (999KB, html2canvas+jsPDF) y catalog-img.js (866KB,
+// las fotos del catálogo). Antes vivían en CACHE_NAME, así que CADA bump
+// tiraba el caché entero y los volvía a bajar: 1.8MB inútiles por versión,
+// compitiendo con las imágenes que el asesor está esperando ver. Este caché
+// solo se invalida cuando su propia versión cambia, no en cada release.
+const CACHE_ESTABLE = 'techguide-estable-v1';
 const SCOPE = '/techguide/';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1788500019';
+const BUILD_ID = '1788500020';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la
@@ -36,9 +43,9 @@ const OFFLINE_ASSETS = [
   // igual que incentivos.js, stale-while-revalidate.
   SCOPE + 'comisiones-ui.css',
   SCOPE + 'app.js?v=' + BUILD_ID,
-  SCOPE + 'vendors.js?v=' + BUILD_ID,
   SCOPE + 'catalog.js?v=' + BUILD_ID,
-  SCOPE + 'catalog-img.js?v=' + BUILD_ID,
+  // vendors.js y catalog-img.js viven en CACHE_ESTABLE (ver abajo): no se
+  // vuelven a bajar en cada versión.
   SCOPE + 'manifest.json',
   SCOPE + 'icon-192.png',
   SCOPE + 'icon-512.png'
@@ -57,6 +64,23 @@ self.addEventListener('install', function(event){
         });
       }));
     }).then(function(){
+      // [v1.11.103] Los pesados se guardan en su propio caché y NO se esperan:
+      // la app queda usable de inmediato y estos llegan en segundo plano.
+      // Si ya estaban (versión anterior), no se vuelven a pedir.
+      caches.open(CACHE_ESTABLE).then(function(ce){
+        // Se guardan SIN ?v= para que la clave coincida con la del fetch.
+        ['vendors.js','catalog-img.js'].forEach(function(f){
+          var url = SCOPE + f;
+          ce.match(url).then(function(hit){
+            if(hit) return;   // ya lo tenemos de una versión anterior
+            fetch(url).then(function(r){
+              if(r && r.status === 200) return ce.put(url, r);
+            }).catch(function(err){
+              console.warn('[SW] estable falló', f, err && err.message);
+            });
+          });
+        });
+      });
       return self.skipWaiting();
     })
   );
@@ -88,7 +112,10 @@ self.addEventListener('activate', function(event){
     caches.keys().then(function(names){
       return Promise.all(
         names.map(function(name){
-          if(name !== CACHE_NAME){
+          // [v1.11.103] CACHE_ESTABLE sobrevive a los bumps: si se borrara aquí,
+          // volveríamos a bajar 1.8MB en cada versión, que es justo el problema
+          // que este cambio resuelve.
+          if(name !== CACHE_NAME && name !== CACHE_ESTABLE){
             console.log('[SW] Deleting old cache:', name);
             return caches.delete(name);
           }
@@ -200,14 +227,21 @@ self.addEventListener('fetch', function(event){
   const esBundlePesado = /\/(app|catalog|catalog-img|vendors)\.js(\?.*)?$/i.test(url.pathname + url.search) ||
                          /\/(app|catalog|catalog-img|vendors)\.js$/i.test(url.pathname);
   if(esBundlePesado){
+    // [v1.11.103] vendors.js y catalog-img.js se sirven del caché ESTABLE y se
+    // buscan SIN querystring: su contenido no depende del BUILD_ID, así que un
+    // bump ya no los invalida. app.js y catalog.js siguen con ?v= porque sí
+    // cambian en cada versión.
+    const esEstable = /\/(vendors|catalog-img)\.js/i.test(url.pathname);
+    const destino = esEstable ? CACHE_ESTABLE : CACHE_NAME;
+    const clave = esEstable ? (url.origin + url.pathname) : req;
     event.respondWith(
-      caches.match(req).then(function(cached){
+      caches.match(clave).then(function(cached){
         if(cached) return cached; // hit: instantáneo
         return fetch(req).then(function(response){
           if(response && response.status === 200 && response.type === 'basic'){
             const clone = response.clone();
-            caches.open(CACHE_NAME).then(function(cache){
-              return cache.put(req, clone);
+            caches.open(destino).then(function(cache){
+              return cache.put(clave, clone);
             }).catch(function(err){
               console.warn('[SW] cache.put bundle falló:', err && err.message);
             });
@@ -215,7 +249,7 @@ self.addEventListener('fetch', function(event){
           return response;
         });
       }).catch(function(){
-        return caches.match(req);
+        return caches.match(clave);
       })
     );
     return;

@@ -11,10 +11,10 @@
      otro script, porque catalog.js/vendors.js la usan para el cache-busting y
      el registro del SW la compara. Si HTML y SW no coinciden → recarga forzada.
      Al empacar cada versión, este número se actualiza igual que el cache del SW. -->
-<script>window.BUILD_ID = '1788500019';
+<script>window.BUILD_ID = '1788500020';
 // [v1.11.61] APP_VERSION vive aquí desde que el bloque principal salió a app.js.
 // El ritual de release NO cambia: 2 constantes aquí + 2 en sw.js.
-const APP_VERSION = 'v1.11.102';</script>
+const APP_VERSION = 'v1.11.103';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -5229,11 +5229,16 @@ document.write('<scr'+'ipt src="catalog.js?v='+(window.BUILD_ID||'0')+'"></scr'+
     s.onerror=function(){ console.warn('[catalog-img] no se pudo cargar; los equipos usarán ícono de respaldo'); };
     document.head.appendChild(s);
   }
-  // Esperar a que la app haya pintado la primera vista antes de pedir las imágenes.
-  if(document.readyState==='complete'){
-    setTimeout(cargarImagenes, 300);
+  // [v1.11.103] Antes se esperaba al evento 'load' + 300ms. El problema: 'load'
+  // llega DESPUÉS de que el service worker terminó de precachear, así que las
+  // fotos se pedían justo cuando la red estaba saturada y el asesor las veía
+  // llegar segundos tarde. Ahora arrancan en cuanto el DOM está listo — la
+  // vista ya se pintó y el ícono de respaldo está en pantalla, así que no hay
+  // nada que bloquear.
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(cargarImagenes, 50); });
   } else {
-    window.addEventListener('load', function(){ setTimeout(cargarImagenes, 300); });
+    setTimeout(cargarImagenes, 50);
   }
 })();
 // Callback que catalog-img.js invoca al terminar de cargar: refresca las
