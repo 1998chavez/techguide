@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- [v1.11.62] Fuente única de incentivos: se editan en incentivos.js y los 5
+     tableros los leen de ahí. Antes cada tablero traía su propia copia. -->
+<script src="incentivos.js"></script><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<title>Comisiones · Ejecutivo — TechGuide</title>
+<script src="comisiones2026.js"></script>
+<style>
+:root{
+  --bg:#080D16;--surface:#0F1622;--surface2:#16202E;--surface3:#1F2B3C;
+  --label:#EDF2F8;--label2:#D7E0EB;--label3:#8A97A9;--label4:#414E5F;
+  --sep:rgba(237,242,248,0.10);
+  --blue:#31A5E5;--cyan:#4DB4EC;--green:#30D158;--mint:#3BC292;
+  --red:#FF453A;--red-soft:#FF8A80;--amber:#FFD60A;
+  --r-xl:22px;--r-lg:16px;--r-md:12px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--label);
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Inter,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:560px;margin:0 auto;padding-bottom:40px}
+
+.nav{position:sticky;top:0;z-index:40;background:rgba(8,13,22,.92);
+  backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--sep);
+  display:flex;align-items:center;gap:8px;padding:12px 16px;
+  padding-top:calc(12px + env(safe-area-inset-top))}
+.nav-back{background:none;border:none;color:var(--blue);font-size:15px;
+  font-family:inherit;display:flex;align-items:center;gap:2px;padding:0;cursor:pointer}
+.nav-t{flex:1;font-size:16px;font-weight:600;letter-spacing:-.02em}
+.nav-cta{background:var(--blue);color:#fff;border:none;border-radius:20px;
+  padding:7px 13px;font-size:12px;font-weight:600;font-family:inherit;
+  display:flex;align-items:center;gap:4px;cursor:pointer}
+.nav-cta:active{opacity:.7}
+
+.pad{padding:14px 16px}
+
+/* ── Hero ── */
+.hero{background:var(--surface);border:1px solid rgba(0,168,224,.22);
+  border-radius:var(--r-xl);padding:16px 17px}
+.hero-top{display:flex;align-items:center;gap:8px}
+.hero-l{color:var(--label3);font-size:10px;letter-spacing:.7px;flex:1}
+.piso{display:flex;align-items:center;gap:4px;border-radius:20px;padding:3px 9px;
+  font-size:10px;font-weight:600;cursor:pointer;border:none;font-family:inherit}
+.piso.ok{background:rgba(48,209,88,.13);color:var(--green)}
+.piso.no{background:rgba(255,69,58,.13);color:var(--red-soft)}
+.hero-v{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-top:4px}
+.hero-v.off{color:var(--label4)}
+.hero-s{color:var(--label3);font-size:11.5px;margin-top:3px}
+
+/* ── Monedero ── */
+.mon{background:var(--surface);border:1px solid rgba(59,194,146,.28);
+  border-radius:var(--r-xl);padding:17px 17px 15px;margin-top:10px;
+  width:100%;text-align:left;font-family:inherit;cursor:pointer;display:block}
+.mon:active{opacity:.75}
+.mon-row{display:flex;align-items:center;gap:14px}
+.mon-ico{width:54px;height:54px;border-radius:16px;background:rgba(59,194,146,.14);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mon-ico svg{width:30px;height:30px;stroke:var(--mint)}
+.mon-l{color:var(--mint);font-size:10px;letter-spacing:.7px}
+.mon-v{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-top:2px;color:var(--label)}
+.mon-foot{display:flex;align-items:center;gap:7px;margin-top:13px;padding-top:12px;
+  border-top:1px solid var(--sep);color:var(--label3);font-size:11px}
+.mon-foot b{color:var(--mint);font-weight:700}
+
+/* ── Métricas ── */
+.sec{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 9px}
+.sec-t{color:var(--label3);font-size:10px;letter-spacing:.7px}
+.sec-r{color:var(--label3);font-size:10px}
+.mets{display:flex;flex-direction:column;gap:7px}
+.met{background:var(--surface2);border-left:3px solid var(--label4);
+  border-radius:0 var(--r-md) var(--r-md) 0;padding:11px 13px;
+  width:100%;text-align:left;font-family:inherit;border-top:none;border-right:none;
+  border-bottom:none;cursor:pointer;display:block}
+.met:active{opacity:.75}
+.met.g{border-left-color:var(--green)}
+.met.a{border-left-color:var(--amber)}
+.met.r{border-left-color:var(--red)}
+.met-row{display:flex;align-items:center;gap:10px}
+.met-n{color:var(--label);font-size:12.5px;font-weight:600}
+.met-c{color:var(--label3);font-size:10px;margin-top:2px}
+.met-c b{color:var(--label);font-weight:700}
+.met-c.warn{color:var(--amber)}
+.met-c.bad{color:var(--red-soft)}
+.met-p{font-size:18px;font-weight:800;letter-spacing:-.02em;text-align:right}
+.met-x{font-size:9.5px;text-align:right;margin-top:1px}
+.met-x.on{color:var(--mint)}
+.met-x.off{color:var(--label3)}
+.met-x.bad{color:var(--red-soft)}
+.chev{color:var(--label4);flex-shrink:0}
+.chev svg{width:15px;height:15px;display:block}
+.arpu{margin-top:8px;padding-top:7px;border-top:1px solid rgba(237,242,248,.07);
+  display:flex;align-items:center;gap:6px;color:var(--label3);font-size:9.5px}
+.arpu svg{width:11px;height:11px;flex-shrink:0}
+.arpu b{font-weight:700}
+.arpu.ok svg{stroke:var(--mint)} .arpu.ok b{color:var(--mint)}
+.arpu.no svg{stroke:var(--red-soft)} .arpu.no b{color:var(--red-soft)}
+
+.note{color:var(--label4);font-size:10px;text-align:center;margin-top:20px;
+  font-style:italic;line-height:1.5;padding:0 20px}
+
+/* ── Hoja de detalle ── */
+.sheet{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);
+  backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center}
+.sheet.open{display:flex}
+.sheet-in{background:var(--bg);width:100%;max-width:560px;max-height:92vh;
+  border-radius:24px 24px 0 0;overflow:hidden;display:flex;flex-direction:column;
+  animation:up .28s cubic-bezier(.32,.72,0,1)}
+@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-h{display:flex;align-items:center;gap:9px;padding:15px 17px;
+  border-bottom:1px solid var(--sep);background:var(--surface);flex-shrink:0}
+.sheet-t{flex:1;font-size:16px;font-weight:700;letter-spacing:-.02em}
+.sheet-x{background:none;border:none;color:var(--blue);font-size:14px;
+  font-family:inherit;cursor:pointer;padding:4px}
+.sheet-b{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:15px 17px 30px;
+  padding-bottom:calc(30px + env(safe-area-inset-bottom))}
+
+.esc{display:flex;flex-direction:column-reverse;gap:6px}
+.paso{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--surface2);border-radius:var(--r-md)}
+.paso.done{opacity:.45}
+.paso.now{background:rgba(48,209,88,.13);border:1px solid rgba(48,209,88,.32)}
+.paso.next{border:1px dashed rgba(255,214,10,.4)}
+.paso-i{font-size:13px;flex-shrink:0;display:flex}
+.paso-i svg{width:14px;height:14px}
+.paso.done .paso-i svg{stroke:var(--green)}
+.paso.now .paso-i svg{stroke:var(--green)}
+.paso.next .paso-i svg{stroke:var(--amber)}
+.paso-p{font-size:11px;font-weight:700;width:36px;color:var(--label3)}
+.paso.now .paso-p,.paso.now .paso-l{color:var(--green)}
+.paso.next .paso-p,.paso.next .paso-l{color:var(--amber)}
+.paso-l{font-size:11px;color:var(--label3);flex:1}
+.paso-v{font-size:11px;font-weight:700;color:var(--label3)}
+.paso.now .paso-v{color:var(--green)}
+.paso.next .paso-v{color:var(--amber)}
+
+.tip{margin-top:13px;border-radius:var(--r-md);padding:11px 13px;
+  display:flex;gap:9px;align-items:flex-start;font-size:11px;line-height:1.45}
+.tip.amber{background:rgba(255,214,10,.1);color:var(--amber)}
+.tip.red{background:rgba(255,69,58,.1);color:var(--red-soft)}
+.tip svg{width:14px;height:14px;flex-shrink:0;margin-top:1px}
+.tip b{font-weight:700}
+
+.lista{background:var(--surface);border-radius:var(--r-md);overflow:hidden;margin-top:9px}
+.li{display:flex;padding:10px 13px;font-size:11.5px}
+.li+.li{border-top:1px solid var(--sep)}
+.li-n{flex:1;color:var(--label)}
+.li-v{color:var(--label3)}
+
+.empty{text-align:center;padding:40px 20px;color:var(--label3);font-size:13px;line-height:1.6}
+</style>
+
+<div class="wrap">
+  <div class="nav">
+    <button class="nav-back" onclick="location.href='index.html'" aria-label="Volver">
+      <svg viewBox="0 0 9 15" width="8" height="14" fill="none"><path d="M7.5 1L1 7.5 7.5 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <span class="nav-t">Comisiones</span>
+    <button class="nav-cta" onclick="abrirCaptura()">
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Venta
+    </button>
+  </div>
+
+  <div class="pad">
+    <div class="hero">
+      <div class="hero-top">
+        <span class="hero-l">COBRAS ESTE VIERNES</span>
+        <button class="piso ok" id="piso" onclick="verPiso()">
+          <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          <span id="piso-t">Piso 0/2</span>
+        </button>
+      </div>
+      <div class="hero-v" id="hero-v">$0</div>
+      <div class="hero-s" id="hero-s">Sin ventas esta semana</div>
+    </div>
+
+    <button class="mon" onclick="abrirMonedero()">
+      <div class="mon-row">
+        <span class="mon-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 11h.01M2 9.5V13c0 .5.4 1 1 1h1.4c.3 1 .9 1.9 1.6 2.6V19a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1.1c.6.1 1.3.1 2 .1s1.4 0 2-.1V19a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2.4c1.6-1.3 2.5-3.1 2.5-5.1 0-3.9-3.6-7-8-7-2.2 0-4.2.8-5.6 2.1H5A2.5 2.5 0 0 0 2 9.5z"/></svg>
+        </span>
+        <span style="flex:1;min-width:0">
+          <span class="mon-l" id="mon-l">TU MONEDERO</span>
+          <span class="mon-v" id="mon-v">$0</span>
+        </span>
+        <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+      </div>
+      <div class="mon-foot">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--mint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg>
+        <span id="mon-f">Aún sin acumular esta semana</span>
+      </div>
+    </button>
+
+    <div class="sec">
+      <span class="sec-t">TUS MÉTRICAS</span>
+      <span class="sec-r">alcance de tienda</span>
+    </div>
+    <div class="mets" id="mets"></div>
+
+    <div class="note">Las cantidades son una simulación informativa y no representan el cobro real.</div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet" onclick="if(event.target===this)cerrarSheet()">
+  <div class="sheet-in">
+    <div class="sheet-h">
+      <span class="sheet-t" id="sheet-t"></span>
+      <button class="sheet-x" onclick="cerrarSheet()">Cerrar</button>
+    </div>
+    <div class="sheet-b" id="sheet-b"></div>
+  </div>
+</div>
+<script>
+/* ══ TABLERO EJECUTIVO 2026 ══════════════════════════════════════════════
+   Piel nueva sobre el motor verificado (comisiones2026.js). Toda la plomería
+   —sesión, Firebase, drawer— se conserva del tablero anterior.
+   El monedero NO se calcula aquí: se lee acumulado del mes, porque el
+   acelerador depende del cierre semanal de la tienda, no de una venta suelta.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+var ASESOR=null;
+try{ ASESOR=JSON.parse(localStorage.getItem('primemx_sesion_v1')||'null'); }catch(e){}
+
+var METRICAS=[
+  {k:'equipo',     n:'Equipo',     unidad:'u'},
+  {k:'servicio',   n:'Servicio',   unidad:'u'},
+  {k:'renovacion', n:'Renovación', unidad:'u'},
+  {k:'accesorios', n:'Accesorios', unidad:'u'},
+  {k:'seguros',    n:'Seguros',    unidad:'u'},
+  {k:'prepago',    n:'Prepago',    unidad:'u'}
+];
+
+var EST = { ventas:[], cuotas:{}, unidades:{}, arpu:{}, monedero:0, monSemana:0, res:null };
+
+function fmx(n){ return '$'+Math.round(n).toLocaleString('es-MX'); }
+function pct(u,c){ return (!c||c<=0) ? 0 : (u/c)*100; }
+
+/* Cuántas unidades faltan para llegar a un umbral de alcance. */
+function faltan(u,c,meta){
+  if(!c||c<=0) return null;
+  var need = Math.ceil(c*meta/100 - u);
+  return need>0 ? need : 0;
+}
+
+/* Siguiente escalón relevante y qué desbloquea. */
+function siguiente(p){
+  if(p<80)  return {meta:80,  txt:'para cobrar'};
+  if(p<100) return {meta:100, txt:'para el bono'};
+  if(p<105) return {meta:105, txt:'para 105%'};
+  if(p<110) return {meta:110, txt:'para 110%'};
+  if(p<120) return {meta:120, txt:'para 120%'};
+  return null;
+}
+
+function claseMet(p){ return p<80 ? 'r' : (p<100 ? 'a' : 'g'); }
+
+function etiquetaAcel(p, arpuOk){
+  if(p<80) return {t:'no paga', c:'bad'};
+  if(!arpuOk) return {t:'bloqueado', c:'bad'};
+  if(p<100) return {t:'sin bono', c:'off'};
+  if(p<105) return {t:'sin acel.', c:'off'};
+  var a = window.aceleradorPct2026 ? aceleradorPct2026(p,'ejecutivo') : 0;
+  return {t:'+'+Math.round(a*100)+'%', c:'on'};
+}
+
+function recalcular(){
+  var alcances={}, arpu={};
+  METRICAS.forEach(function(m){
+    alcances[m.k] = pct(EST.unidades[m.k]||0, EST.cuotas[m.k]||0);
+    if(EST.arpu[m.k]!==undefined) arpu[m.k]=EST.arpu[m.k];
+  });
+  EST.res = calcularEjecutivo2026(EST.ventas, alcances, {
+    arpu: arpu,
+    alcanceEquipo: alcances.equipo,
+    exigePiso: !(ASESOR && /gerente/i.test(ASESOR.rol||''))
+  });
+  EST.alcances = alcances;
+  pintar();
+}
+
+function pintar(){
+  var r=EST.res, a=EST.alcances;
+
+  var okPiso = pisoCumplido2026(EST.ventas) ||
+               (ASESOR && /gerente/i.test(ASESOR.rol||''));
+  var eq=0, re=0;
+  EST.ventas.forEach(function(v){
+    var u=v.unidades||1;
+    if(v.tipo==='equipo'||v.tipo==='pospago') eq+=u;
+    else if(v.tipo==='renovacion') re+=u;
+  });
+  var cuenta=Math.min(eq+Math.min(re, eq>=1?1:0), 2);
+  var pe=document.getElementById('piso');
+  pe.className='piso '+(okPiso?'ok':'no');
+  document.getElementById('piso-t').textContent='Piso '+(okPiso?'2/2':cuenta+'/2');
+
+  var hv=document.getElementById('hero-v');
+  hv.textContent = fmx(r.pagoSemanal);
+  hv.className='hero-v'+(okPiso?'':' off');
+  document.getElementById('hero-s').textContent = okPiso
+    ? fmx(r.comisionBase)+' base  ·  '+fmx(r.bonoValor)+' bono'
+    : 'Cubre el piso para cobrar lo que vendiste';
+
+  document.getElementById('mon-v').textContent = fmx(EST.monedero);
+  document.getElementById('mon-l').textContent = 'TU MONEDERO · '+mesNombre().toUpperCase();
+  document.getElementById('mon-f').innerHTML = EST.monSemana>0
+    ? 'Esta semana sumaste <b>'+fmx(EST.monSemana)+'</b>'
+    : 'Aún sin acumular esta semana';
+
+  var h='';
+  METRICAS.forEach(function(m){
+    var p=a[m.k]||0, u=EST.unidades[m.k]||0, c=EST.cuotas[m.k]||0;
+    var min=ARPU_MIN_2026[m.k];
+    var val=EST.arpu[m.k];
+    var arpuOk = (min===null||min===undefined) || val===undefined || val>=min;
+    var et=etiquetaAcel(p,arpuOk);
+    var sig=siguiente(p);
+    var fl = sig ? faltan(u,c,sig.meta) : null;
+
+    var cont;
+    if(!c){ cont='<span class="met-c">Sin cuota capturada</span>'; }
+    else {
+      var cls = p<80?'met-c bad':(p<100?'met-c warn':'met-c');
+      cont='<span class="'+cls+'">'+u+' de '+Math.round(c)+
+        (fl!==null&&fl>0 ? ' · falta'+(fl===1?'':'n')+' <b>'+fl+'</b> '+sig.txt : '')+'</span>';
+    }
+
+    h+='<button class="met '+claseMet(p)+'" onclick="verMetrica(\''+m.k+'\')">'
+      +'<span class="met-row">'
+      +'<span style="flex:1;min-width:0"><span class="met-n">'+m.n+'</span><br>'+cont+'</span>'
+      +'<span><span class="met-p">'+Math.round(p)+'%</span>'
+      +'<span class="met-x '+et.c+'">'+et.t+'</span></span>'
+      +'<span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>'
+      +'</span>';
+
+    if(min!==null && min!==undefined && val!==undefined){
+      h+='<span class="arpu '+(arpuOk?'ok':'no')+'">'
+        +'<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+        +(arpuOk?'<circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/>'
+                :'<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16h.01"/>')
+        +'</svg>ARPU <b>'+fmx(val)+'</b> · mínimo '+fmx(min)+'</span>';
+    }
+    h+='</button>';
+  });
+  document.getElementById('mets').innerHTML=h;
+}
+
+function mesNombre(){
+  var M=['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
+         'septiembre','octubre','noviembre','diciembre'];
+  return M[new Date().getMonth()];
+}
+
+/* ── Hoja de detalle: la escalera ── */
+function verMetrica(k){
+  var m=null; METRICAS.forEach(function(x){ if(x.k===k) m=x; });
+  var p=EST.alcances[k]||0, u=EST.unidades[k]||0, c=EST.cuotas[k]||0;
+  var base=0;
+  EST.res.detalle.forEach(function(d){ if(d.metrica===k) base+=d.base; });
+
+  var pasos=[
+    {p:80,  l:'Comisión base'},
+    {p:100, l:'Bono de valor'},
+    {p:105, l:'Acelerador +10%'},
+    {p:110, l:'Acelerador +15%'},
+    {p:120, l:'Acelerador +20%'}
+  ];
+  var h='<div style="background:var(--surface);border:1px solid rgba(0,168,224,.22);border-radius:var(--r-lg);padding:14px 15px;margin-bottom:14px">'
+    +'<div style="display:flex;align-items:flex-end;gap:12px">'
+    +'<div style="flex:1"><div style="color:var(--label3);font-size:10px;letter-spacing:.7px">VAS EN</div>'
+    +'<div style="font-size:32px;font-weight:800;letter-spacing:-.03em;line-height:1.1">'+Math.round(p)+'%</div></div>'
+    +'<div style="text-align:right"><div style="color:var(--label3);font-size:10px">'+u+' de '+Math.round(c||0)+'</div>'
+    +'<div style="color:var(--mint);font-size:12px;font-weight:700">'+fmx(base)+'</div></div></div></div>';
+
+  h+='<div style="color:var(--label3);font-size:10px;letter-spacing:.7px;margin:0 2px 9px">TU ESCALERA</div><div class="esc">';
+  var idxNow=-1;
+  pasos.forEach(function(s,i){ if(p>=s.p) idxNow=i; });
+  pasos.forEach(function(s,i){
+    var cls = i<idxNow ? 'done' : (i===idxNow ? 'now' : (i===idxNow+1 ? 'next' : ''));
+    var ico = i<=idxNow
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+    var val='';
+    if(i>idxNow && c>0){
+      var f=faltan(u,c,s.p);
+      if(f>0) val='faltan '+f;
+    }
+    h+='<div class="paso '+cls+'"><span class="paso-i">'+ico+'</span>'
+      +'<span class="paso-p">'+s.p+'%</span>'
+      +'<span class="paso-l">'+s.l+'</span>'
+      +'<span class="paso-v">'+val+'</span></div>';
+  });
+  h+='</div>';
+
+  var sig=siguiente(p);
+  if(sig && c>0){
+    var f=faltan(u,c,sig.meta);
+    if(f>0){
+      h+='<div class="tip '+(p<80?'red':'amber')+'">'
+        +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>'
+        +'<span>Con <b>'+f+'</b> venta'+(f===1?'':'s')+' más llegas al '+sig.meta+'%</span></div>';
+    }
+  }
+
+  var det=EST.res.detalle.filter(function(d){ return d.metrica===k && d.base>0; });
+  if(det.length){
+    h+='<div style="color:var(--label3);font-size:10px;letter-spacing:.7px;margin:16px 2px 0">LO QUE LA COMPONE</div><div class="lista">';
+    det.forEach(function(d){
+      h+='<div class="li"><span class="li-n">'+(d.unidades)+' × '+(d.venta.plan||d.venta.tipo)+'</span>'
+        +'<span class="li-v">'+fmx(d.base)+'</span></div>';
+    });
+    h+='</div>';
+  }
+
+  document.getElementById('sheet-t').textContent=m?m.n:'Métrica';
+  document.getElementById('sheet-b').innerHTML=h;
+  document.getElementById('sheet').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function verPiso(){
+  var eq=0, re=0;
+  EST.ventas.forEach(function(v){
+    var u=v.unidades||1;
+    if(v.tipo==='equipo'||v.tipo==='pospago') eq+=u;
+    else if(v.tipo==='renovacion') re+=u;
+  });
+  var ok=pisoCumplido2026(EST.ventas);
+  var h='<div style="color:var(--label2);font-size:13px;line-height:1.6;margin-bottom:16px">'
+    +'Para cobrar <b>todo</b> lo que vendiste esta semana necesitas al menos dos ventas con equipo:</div>'
+    +'<div class="lista">'
+    +'<div class="li"><span class="li-n">1 equipo + 1 renovación</span><span class="li-v">'+((eq>=1&&re>=1)?'✓':'—')+'</span></div>'
+    +'<div class="li"><span class="li-n">o bien 2 equipos</span><span class="li-v">'+(eq>=2?'✓':'—')+'</span></div>'
+    +'</div>'
+    +'<div style="color:var(--label3);font-size:12px;line-height:1.6;margin-top:14px">'
+    +'Llevas <b style="color:var(--label)">'+eq+'</b> equipo'+(eq===1?'':'s')
+    +' y <b style="color:var(--label)">'+re+'</b> renovación'+(re===1?'':'es')+'.</div>';
+  if(!ok){
+    h+='<div class="tip red" style="margin-top:14px">'
+      +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>'
+      +'<span>Sin el piso, <b>nada</b> comisiona: ni seguros, ni accesorios, ni prepago.</span></div>';
+  }
+  document.getElementById('sheet-t').textContent='Piso semanal';
+  document.getElementById('sheet-b').innerHTML=h;
+  document.getElementById('sheet').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function abrirMonedero(){
+  var h='<div style="color:var(--label2);font-size:13px;line-height:1.6;margin-bottom:6px">'
+    +'Tu acelerador se junta semana a semana y se paga completo antes del día 15 del mes siguiente.</div>';
+  if(EST.semanas && EST.semanas.length){
+    h+='<div class="lista" style="margin-top:14px">';
+    EST.semanas.forEach(function(s){
+      h+='<div class="li"><span class="li-n">'+s.etiqueta+'</span><span class="li-v">'+fmx(s.acelerador)+'</span></div>';
+    });
+    h+='</div>';
+  } else {
+    h+='<div class="empty">Todavía no hay semanas cerradas este mes.</div>';
+  }
+  document.getElementById('sheet-t').textContent='Monedero · '+mesNombre();
+  document.getElementById('sheet-b').innerHTML=h;
+  document.getElementById('sheet').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function cerrarSheet(){
+  document.getElementById('sheet').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+function abrirCaptura(){ location.href='comisiones-captura.html'; }
+
+/* El botón atrás del teléfono cierra la hoja antes de navegar. */
+window.addEventListener('popstate', function(){
+  var s=document.getElementById('sheet');
+  if(s && s.classList.contains('open')){ cerrarSheet(); history.pushState(null,'',location.href); }
+});
+history.pushState(null,'',location.href);
+
+recalcular();
+</script>
+
+<script>
+/* Puente entre Firebase y el tablero. bootComisiones() lo llama el módulo de
+   Firebase al terminar de cargar, igual que en el tablero anterior. */
+window.bootComisiones = async function(){
+  if(!ASESOR || !window.TG_FB) return;
+  var attuid = ASESOR.attuid || ASESOR.id;
+  var tienda = ASESOR.tienda || '';
+  var hoy = new Date();
+  var mes = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0');
+  var periodo = window.periodoActual ? periodoActual() : mes;
+  try{
+    var ventas = await TG_FB.loadVentas(attuid, periodo);
+    EST.ventas = ventas.map(function(v){
+      var t = v.tipo==='pospago' ? 'equipo'
+            : v.tipo==='migra'   ? 'equipo'
+            : v.tipo==='renov'   ? 'renovacion'
+            : v.tipo==='acces'   ? 'accesorio'
+            : v.tipo==='seguro'  ? 'seguro'
+            : v.tipo==='prepago' ? 'prepago'
+            : v.tipo;
+      var met = t==='equipo' ? 'equipo'
+              : t==='renovacion' ? 'renovacion'
+              : t==='accesorio'||t==='addon' ? 'accesorios'
+              : t==='seguro' ? 'seguros'
+              : t==='prepago' ? 'prepago' : t;
+      return { tipo:t, metrica:met, plan:v.plan, unidades:1,
+               com:v.com, valor:v.valor, recarga:v.recarga,
+               alphacomm:v.alphacomm, precioEquipo:v.precioEquipo };
+    });
+    var alc = await TG_FB.loadAlcanceTienda(tienda, periodo);
+    EST.unidades = { equipo:alc.pospago||0, servicio:alc.servicio||0,
+                     renovacion:alc.renov||0, accesorios:alc.acces||0,
+                     seguros:alc.seguro||0, prepago:alc.prepago||0 };
+    var cuota = await TG_FB.loadCuotaTienda(tienda, mes);
+    if(cuota && typeof cuota==='object'){
+      EST.cuotas = { equipo:cuota.equipo||cuota.pospago||0, servicio:cuota.servicio||0,
+                     renovacion:cuota.renovacion||cuota.renov||0,
+                     accesorios:cuota.accesorios||cuota.acces||0,
+                     seguros:cuota.seguros||cuota.seguro||0, prepago:cuota.prepago||0 };
+    } else if(typeof cuota==='number'){
+      EST.cuotas = { equipo:cuota };
+    }
+    if(TG_FB.loadMonedero){
+      var m = await TG_FB.loadMonedero(attuid, mes);
+      if(m){ EST.monedero=m.saldo||0; EST.monSemana=m.semana||0; EST.semanas=m.semanas||[]; }
+    }
+  }catch(e){ console.error('bootComisiones', e); }
+  recalcular();
+};
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getFirestore, collection, addDoc, deleteDoc, doc, getDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+const cfg={apiKey:"AIzaSyC9qhK78TKkLUu_gcN3WRwyKV8-mTk1Lsc",authDomain:"techguide-primemx.firebaseapp.com",projectId:"techguide-primemx",storageBucket:"techguide-primemx.firebasestorage.app",messagingSenderId:"53436933819",appId:"1:53436933819:web:fef1e0299e41c136c5ab9e"};
+const db=getFirestore(initializeApp(cfg));
+const COL='comisiones_ventas';
+const FIELDS=['tipo','com','title','sub','tag','fecha','line','pos','modelo','plan','link','linkName','seg','grupo','esHijo','localId'];
+window.TG_FB={
+  async addVenta(v,attuid,periodo,tienda){const data={attuid,periodo,ts:serverTimestamp()};if(tienda)data.tienda=tienda;FIELDS.forEach(k=>{if(v[k]!==undefined&&v[k]!==null)data[k]=v[k];});const ref=await addDoc(collection(db,COL),data);return ref.id;},
+  async delVenta(fid){if(fid)await deleteDoc(doc(db,COL,fid));},
+  // Un solo where (sin índice compuesto): trae las ventas del asesor y filtra la semana en el cliente.
+  async loadVentas(attuid,periodo){const snap=await getDocs(query(collection(db,COL),where('attuid','==',attuid)));const arr=[];snap.forEach(d=>{const o=d.data();if(o.periodo===periodo){o.fid=d.id;arr.push(o);}});return arr;},
+  async loadCuotaTienda(tienda,mes){try{const sn=await getDoc(doc(db,'comisiones_cuotas',tienda+'__'+mes));return (sn.exists()&&sn.data().cuota)?sn.data().cuota:null;}catch(e){console.error('loadCuotaTienda',e);return null;}},
+  async loadAlcanceTienda(tienda,periodo){const r={pospago:0,renov:0,acces:0,seguro:0,prepago:0};try{const snap=await getDocs(query(collection(db,COL),where('tienda','==',tienda)));const MM={pospago:'pospago',migra:'pospago',renov:'renov',seguro:'seguro',addon:'seguro',acces:'acces',prepago:'prepago'};snap.forEach(d=>{const o=d.data();if(!o||o.periodo!==periodo)return;if(o.tipo==='addon')return;const k=MM[o.tipo];if(k)r[k]++;if(k==='pospago'&&o.tag==='nuevo')r.__nuevos=(r.__nuevos||0)+1;});}catch(e){console.error('loadAlcanceTienda',e);}return r;}
+};
+if(window.bootComisiones)window.bootComisiones();
+</script><link rel="stylesheet" href="comisiones-ui.css">
+<div class="pmd-overlay" id="pmd-overlay" onclick="pmdClose()"></div>
+<aside class="pmd-drawer" id="pmd-drawer" aria-label="Menú de navegación">
+  <button class="pmd-head" onclick="pmdGo('perfil')" aria-label="Editar perfil">
+    <div class="pmd-avatar" id="pmd-avatar">PM</div>
+    <div class="pmd-who"><b id="pmd-name">Prime MX</b><span id="pmd-role">Fuerza de ventas</span></div>
+    <svg class="pmd-head-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+  </button>
+  <nav class="pmd-nav">
+    <button class="pmd-item" onclick="pmdGo('inicio')"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>Inicio</button>
+    <button class="pmd-item" onclick="pmdGo('momento')"><svg viewBox="0 0 24 24"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>Equipos del momento</button>
+    <button class="pmd-item" onclick="pmdGo('topcomm')"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>Top comisiones</button>
+    <button class="pmd-item" style="background:var(--surface2)" onclick="pmdGo('comisiones')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.2v9.6M14.6 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.6 0-2.7.9-2.7 2.1s1.1 1.8 2.7 2.1 2.7.9 2.7 2.1-1.1 2.1-2.7 2.1c-1.1 0-2.1-.5-2.6-1.3"/></svg><span style="flex:1">Comisiones</span><span style="width:6px;height:6px;border-radius:50%;background:var(--att-blue);flex-shrink:0"></span></button>
+    <button class="pmd-item" onclick="pmdGo('dash')"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 5-7"/></svg>Actividad</button>
+    <button class="pmd-item" onclick="pmdGo('calc')"><svg viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M8 6.5h8M8 11h2M8 15h2M14 11h2M14 15h2M11 11h2M11 15h2"/></svg>Calculadora</button>
+    <button class="pmd-item" onclick="pmdGo('diag')"><svg viewBox="0 0 24 24"><path d="M3.5 13a8.5 8.5 0 0 1 17 0"/><path d="M12 13l4-3.5"/><circle cx="12" cy="13" r="1.4" fill="currentColor" stroke="none"/></svg>Diagnóstico</button>
+    <button class="pmd-item" id="pmd-accesos" style="display:none" onclick="pmdGo('accesos')"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4.5"/><path d="M11 12l8-8 2 2M16 7l2 2"/></svg>Accesos</button>
+    <div class="pmd-sep"></div>
+    <button class="pmd-item" id="pmd-theme" onclick="toggleTheme()"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span style="flex:1">Modo oscuro</span><span class="pmd-switch" id="pmd-theme-sw"></span></button>
+    <button class="pmd-item" id="pmd-desktop" onclick="toggleDesktop()"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span style="flex:1">Modo escritorio</span><span class="pmd-switch" id="pmd-desktop-sw"></span></button>
+    <button class="pmd-item" onclick="pmdGo('refresh')"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Actualizar datos</button>
+    <button class="pmd-item pmd-danger" onclick="pmdGo('logout')"><svg viewBox="0 0 24 24"><path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10"/><path d="M17 8l4 4-4 4M9 12h12"/></svg>Cerrar sesión</button>
+  </nav>
+  <div class="pmd-foot"><b>PRIME<span>MX</span></b> · TechGuide</div>
+</aside>
+<script>
+/* ── Menú lateral (drawer) — portado del home v1.11.47 ── */
+(function(){
+  var d=document.getElementById('pmd-drawer'), ov=document.getElementById('pmd-overlay');
+  if(!d||!ov) return;
+  function pmdSes(){try{return JSON.parse(localStorage.getItem('primemx_sesion_v1')||'null');}catch(e){return null;}}
+  window.pmdOpen=function(){
+    try{
+      var s=pmdSes();
+      if(s&&s.attuid){
+        var nm=s.name||s.nombre||'Asesor';
+        var eN=document.getElementById('pmd-name'); if(eN)eN.textContent=nm;
+        var eR=document.getElementById('pmd-role');
+        if(eR){var r=String(s.rol||'asesor'); var reg=s.region?(' · '+s.region):''; eR.textContent=r.charAt(0).toUpperCase()+r.slice(1)+reg;}
+        var eA=document.getElementById('pmd-avatar');
+        if(eA){var p=String(nm).trim().split(/\s+/); eA.textContent=(((p[0]||'')[0]||'')+((p[1]||'')[0]||''))||(String(nm)[0]||'P');}
+        var acc=document.getElementById('pmd-accesos');
+        if(acc){var rl=String(s.rol||'').toLowerCase();acc.style.display=(s.attuid==='DC499W'||['regional','director','director_nacional'].indexOf(rl)>=0)?'flex':'none';}
+      }
+    }catch(e){}
+    if(window.pmdSyncTheme)pmdSyncTheme(); if(window.pmdSyncDesktop)pmdSyncDesktop();
+    d.classList.add('on'); ov.classList.add('on'); document.body.style.overflow='hidden';
+  };
+  window.pmdClose=function(){ d.classList.remove('on'); ov.classList.remove('on'); document.body.style.overflow=''; };
+  window.pmdSyncTheme=function(){ var sw=document.getElementById('pmd-theme-sw'); if(!sw)return; sw.classList.toggle('on',document.documentElement.getAttribute('data-theme')!=='light'); };
+  window.pmdGo=function(a){
+    var go=function(url){ pmdClose(); setTimeout(function(){ location.href=url; },160); };
+    switch(a){
+      case 'inicio':  go('index.html'); break;
+      case 'momento': go('index.html#momento'); break;
+      case 'topcomm': go('index.html#topcomm'); break;
+      case 'comisiones': pmdClose(); break;
+      case 'dash':    go('index.html#actividad'); break;
+      case 'calc':    go('index.html#calc'); break;
+      case 'diag':    go('index.html#diag'); break;
+      case 'accesos': go('index.html#accesos'); break;
+      case 'perfil':  go('index.html#perfil'); break;
+      case 'refresh': pmdClose(); setTimeout(function(){ if(typeof refreshDash==='function')refreshDash(); },220); break;
+      case 'logout':  pmdClose(); setTimeout(function(){ if(confirm('¿Cerrar sesión?')){ try{localStorage.removeItem('primemx_sesion_v1');}catch(e){} location.href='index.html'; } },200); break;
+    }
+  };
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape')pmdClose(); });
+  var sx=null;
+  d.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; },{passive:true});
+  d.addEventListener('touchmove',function(e){ if(sx===null)return; var dx=e.touches[0].clientX-sx; if(dx<0)d.style.transform='translateX('+dx+'px)'; },{passive:true});
+  d.addEventListener('touchend',function(e){ if(sx===null)return; var dx=e.changedTouches[0].clientX-sx; d.style.transform=''; if(dx<-70)pmdClose(); sx=null; });
+})();
+</script>
+</body>
+</html>
+
+</body>
+</html>
