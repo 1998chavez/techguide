@@ -16,6 +16,8 @@
   --blue:#31A5E5;--cyan:#4DB4EC;--green:#30D158;--mint:#3BC292;
   --red:#FF453A;--red-soft:#FF8A80;--amber:#FFD60A;
   --r-xl:22px;--r-lg:16px;--r-md:12px;
+  --att-blue:#31A5E5;--att-cyan:#4DB4EC;
+  --pmd-accent:#31A5E5;--pmd-navy:#13203E;--pmd-danger:#FF453A;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;padding:0;background:var(--bg);color:var(--label);
@@ -154,6 +156,46 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:var(--su
 .li-v{color:var(--label3)}
 
 .empty{text-align:center;padding:40px 20px;color:var(--label3);font-size:13px;line-height:1.6}
+
+/* ── Drawer compartido (antes en comisiones-ui.css; inline para que el
+      tablero no dependa de un archivo externo que puede no resolver) ── */
+/* ============================================================================
+   comisiones-ui.css — [v1.12.3] UI compartida de los 5 tableros de comisiones.
+   ANTES: cada comisiones-*.html traía su propia copia de este bloque (drawer
+   pmd-*). Ahora es una sola fuente; los tableros lo enlazan con <link>.
+   Nota: usa alias --pmd-* porque los tokens difieren entre tableros
+   (ejecutivo: --att-blue · mandos: --blue). También corrige que en los mandos
+   var(--att-blue) no existía y el avatar/switch quedaban sin fondo.
+   ========================================================================== */
+:root{--pmd-accent:#31A5E5;--pmd-navy:#101A30;--pmd-danger:#FF453A}
+:root[data-theme="light"]{--pmd-accent:#0E7DBE;--pmd-navy:#13203E;--pmd-danger:#D0291C}
+
+.pmd-overlay{position:fixed;inset:0;z-index:1200;background:rgba(9,13,22,.44);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:opacity .26s cubic-bezier(.32,.72,0,1),visibility .26s}
+.pmd-overlay.on{opacity:1;visibility:visible}
+.pmd-drawer{position:fixed;top:0;left:0;bottom:0;z-index:1201;width:84%;max-width:328px;background:var(--surface);box-shadow:0 18px 60px rgba(0,0,0,.5);transform:translateX(-102%);transition:transform .28s cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0)}
+.pmd-drawer.on{transform:none}
+.pmd-head{padding:22px 20px 18px;display:flex;align-items:center;gap:13px;width:100%;background:transparent;border:none;border-bottom:1px solid var(--sep);cursor:pointer;font-family:inherit;text-align:left;transition:background .16s ease}
+.pmd-head:hover{background:var(--surface2)}
+.pmd-avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--pmd-navy);color:#fff;font-weight:700;font-size:17px;flex-shrink:0;letter-spacing:.02em}
+.pmd-who b{display:block;font-size:16px;font-weight:800;color:var(--label);letter-spacing:-.01em}
+.pmd-who span{display:block;font-size:12.5px;color:var(--label3);margin-top:2px;font-weight:500}
+.pmd-head-chev{width:18px;height:18px;color:var(--label3);flex-shrink:0;margin-left:auto}
+.pmd-nav{padding:10px 12px 12px;display:flex;flex-direction:column;gap:1px;flex:1;overflow-y:auto}
+.pmd-item{display:flex;align-items:center;gap:13px;padding:12px 13px;border-radius:10px;background:transparent;border:none;color:var(--label);font-size:14.5px;font-weight:600;letter-spacing:-.01em;width:100%;text-align:left;cursor:pointer;font-family:inherit;transition:background .16s ease,transform .1s ease}
+.pmd-item svg{width:19px;height:19px;color:var(--label3);flex-shrink:0;stroke-width:1.9;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;transition:color .16s ease}
+.pmd-item:hover{background:var(--surface2)}
+.pmd-item:hover svg{color:var(--label)}
+.pmd-item:active{transform:scale(.98)}
+.pmd-item:focus-visible{outline:2px solid var(--pmd-accent);outline-offset:2px}
+.pmd-sep{height:1px;background:var(--sep);margin:10px 14px}
+.pmd-danger{color:var(--pmd-danger)} .pmd-danger svg{color:var(--pmd-danger)}
+.pmd-switch{width:38px;height:22px;border-radius:999px;background:var(--sep);position:relative;transition:background .2s ease;flex-shrink:0}
+.pmd-switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s ease}
+.pmd-switch.on{background:var(--pmd-accent)}
+.pmd-switch.on::after{transform:translateX(16px)}
+.pmd-foot{padding:14px 22px calc(16px + env(safe-area-inset-bottom,0));font-size:11px;color:var(--label3);border-top:1px solid var(--sep);font-weight:600}
+.pmd-foot b{font-weight:800;color:var(--label)} .pmd-foot b span{color:var(--pmd-accent)}
+
 </style>
 </head>
 <body>
@@ -505,8 +547,16 @@ window.addEventListener('popstate', function(){
 history.pushState(null,'',location.href);
 
 if(!ASESOR){
-  document.getElementById('mets').innerHTML='<div class="empty">Inicia sesión '
-    +'para ver tus comisiones.</div>';
+  /* Sin sesión en localStorage. Pasa si se abre el archivo directo por URL
+     en vez de entrar desde la app. Se explica en vez de mostrar ceros. */
+  document.getElementById('mets').innerHTML='<div class="empty">'
+    +'No encontramos tu sesión.<br><br>'
+    +'<span style="font-size:12px">Entra desde TechGuide en vez de abrir '
+    +'esta página directo.</span><br><br>'
+    +'<button onclick="location.href=\'index.html\'" style="background:var(--blue);'
+    +'color:#fff;border:none;border-radius:12px;padding:10px 18px;font-size:13px;'
+    +'font-weight:600;font-family:inherit;cursor:pointer">Ir a TechGuide</button>'
+    +'</div>';
 } else {
   recalcular();
 }
@@ -566,7 +616,7 @@ window.TG_FB={
   async loadAlcanceTienda(tienda,periodo){const r={pospago:0,renov:0,acces:0,seguro:0,prepago:0};try{const snap=await getDocs(query(collection(db,COL),where('tienda','==',tienda)));const MM={pospago:'pospago',migra:'pospago',renov:'renov',seguro:'seguro',addon:'seguro',acces:'acces',prepago:'prepago'};snap.forEach(d=>{const o=d.data();if(!o||o.periodo!==periodo)return;if(o.tipo==='addon')return;const k=MM[o.tipo];if(k)r[k]++;if(k==='pospago'&&o.tag==='nuevo')r.__nuevos=(r.__nuevos||0)+1;});}catch(e){console.error('loadAlcanceTienda',e);}return r;}
 };
 if(window.bootComisiones)window.bootComisiones();
-</script><link rel="stylesheet" href="comisiones-ui.css">
+</script>
 <div class="pmd-overlay" id="pmd-overlay" onclick="pmdClose()"></div>
 <aside class="pmd-drawer" id="pmd-drawer" aria-label="Menú de navegación">
   <button class="pmd-head" onclick="pmdGo('perfil')" aria-label="Editar perfil">
