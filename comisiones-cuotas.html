@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- [v1.11.62] Fuente única de incentivos: se editan en incentivos.js y los 5
+     tableros los leen de ahí. Antes cada tablero traía su propia copia. -->
+<script src="incentivos.js"></script><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<title>Cuotas y ARPU — TechGuide</title>
+
+<style>
+:root{
+  --bg:#080D16;--surface:#0F1622;--surface2:#16202E;--surface3:#1F2B3C;
+  --label:#EDF2F8;--label2:#D7E0EB;--label3:#8A97A9;--label4:#414E5F;
+  --sep:rgba(237,242,248,0.10);
+  --blue:#31A5E5;--cyan:#4DB4EC;--green:#30D158;--mint:#3BC292;
+  --red:#FF453A;--red-soft:#FF8A80;--amber:#FFD60A;
+  --r-xl:22px;--r-lg:16px;--r-md:12px;
+  --att-blue:#31A5E5;--att-cyan:#4DB4EC;
+  --pmd-accent:#31A5E5;--pmd-navy:#13203E;--pmd-danger:#FF453A;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;padding:0;background:var(--bg);color:var(--label);
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Inter,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.phone{width:100%;background:var(--bg);min-height:100vh;display:flex;flex-direction:column}
+.wrap{max-width:560px;margin:0 auto;width:100%;padding-bottom:120px}
+
+.nav{position:sticky;top:0;z-index:40;background:rgba(8,13,22,.92);
+  backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--sep);
+  display:flex;align-items:center;gap:8px;padding:12px 16px;
+  padding-top:calc(12px + env(safe-area-inset-top))}
+.nav-back{background:none;border:none;color:var(--blue);font-size:15px;
+  font-family:inherit;display:flex;align-items:center;padding:0;cursor:pointer}
+.nav-t{flex:1;font-size:16px;font-weight:600;letter-spacing:-.02em}
+.pad{padding:14px 16px}
+
+.sel{background:var(--surface);border:1px solid var(--sep);border-radius:var(--r-lg);
+  padding:12px 14px;margin-bottom:12px}
+.sel-l{color:var(--label3);font-size:10px;letter-spacing:.7px;margin-bottom:7px}
+.sel-row{display:flex;gap:8px}
+select{flex:1;background:var(--surface2);border:1px solid var(--sep);border-radius:10px;
+  color:var(--label);font-size:14px;font-family:inherit;padding:9px 11px;
+  -webkit-appearance:none;appearance:none;cursor:pointer}
+select:focus{outline:none;border-color:var(--blue)}
+
+.sec-t{color:var(--label3);font-size:10px;letter-spacing:.7px;margin:18px 2px 9px}
+.q{background:var(--surface2);border-radius:var(--r-md);padding:12px 13px;margin-bottom:7px}
+.q-row{display:flex;align-items:center;gap:12px}
+.q-n{flex:1;min-width:0}
+.q-nn{color:var(--label);font-size:13.5px;font-weight:600}
+.q-ns{color:var(--label3);font-size:10px;margin-top:2px}
+input[type=number]{width:92px;background:var(--surface);border:1px solid var(--sep);
+  border-radius:10px;color:var(--label);font-size:17px;font-weight:700;font-family:inherit;
+  padding:9px 10px;text-align:right;-moz-appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]:focus{outline:none;border-color:var(--blue)}
+input[type=number]:disabled{opacity:.45;cursor:not-allowed}
+.q-by{margin-top:9px;padding-top:8px;border-top:1px solid rgba(237,242,248,.07);
+  display:flex;align-items:center;gap:6px;color:var(--label3);font-size:9.5px}
+.q-by svg{width:11px;height:11px;flex-shrink:0}
+.q-by.lock{color:var(--amber)}
+.q-by.lock svg{stroke:var(--amber)}
+
+.aviso{background:rgba(255,214,10,.1);border-radius:var(--r-md);padding:11px 13px;
+  display:flex;gap:9px;align-items:flex-start;font-size:11px;line-height:1.45;
+  color:var(--amber);margin-top:12px}
+.aviso svg{width:14px;height:14px;flex-shrink:0;margin-top:1px}
+
+.barra{position:fixed;left:0;right:0;bottom:0;z-index:50;
+  background:rgba(8,13,22,.94);backdrop-filter:blur(20px);
+  border-top:1px solid var(--sep);padding:12px 16px;
+  padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+.barra-in{max-width:560px;margin:0 auto;display:flex;gap:9px;align-items:center}
+.btn{flex:1;background:var(--blue);color:#fff;border:none;border-radius:14px;
+  padding:13px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:active{opacity:.8}
+.estado{color:var(--label3);font-size:11px;text-align:center;margin-top:8px}
+.estado.ok{color:var(--mint)}
+.estado.err{color:var(--red-soft)}
+.empty{text-align:center;padding:40px 20px;color:var(--label3);font-size:13px;line-height:1.6}
+
+/* ── Drawer compartido (antes en comisiones-ui.css; inline para que el
+      tablero no dependa de un archivo externo que puede no resolver) ── */
+/* ============================================================================
+   comisiones-ui.css — [v1.12.3] UI compartida de los 5 tableros de comisiones.
+   ANTES: cada comisiones-*.html traía su propia copia de este bloque (drawer
+   pmd-*). Ahora es una sola fuente; los tableros lo enlazan con <link>.
+   Nota: usa alias --pmd-* porque los tokens difieren entre tableros
+   (ejecutivo: --att-blue · mandos: --blue). También corrige que en los mandos
+   var(--att-blue) no existía y el avatar/switch quedaban sin fondo.
+   ========================================================================== */
+:root{--pmd-accent:#31A5E5;--pmd-navy:#101A30;--pmd-danger:#FF453A}
+:root[data-theme="light"]{--pmd-accent:#0E7DBE;--pmd-navy:#13203E;--pmd-danger:#D0291C}
+
+.pmd-overlay{position:fixed;inset:0;z-index:1200;background:rgba(9,13,22,.44);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:opacity .26s cubic-bezier(.32,.72,0,1),visibility .26s}
+.pmd-overlay.on{opacity:1;visibility:visible}
+.pmd-drawer{position:fixed;top:0;left:0;bottom:0;z-index:1201;width:84%;max-width:328px;background:var(--surface);box-shadow:0 18px 60px rgba(0,0,0,.5);transform:translateX(-102%);transition:transform .28s cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0)}
+.pmd-drawer.on{transform:none}
+.pmd-head{padding:22px 20px 18px;display:flex;align-items:center;gap:13px;width:100%;background:transparent;border:none;border-bottom:1px solid var(--sep);cursor:pointer;font-family:inherit;text-align:left;transition:background .16s ease}
+.pmd-head:hover{background:var(--surface2)}
+.pmd-avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--pmd-navy);color:#fff;font-weight:700;font-size:17px;flex-shrink:0;letter-spacing:.02em}
+.pmd-who b{display:block;font-size:16px;font-weight:800;color:var(--label);letter-spacing:-.01em}
+.pmd-who span{display:block;font-size:12.5px;color:var(--label3);margin-top:2px;font-weight:500}
+.pmd-head-chev{width:18px;height:18px;color:var(--label3);flex-shrink:0;margin-left:auto}
+.pmd-nav{padding:10px 12px 12px;display:flex;flex-direction:column;gap:1px;flex:1;overflow-y:auto}
+.pmd-item{display:flex;align-items:center;gap:13px;padding:12px 13px;border-radius:10px;background:transparent;border:none;color:var(--label);font-size:14.5px;font-weight:600;letter-spacing:-.01em;width:100%;text-align:left;cursor:pointer;font-family:inherit;transition:background .16s ease,transform .1s ease}
+.pmd-item svg{width:19px;height:19px;color:var(--label3);flex-shrink:0;stroke-width:1.9;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;transition:color .16s ease}
+.pmd-item:hover{background:var(--surface2)}
+.pmd-item:hover svg{color:var(--label)}
+.pmd-item:active{transform:scale(.98)}
+.pmd-item:focus-visible{outline:2px solid var(--pmd-accent);outline-offset:2px}
+.pmd-sep{height:1px;background:var(--sep);margin:10px 14px}
+.pmd-danger{color:var(--pmd-danger)} .pmd-danger svg{color:var(--pmd-danger)}
+.pmd-switch{width:38px;height:22px;border-radius:999px;background:var(--sep);position:relative;transition:background .2s ease;flex-shrink:0}
+.pmd-switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s ease}
+.pmd-switch.on{background:var(--pmd-accent)}
+.pmd-switch.on::after{transform:translateX(16px)}
+.pmd-foot{padding:14px 22px calc(16px + env(safe-area-inset-bottom,0));font-size:11px;color:var(--label3);border-top:1px solid var(--sep);font-weight:600}
+.pmd-foot b{font-weight:800;color:var(--label)} .pmd-foot b span{color:var(--pmd-accent)}
+
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="wrap">
+  <div class="nav">
+    <button class="nav-back" onclick="history.length>1?history.back():location.href='index.html'" aria-label="Volver">
+      <svg viewBox="0 0 9 15" width="8" height="14" fill="none"><path d="M7.5 1L1 7.5 7.5 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <span class="nav-t">Cuotas y ARPU</span>
+  </div>
+
+  <div class="pad" id="cuerpo">
+    <div class="empty">Cargando…</div>
+  </div>
+</div>
+
+<div class="barra" id="barra" style="display:none">
+  <div class="barra-in">
+    <button class="btn" id="btn-guardar" onclick="guardar()">Guardar</button>
+  </div>
+  <div class="estado" id="estado"></div>
+</div>
+
+<script>
+/* ══ CAPTURA DE CUOTAS Y ARPU · 2026 ══════════════════════════════════════
+   El gerente fija las cuotas de su tienda; el regional puede sobrescribirlas.
+   Gana la jerarquía, no quien escribió al final — si el regional ya fijó un
+   valor, el gerente lo ve bloqueado en vez de pisarlo sin querer.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+var ASESOR=null;
+try{ ASESOR=JSON.parse(localStorage.getItem('primemx_sesion_v1')||'null'); }catch(e){}
+
+var JER = { asesor:0, gerente:1, regional:2, director:3, director_nacional:4 };
+
+var CAMPOS=[
+  {k:'equipo',     n:'Equipo',      s:'Líneas nuevas con equipo'},
+  {k:'servicio',   n:'Servicio',    s:'Pospago solo servicio'},
+  {k:'renovacion', n:'Renovación',  s:'Renovaciones con equipo'},
+  {k:'accesorios', n:'Accesorios',  s:'Unidades vendidas'},
+  {k:'seguros',    n:'Seguros',     s:'Pólizas colocadas'},
+  {k:'prepago',    n:'Prepago',     s:'Recargas ≥ $150'}
+];
+var ARPUS=[
+  {k:'equipo',   n:'ARPU con equipo',    s:'Mínimo $700 para acelerador'},
+  {k:'servicio', n:'ARPU solo servicio', s:'Mínimo $400 para acelerador'}
+];
+
+var EST={ tienda:'', mes:'', doc:null, tiendas:[], miRol:'gerente', sucio:false };
+
+function miNivel(){ return JER[String(EST.miRol||'').toLowerCase()] || 0; }
+
+/* ¿Puedo editar este campo? Solo si nadie de jerarquía mayor lo fijó. */
+function puedoEditar(reg){
+  if(!reg || !reg.rol) return true;
+  return (JER[String(reg.rol).toLowerCase()]||0) <= miNivel();
+}
+
+function mesesOpciones(){
+  var h=new Date(), o='';
+  for(var i=-1;i<=2;i++){
+    var d=new Date(h.getFullYear(), h.getMonth()+i, 1);
+    var v=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    var M=['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
+           'septiembre','octubre','noviembre','diciembre'];
+    o+='<option value="'+v+'"'+(i===0?' selected':'')+'>'+M[d.getMonth()]+' '+d.getFullYear()+'</option>';
+  }
+  return o;
+}
+
+function pintar(){
+  var h='';
+
+  h+='<div class="sel"><div class="sel-l">PERIODO</div><div class="sel-row">';
+  if(EST.tiendas.length>1){
+    h+='<select id="f-tienda" onchange="cambiarTienda()">';
+    EST.tiendas.forEach(function(t){
+      h+='<option value="'+t.id+'"'+(t.id===EST.tienda?' selected':'')+'>'+t.nombre+'</option>';
+    });
+    h+='</select>';
+  }
+  h+='<select id="f-mes" onchange="cambiarMes()">'+mesesOpciones()+'</select>';
+  h+='</div></div>';
+
+  var d=EST.doc||{};
+  var m=d.metricas||{};
+
+  h+='<div class="sec-t">CUOTA POR MÉTRICA</div>';
+  CAMPOS.forEach(function(c){
+    var reg=m[c.k]||null;
+    var val=reg&&reg.valor!==undefined?reg.valor:'';
+    var edit=puedoEditar(reg);
+    h+='<div class="q"><div class="q-row"><div class="q-n">'
+      +'<div class="q-nn">'+c.n+'</div><div class="q-ns">'+c.s+'</div></div>'
+      +'<input type="number" min="0" step="1" id="in-'+c.k+'" value="'+val+'" '
+      +'placeholder="0" '+(edit?'':'disabled')+' oninput="marcarSucio()"></div>';
+    if(reg&&reg.por){
+      h+='<div class="q-by'+(edit?'':' lock')+'">'
+        +(edit
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>'
+          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>')
+        +'Fijada por '+reg.por+' ('+reg.rol+')'
+        +(edit?'':' — no puedes sobrescribirla')+'</div>';
+    }
+    h+='</div>';
+  });
+
+  h+='<div class="sec-t">ARPU DE LA TIENDA</div>';
+  var a=d.arpu||{};
+  ARPUS.forEach(function(c){
+    var reg=a[c.k]||null;
+    var val=reg&&reg.valor!==undefined?reg.valor:'';
+    var edit=puedoEditar(reg);
+    h+='<div class="q"><div class="q-row"><div class="q-n">'
+      +'<div class="q-nn">'+c.n+'</div><div class="q-ns">'+c.s+'</div></div>'
+      +'<input type="number" min="0" step="1" id="ar-'+c.k+'" value="'+val+'" '
+      +'placeholder="0" '+(edit?'':'disabled')+' oninput="marcarSucio()"></div>';
+    if(reg&&reg.por){
+      h+='<div class="q-by'+(edit?'':' lock')+'">Fijado por '+reg.por+' ('+reg.rol+')</div>';
+    }
+    h+='</div>';
+  });
+
+  h+='<div class="aviso">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>'
+    +'<span>Renovación no lleva ARPU mínimo. Sin cuota capturada, esa métrica '
+    +'aparece sin alcance en los tableros.</span></div>';
+
+  document.getElementById('cuerpo').innerHTML=h;
+  document.getElementById('barra').style.display='block';
+}
+
+function marcarSucio(){
+  EST.sucio=true;
+  document.getElementById('estado').textContent='';
+  document.getElementById('estado').className='estado';
+}
+
+function leerFormulario(){
+  var yo = (ASESOR&&(ASESOR.nombre||ASESOR.attuid)) || 'desconocido';
+  var rol = String(EST.miRol||'gerente').toLowerCase();
+  var d = EST.doc || {};
+  var metricas = Object.assign({}, d.metricas||{});
+  var arpu = Object.assign({}, d.arpu||{});
+  var ahora = new Date().toISOString();
+
+  /* La validación de jerarquía va AQUÍ, no en el atributo disabled del input:
+     ese solo es una pista visual y cualquiera puede quitarlo desde el
+     inspector. Si un valor lo fijó alguien de nivel mayor, se descarta el
+     cambio y se conserva el original. */
+  function aplicar(destino, prefijo, lista){
+    var rechazados=[];
+    lista.forEach(function(c){
+      var el=document.getElementById(prefijo+c.k);
+      if(!el) return;
+      var v = el.value==='' ? null : Number(el.value);
+      if(v===null || !isFinite(v) || v<0) return;
+      var previo=destino[c.k];
+      if(previo && !puedoEditar(previo)){
+        if(Number(previo.valor)!==v) rechazados.push(c.n);
+        return;                                   // se conserva el original
+      }
+      if(previo && Number(previo.valor)===v) return;   // sin cambio real
+      destino[c.k]={ valor:v, rol:rol, por:yo, ts:ahora };
+    });
+    return rechazados;
+  }
+  var rech = aplicar(metricas,'in-',CAMPOS).concat(aplicar(arpu,'ar-',ARPUS));
+  return { metricas:metricas, arpu:arpu, rechazados:rech };
+}
+
+async function guardar(){
+  var b=document.getElementById('btn-guardar');
+  var e=document.getElementById('estado');
+  if(!window.TG_FB || !TG_FB.saveCuotas){
+    e.textContent='No hay conexión con la base de datos.'; e.className='estado err'; return;
+  }
+  b.disabled=true; e.textContent='Guardando…'; e.className='estado';
+  try{
+    var datos=leerFormulario();
+    await TG_FB.saveCuotas(EST.tienda, EST.mes,
+                           {metricas:datos.metricas, arpu:datos.arpu});
+    EST.doc={metricas:datos.metricas, arpu:datos.arpu};
+    EST.sucio=false;
+    if(datos.rechazados.length){
+      e.textContent='Guardado. No se cambió '+datos.rechazados.join(', ')
+        +': lo fijó un mando superior.';
+      e.className='estado err';
+    } else {
+      e.textContent='Cuotas guardadas'; e.className='estado ok';
+    }
+    pintar();
+  }catch(err){
+    console.error('guardar', err);
+    e.textContent='No se pudo guardar. Revisa tu conexión.'; e.className='estado err';
+  }
+  b.disabled=false;
+}
+
+async function cargar(){
+  if(!window.TG_FB || !TG_FB.loadCuotas) return;
+  try{
+    EST.doc = await TG_FB.loadCuotas(EST.tienda, EST.mes);
+  }catch(e){ console.error('cargar', e); EST.doc=null; }
+  pintar();
+}
+
+function cambiarMes(){
+  EST.mes=document.getElementById('f-mes').value;
+  cargar();
+}
+function cambiarTienda(){
+  EST.tienda=document.getElementById('f-tienda').value;
+  cargar();
+}
+
+window.addEventListener('beforeunload', function(ev){
+  if(EST.sucio){ ev.preventDefault(); ev.returnValue=''; }
+});
+
+window.bootCuotas = async function(){
+  if(!ASESOR){
+    document.getElementById('cuerpo').innerHTML='<div class="empty">'
+      +'No encontramos tu sesión.<br><br><span style="font-size:12px">'
+      +'Entra desde TechGuide en vez de abrir esta página directo.</span></div>';
+    return;
+  }
+  EST.miRol = ASESOR.rol || 'gerente';
+  if(miNivel() < JER.gerente){
+    document.getElementById('cuerpo').innerHTML='<div class="empty">'
+      +'Solo gerentes y mandos superiores pueden capturar cuotas.</div>';
+    return;
+  }
+  var h=new Date();
+  EST.mes = h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0');
+  EST.tienda = ASESOR.tienda || '';
+  if(miNivel() >= JER.regional && window.TG_FB && TG_FB.listarTiendas){
+    try{
+      EST.tiendas = await TG_FB.listarTiendas(ASESOR.region||'');
+      if(EST.tiendas.length && !EST.tienda) EST.tienda=EST.tiendas[0].id;
+    }catch(e){ console.error('listarTiendas', e); }
+  }
+  if(!EST.tienda){
+    document.getElementById('cuerpo').innerHTML='<div class="empty">'
+      +'Tu perfil no tiene tienda asignada.</div>';
+    return;
+  }
+  await cargar();
+};
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getFirestore, collection, doc, getDoc, setDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+const cfg={apiKey:"AIzaSyC9qhK78TKkLUu_gcN3WRwyKV8-mTk1Lsc",authDomain:"techguide-primemx.firebaseapp.com",projectId:"techguide-primemx",storageBucket:"techguide-primemx.firebasestorage.app"};
+const db=getFirestore(initializeApp(cfg));
+
+window.TG_FB={
+  /* [2026] El documento pasa de {cuota:25} a seis métricas + ARPU, cada una
+     con su autoría {valor, rol, por, ts}. Se conserva `cuota` plano para que
+     los tableros viejos no truenen mientras migran. */
+  async loadCuotas(tienda, mes){
+    try{
+      const s=await getDoc(doc(db,'comisiones_cuotas',tienda+'__'+mes));
+      if(!s.exists()) return null;
+      const d=s.data();
+      // Migración al vuelo: si solo hay el número viejo, se lee como 'equipo'.
+      if(!d.metricas && typeof d.cuota==='number'){
+        return { metricas:{ equipo:{ valor:d.cuota, rol:'gerente', por:d.by||'—', ts:'' } },
+                 arpu:{}, _legacy:true };
+      }
+      return { metricas:d.metricas||{}, arpu:d.arpu||{} };
+    }catch(e){ console.error('loadCuotas',e); return null; }
+  },
+
+  async saveCuotas(tienda, mes, datos){
+    const payload={ tienda, mes, metricas:datos.metricas||{}, arpu:datos.arpu||{},
+                    ts:serverTimestamp() };
+    // Espejo del valor de equipo en `cuota` para compatibilidad hacia atrás.
+    const eq=datos.metricas && datos.metricas.equipo;
+    if(eq && eq.valor!==undefined) payload.cuota=eq.valor;
+    await setDoc(doc(db,'comisiones_cuotas',tienda+'__'+mes), payload, {merge:true});
+  },
+
+  async listarTiendas(region){
+    const out=[], vistas={};
+    try{
+      const q = region
+        ? query(collection(db,'empleados'), where('region','==',region))
+        : query(collection(db,'empleados'));
+      const snap=await getDocs(q);
+      snap.forEach(function(d){
+        const o=d.data();
+        if(o && o.tienda && !vistas[o.tienda]){
+          vistas[o.tienda]=1;
+          out.push({ id:o.tienda, nombre:_bonito(o.tienda) });
+        }
+      });
+    }catch(e){ console.error('listarTiendas',e); }
+    out.sort(function(a,b){ return a.nombre.localeCompare(b.nombre); });
+    return out;
+  }
+};
+
+function _bonito(id){
+  return String(id).replace(/[-_]+/g,' ')
+    .replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+}
+
+if(window.bootCuotas) window.bootCuotas();
+</script>
+
+<div class="pmd-overlay" id="pmd-overlay" onclick="pmdClose()"></div>
+<aside class="pmd-drawer" id="pmd-drawer" aria-label="Menú de navegación">
+  <button class="pmd-head" onclick="pmdGo('perfil')" aria-label="Editar perfil">
+    <div class="pmd-avatar" id="pmd-avatar">PM</div>
+    <div class="pmd-who"><b id="pmd-name">Prime MX</b><span id="pmd-role">Fuerza de ventas</span></div>
+    <svg class="pmd-head-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+  </button>
+  <nav class="pmd-nav">
+    <button class="pmd-item" onclick="pmdGo('inicio')"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>Inicio</button>
+    <button class="pmd-item" onclick="pmdGo('momento')"><svg viewBox="0 0 24 24"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>Equipos del momento</button>
+    <button class="pmd-item" onclick="pmdGo('topcomm')"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>Top comisiones</button>
+    <button class="pmd-item" style="background:var(--surface2)" onclick="pmdGo('comisiones')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.2v9.6M14.6 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.6 0-2.7.9-2.7 2.1s1.1 1.8 2.7 2.1 2.7.9 2.7 2.1-1.1 2.1-2.7 2.1c-1.1 0-2.1-.5-2.6-1.3"/></svg><span style="flex:1">Comisiones</span><span style="width:6px;height:6px;border-radius:50%;background:var(--att-blue);flex-shrink:0"></span></button>
+    <button class="pmd-item" id="pmd-cuotas" style="display:none" onclick="pmdGo('cuotas')"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Cuotas y ARPU</button>
+    <button class="pmd-item" onclick="pmdGo('dash')"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 5-7"/></svg>Actividad</button>
+    <button class="pmd-item" onclick="pmdGo('calc')"><svg viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M8 6.5h8M8 11h2M8 15h2M14 11h2M14 15h2M11 11h2M11 15h2"/></svg>Calculadora</button>
+    <button class="pmd-item" onclick="pmdGo('diag')"><svg viewBox="0 0 24 24"><path d="M3.5 13a8.5 8.5 0 0 1 17 0"/><path d="M12 13l4-3.5"/><circle cx="12" cy="13" r="1.4" fill="currentColor" stroke="none"/></svg>Diagnóstico</button>
+    <button class="pmd-item" id="pmd-accesos" style="display:none" onclick="pmdGo('accesos')"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4.5"/><path d="M11 12l8-8 2 2M16 7l2 2"/></svg>Accesos</button>
+    <div class="pmd-sep"></div>
+    <button class="pmd-item" id="pmd-theme" onclick="toggleTheme()"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span style="flex:1">Modo oscuro</span><span class="pmd-switch" id="pmd-theme-sw"></span></button>
+    <button class="pmd-item" id="pmd-desktop" onclick="toggleDesktop()"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span style="flex:1">Modo escritorio</span><span class="pmd-switch" id="pmd-desktop-sw"></span></button>
+    <button class="pmd-item" onclick="pmdGo('refresh')"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Actualizar datos</button>
+    <button class="pmd-item pmd-danger" onclick="pmdGo('logout')"><svg viewBox="0 0 24 24"><path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10"/><path d="M17 8l4 4-4 4M9 12h12"/></svg>Cerrar sesión</button>
+  </nav>
+  <div class="pmd-foot"><b>PRIME<span>MX</span></b> · TechGuide</div>
+</aside>
+<script>
+/* ── Menú lateral (drawer) — portado del home v1.11.47 ── */
+(function(){
+  var d=document.getElementById('pmd-drawer'), ov=document.getElementById('pmd-overlay');
+  if(!d||!ov) return;
+  function pmdCuotasVisible(){
+    /* La entrada de cuotas solo existe para gerente en adelante. */
+    try{
+      var s=JSON.parse(localStorage.getItem('primemx_sesion_v1')||'null');
+      var J={gerente:1,regional:2,director:3,director_nacional:4};
+      var el=document.getElementById('pmd-cuotas');
+      if(el && s && J[String(s.rol||'').toLowerCase()]) el.style.display='';
+    }catch(e){}
+  }
+  function pmdSes(){try{return JSON.parse(localStorage.getItem('primemx_sesion_v1')||'null');}catch(e){return null;}}
+  window.pmdOpen=function(){ pmdCuotasVisible();
+    try{
+      var s=pmdSes();
+      if(s&&s.attuid){
+        var nm=s.name||s.nombre||'Asesor';
+        var eN=document.getElementById('pmd-name'); if(eN)eN.textContent=nm;
+        var eR=document.getElementById('pmd-role');
+        if(eR){var r=String(s.rol||'asesor'); var reg=s.region?(' · '+s.region):''; eR.textContent=r.charAt(0).toUpperCase()+r.slice(1)+reg;}
+        var eA=document.getElementById('pmd-avatar');
+        if(eA){var p=String(nm).trim().split(/\s+/); eA.textContent=(((p[0]||'')[0]||'')+((p[1]||'')[0]||''))||(String(nm)[0]||'P');}
+        var acc=document.getElementById('pmd-accesos');
+        if(acc){var rl=String(s.rol||'').toLowerCase();acc.style.display=(s.attuid==='DC499W'||['regional','director','director_nacional'].indexOf(rl)>=0)?'flex':'none';}
+      }
+    }catch(e){}
+    if(window.pmdSyncTheme)pmdSyncTheme(); if(window.pmdSyncDesktop)pmdSyncDesktop();
+    d.classList.add('on'); ov.classList.add('on'); document.body.style.overflow='hidden';
+  };
+  window.pmdClose=function(){ d.classList.remove('on'); ov.classList.remove('on'); document.body.style.overflow=''; };
+  window.pmdSyncTheme=function(){ var sw=document.getElementById('pmd-theme-sw'); if(!sw)return; sw.classList.toggle('on',document.documentElement.getAttribute('data-theme')!=='light'); };
+  window.pmdGo=function(a){
+    var go=function(url){ pmdClose(); setTimeout(function(){ location.href=url; },160); };
+    switch(a){
+      case 'inicio':  go('index.html'); break;
+      case 'momento': go('index.html#momento'); break;
+      case 'topcomm': go('index.html#topcomm'); break;
+      case 'comisiones': pmdClose(); break;
+      case 'cuotas': go('comisiones-cuotas.html'); break;
+      case 'dash':    go('index.html#actividad'); break;
+      case 'calc':    go('index.html#calc'); break;
+      case 'diag':    go('index.html#diag'); break;
+      case 'accesos': go('index.html#accesos'); break;
+      case 'perfil':  go('index.html#perfil'); break;
+      case 'refresh': pmdClose(); setTimeout(function(){ if(typeof refreshDash==='function')refreshDash(); },220); break;
+      case 'logout':  pmdClose(); setTimeout(function(){ if(confirm('¿Cerrar sesión?')){ try{localStorage.removeItem('primemx_sesion_v1');}catch(e){} location.href='index.html'; } },200); break;
+    }
+  };
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape')pmdClose(); });
+  var sx=null;
+  d.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; },{passive:true});
+  d.addEventListener('touchmove',function(e){ if(sx===null)return; var dx=e.touches[0].clientX-sx; if(dx<0)d.style.transform='translateX('+dx+'px)'; },{passive:true});
+  d.addEventListener('touchend',function(e){ if(sx===null)return; var dx=e.changedTouches[0].clientX-sx; d.style.transform=''; if(dx<-70)pmdClose(); sx=null; });
+})();
+</script>
+</body>
+</html>
+
+</div>
+</body>
+</html>
