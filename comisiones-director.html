@@ -539,7 +539,7 @@ window.addEventListener('popstate', function(){
 });
 history.pushState(null,'',location.href);
 
-function cargar(){ EST.cargando=true; pintar(); if(window.bootDirector) bootDirector(); }
+function cargar(){ EST.cargando=true; pintar(); if(window.hidratarFirebase) hidratarFirebase(); }
 
 if(!ASESOR){
   document.getElementById('cuerpo').innerHTML='<div class="empty">'
@@ -553,119 +553,102 @@ if(!ASESOR){
 </script>
 
 <script>
-window.bootDirector = async function(){
-  if(!ASESOR || !window.TG_FB) return;
+/* [v1.12.1] Sobre TG_DASH. El director agrupa por REGIÓN usando
+   cargarEmpleados(region), que es la consulta que ya existía. */
+window.hidratarFirebase = async function(){
+  if(!ASESOR || !window.TG_DASH) return;
   var periodo = EST.periodo;
-  var mis = (ASESOR.regionesAsignadas && ASESOR.regionesAsignadas.length)
-    ? ASESOR.regionesAsignadas.map(String)
-    : (ASESOR.region ? [String(ASESOR.region)] : []);
   try{
-    var zonas = await TG_FB.plantillaCompleta(mis);
-    var ventasPorTienda = await TG_FB.ventasDePeriodo(periodo);
+    var me = await TG_DASH.miDoc(ASESOR.attuid || ASESOR.id) || {};
+    var rol = String(me.rol || ASESOR.rol || '').toLowerCase();
+    var region = me.region || ASESOR.region || '';
+    var emps = await TG_DASH.cargarEmpleados(
+      rol==='director_nacional' ? 'TODAS' : (region || 'TODAS'));
 
-    function mapear(v){
-      var t=(v.tipo==='pospago'||v.tipo==='migra')?'equipo'
-           :v.tipo==='renov'?'renovacion':v.tipo==='acces'?'accesorio':v.tipo;
-      var met = t==='equipo'?'equipo':t==='renovacion'?'renovacion'
-              :(t==='accesorio'||t==='addon')?'accesorios'
-              :t==='seguro'?'seguros':t==='prepago'?'prepago':t;
-      return {tipo:t, metrica:met, plan:v.plan, unidades:1, com:v.com, valor:v.valor,
-              recarga:v.recarga, alphacomm:v.alphacomm, precioEquipo:v.precioEquipo};
-    }
+    /* Agrupar: zona (regional) -> tiendas. Si no hay campo zona, la región
+       hace de zona, que es como venía el árbol viejo. */
+    var zonas={};
+    emps.forEach(function(o){
+      if(!o.tienda) return;
+      var z = String(o.zona || o.region || 'sin-zona');
+      if(!zonas[z]) zonas[z]={ id:z, nombre:bonito(z), regional:'', tiendas:{}, asesores:0 };
+      var Z=zonas[z];
+      if(!Z.tiendas[o.tienda]) Z.tiendas[o.tienda]={ id:o.tienda, nombre:bonito(o.tienda), gerente:'' };
+      var r=String(o.rol||'').toLowerCase();
+      if(r==='gerente') Z.tiendas[o.tienda].gerente=o.nombre||'';
+      else if(r==='regional'){ if(!Z.regional) Z.regional=o.nombre||''; }
+      else Z.asesores++;
+    });
 
-    var datos = await Promise.all(zonas.map(async function(z){
-      var uni={}, base={}, cuotas={}, total=0, bonoReg=0, ptsReg=0;
-      var detalle = await Promise.all(z.tiendas.map(async function(t){
-        var vs=(ventasPorTienda[t.id]||[]).map(mapear);
-        var cq=await TG_FB.cuotasDeTienda(t.id, periodo);
-        var tu={}, tb={}, tt=0;
-        vs.forEach(function(v){
-          tu[v.metrica]=(tu[v.metrica]||0)+1;
-          if(typeof comisionUnitaria2026==='function'){
-            var c=comisionUnitaria2026(v);
-            tb[v.metrica]=(tb[v.metrica]||0)+c; tt+=c;
-          }
-        });
-        /* El bono del gerente de esta tienda, con el mismo motor que él ve. */
-        if(typeof calcularGerente2026==='function'){
-          var mets=['equipo','servicio','renovacion','accesorios','seguros','prepago'].map(function(k){
-            var c=cq[k]||0;
-            return { nombre:k, baseTienda:tb[k]||0, alcance:c>0?((tu[k]||0)/c)*100:0 };
-          });
-          var ar=(typeof calcularARPU2026==='function')?calcularARPU2026(vs):{equipo:null,servicio:null};
-          var g=calcularGerente2026(mets,{arpuEquipo:ar.equipo,arpuServicio:ar.servicio});
-          bonoReg += g.bonoSemanal; ptsReg += g.puntosTotales;
+    var datos = await Promise.all(Object.keys(zonas).map(async function(k){
+      var Z=zonas[k];
+      var ids=Object.keys(Z.tiendas);
+      var uni={}, base={}, cuotas={}, total=0, bono=0, pts=0;
+      var detalle = await Promise.all(ids.map(async function(id){
+        var v = await TG_DASH.loadVentasTienda(id, periodo);
+        var cq = await cargarCuotas(id, periodo);
+        var tu={ equipo:v.po||0, servicio:0, renovacion:v.re||0,
+                 accesorios:v.ac||0, seguros:v.se||0, prepago:v.pr||0 };
+        var tb={ equipo:0, servicio:0, renovacion:0, accesorios:0, seguros:0, prepago:0 };
+        if(typeof COM_EQUIPO_2026!=='undefined'){
+          Object.keys(v.ventasPo||{}).forEach(function(p){ tb.equipo += (COM_EQUIPO_2026[p]||0)*v.ventasPo[p]; });
+          Object.keys(v.ventasRe||{}).forEach(function(p){ tb.renovacion += (COM_EQUIPO_2026[p]||0)*v.ventasRe[p]; });
         }
-        /* Acumular al total de la zona */
-        Object.keys(tu).forEach(function(k){ uni[k]=(uni[k]||0)+tu[k]; });
-        Object.keys(tb).forEach(function(k){ base[k]=(base[k]||0)+tb[k]; });
-        Object.keys(cq).forEach(function(k){ cuotas[k]=(cuotas[k]||0)+cq[k]; });
-        total+=tt;
-        return { id:t.id, nombre:t.nombre, gerente:t.gerente,
+        var tt=0;
+        Object.keys(v.porAsesor||{}).forEach(function(a){ tt += (v.porAsesor[a].com||0); });
+        if(typeof calcularGerente2026==='function'){
+          var mets=['equipo','servicio','renovacion','accesorios','seguros','prepago'].map(function(m){
+            var c=cq[m]||0;
+            return { nombre:m, baseTienda:tb[m]||0, alcance:c>0?((tu[m]||0)/c)*100:0 };
+          });
+          var g=calcularGerente2026(mets,{});
+          bono+=g.bonoSemanal; pts+=g.puntosTotales;
+        }
+        Object.keys(tu).forEach(function(m){ uni[m]=(uni[m]||0)+tu[m]; });
+        Object.keys(tb).forEach(function(m){ base[m]=(base[m]||0)+tb[m]; });
+        Object.keys(cq).forEach(function(m){ cuotas[m]=(cuotas[m]||0)+cq[m]; });
+        total += tt || (tb.equipo+tb.renovacion);
+        return { id:id, nombre:Z.tiendas[id].nombre, gerente:Z.tiendas[id].gerente,
                  unidades:tu, cuotas:cq, base:tb, total:tt };
       }));
-      return { id:z.id, nombre:z.nombre, regional:z.regional,
-               unidades:uni, base:base, cuotas:cuotas, total:total,
-               tiendas:z.tiendas.length, asesores:z.asesores,
-               bonoReg:bonoReg, ptsReg:ptsReg, detalleTiendas:detalle };
+      return { id:Z.id, nombre:Z.nombre, regional:Z.regional, unidades:uni, base:base,
+               cuotas:cuotas, total:total, tiendas:ids.length, asesores:Z.asesores,
+               bonoReg:bono, ptsReg:pts, detalleTiendas:detalle };
     }));
     EST.zonas = datos;
-  }catch(e){ console.error('bootDirector', e); EST.zonas=[]; }
+  }catch(e){ console.error('hidratarFirebase', e); EST.zonas=[]; }
   EST.cargando=false;
   pintar();
 };
-</script>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getFirestore, collection, doc, getDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-const cfg={apiKey:"AIzaSyC9qhK78TKkLUu_gcN3WRwyKV8-mTk1Lsc",authDomain:"techguide-primemx.firebaseapp.com",projectId:"techguide-primemx",storageBucket:"techguide-primemx.firebasestorage.app"};
-const db=getFirestore(initializeApp(cfg));
 
+async function cargarCuotas(tienda, periodo){
+  try{
+    if(window.TG_FB && TG_FB.cuotasDeTienda) return await TG_FB.cuotasDeTienda(tienda, periodo);
+    var c = await TG_DASH.loadCuota(tienda, periodo);
+    return (typeof c==='number') ? { equipo:c } : {};
+  }catch(e){ return {}; }
+}
 function bonito(id){
   return String(id).replace(/^prm[-_]/i,'').replace(/[-_]+/g,' ')
     .replace(/\b\w/g, function(c){ return c.toUpperCase(); });
 }
-
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getFirestore, collection, doc, getDoc, setDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+const cfg={apiKey:"AIzaSyC9qhK78TKkLUu_gcN3WRwyKV8-mTk1Lsc",authDomain:"techguide-primemx.firebaseapp.com",projectId:"techguide-primemx",storageBucket:"techguide-primemx.firebasestorage.app",messagingSenderId:"53436933819",appId:"1:53436933819:web:fef1e0299e41c136c5ab9e"};
+const db=getFirestore(initializeApp(cfg));
+window.TG_DASH={
+  async cargarEmpleados(region){const arr=[];try{let q1;if(region&&region!=='TODAS'){q1=query(collection(db,'empleados'),where('region','==',region));}else{q1=collection(db,'empleados');}const snap=await getDocs(q1);snap.forEach(d=>{const o=d.data()||{};o.attuid=o.attuid||d.id;arr.push(o);});}catch(e){console.error('cargarEmpleados',e);}return arr;},
+  async miDoc(attuid){try{if(!attuid)return null;const s=await getDoc(doc(db,'empleados',attuid));return s.exists()?Object.assign({attuid:attuid},s.data()):null;}catch(e){console.error('miDoc',e);return null;}},
+  async empleadosDeTiendas(ids){const arr=[];try{ids=(ids||[]).filter(Boolean);for(let i=0;i<ids.length;i+=30){const chunk=ids.slice(i,i+30);const snap=await getDocs(query(collection(db,'empleados'),where('tienda','in',chunk)));snap.forEach(d=>{const o=d.data()||{};o.attuid=o.attuid||d.id;arr.push(o);});}}catch(e){console.error('empleadosDeTiendas',e);}return arr;},
+  async loadCuota(tienda,mes){try{const s=await getDoc(doc(db,'comisiones_cuotas',tienda+'__'+mes));return (s.exists()&&s.data().cuota)?s.data().cuota:null;}catch(e){console.error('loadCuota',e);return null;}},
+  async saveCuota(tienda,mes,cuota,by){await setDoc(doc(db,'comisiones_cuotas',tienda+'__'+mes),{tienda,mes,cuota,by:by||'',ts:serverTimestamp()},{merge:true});},
+  async loadVentasTienda(tienda,periodo){const r={po:0,re:0,ac:0,acAlpha:0,se:0,pr:0,ventasPo:{},ventasRe:{},nuevos:0,mixNum:0,mixDen:0,porAsesor:{}};try{const snap=await getDocs(query(collection(db,'comisiones_ventas'),where('tienda','==',tienda)));const MM={pospago:'po',migra:'po',renov:'re',seguro:'se',addon:'se',acces:'ac',prepago:'pr'};snap.forEach(d=>{const o=d.data();if(!o||o.periodo!==periodo)return;const k=MM[o.tipo];if(!k)return;const esAddon=(o.tipo==='addon');if(!esAddon)r[k]++;if(k==='ac'&&o.sub&&o.sub.indexOf('ALPHACOMM')>-1)r.acAlpha++;if(k==='po'){if(o.plan)r.ventasPo[o.plan]=(r.ventasPo[o.plan]||0)+1;/* r.nuevos = TODA venta con equipo nuevo, sin importar familia. Alimenta opsNuevo y por tanto el attach rate de accesorios, que el PDF (GT pag.7) define como 'Accesorios / OPS equipo nuevo = Pospago con equipo nuevo + Renovaciones', sin excluir familias. */if(o.tag==='nuevo')r.nuevos++;/* [v1.11.67] El MIX es otra cuenta: PDF jul26 dice que solo Premium y Lite se consideran para mix y ARPU. A Negocios suma al avance (r.po) pero no al mix, con equipo o sin el. */if(cuentaParaArpuMix(o.plan)){r.mixDen++;if(o.tag==='nuevo')r.mixNum++;}}if(k==='re'&&o.plan)r.ventasRe[o.plan]=(r.ventasRe[o.plan]||0)+1;const aid=o.attuid||'?';if(!r.porAsesor[aid])r.porAsesor[aid]={po:0,re:0,ac:0,se:0,pr:0,com:0,lineas:[]};if(!esAddon)r.porAsesor[aid][k]++;r.porAsesor[aid].com+=(o.com||0);r.porAsesor[aid].lineas.push({k:k,tipo:o.tipo,title:o.title||'',sub:o.sub||'',plan:o.plan||'',modelo:o.modelo||'',com:o.com||0,tag:o.tag||'',pos:!!o.pos,line:!!o.line,seg:!!o.seg});});}catch(e){console.error('loadVentasTienda',e);}return r;},
+  async gerentesPorRegion(region){const out={};try{const snap=await getDocs(query(collection(db,'empleados'),where('region','==',region)));snap.forEach(d=>{const o=d.data();if(o&&String(o.rol||'').toLowerCase()==='gerente'&&o.tienda)out[o.tienda]=o.nombre||'';});}catch(e){console.error('gerentes',e);}return out;},
+  async gerentesPorTiendas(ids){const out={};try{ids=(ids||[]).filter(Boolean);for(let i=0;i<ids.length;i+=30){const chunk=ids.slice(i,i+30);const snap=await getDocs(query(collection(db,'empleados'),where('tienda','in',chunk)));snap.forEach(d=>{const o=d.data();if(o&&String(o.rol||'').toLowerCase()==='gerente'&&o.tienda)out[o.tienda]=o.nombre||'';});}}catch(e){console.error('gerentesPorTiendas',e);}return out;}
+};
 window.TG_FB={
-  /* Toda la plantilla de una vez: con 600+ tiendas, una consulta por zona
-     sería inviable. Se agrupa en memoria. */
-  async plantillaCompleta(regiones){
-    const zonas={};
-    try{
-      const s=await getDocs(query(collection(db,'empleados')));
-      s.forEach(function(d){
-        const o=d.data();
-        if(!o || !o.tienda) return;
-        const reg=String(o.region||'sin-region');
-        if(regiones && regiones.length && regiones.indexOf(reg)<0) return;
-        if(!zonas[reg]) zonas[reg]={ id:reg, nombre:bonito(reg), tiendas:{},
-                                     regional:'', asesores:0 };
-        const z=zonas[reg];
-        if(!z.tiendas[o.tienda]) z.tiendas[o.tienda]={ id:o.tienda, nombre:bonito(o.tienda), gerente:'' };
-        const rol=String(o.rol||'').toLowerCase();
-        if(rol==='gerente') z.tiendas[o.tienda].gerente=o.nombre||'';
-        else if(rol==='regional'){ if(!z.regional) z.regional=o.nombre||''; }
-        else z.asesores++;
-      });
-    }catch(e){ console.error('plantillaCompleta',e); }
-    return Object.keys(zonas).map(function(k){
-      const z=zonas[k];
-      return { id:z.id, nombre:z.nombre, regional:z.regional, asesores:z.asesores,
-               tiendas:Object.keys(z.tiendas).map(function(t){ return z.tiendas[t]; }) };
-    });
-  },
-  async ventasDePeriodo(periodo){
-    const porTienda={};
-    try{
-      const s=await getDocs(query(collection(db,'comisiones_ventas'),where('periodo','==',periodo)));
-      s.forEach(function(d){
-        const o=d.data();
-        if(!o || !o.tienda) return;
-        (porTienda[o.tienda]=porTienda[o.tienda]||[]).push(o);
-      });
-    }catch(e){ console.error('ventasDePeriodo',e); }
-    return porTienda;
-  },
   async cuotasDeTienda(tienda, periodo){
     try{
       const s=await getDoc(doc(db,'comisiones_cuotas',tienda+'__'+periodo));
@@ -681,8 +664,7 @@ window.TG_FB={
     }catch(e){ return {}; }
   }
 };
-
-if(window.bootDirector) window.bootDirector();
+if(window.hidratarFirebase)window.hidratarFirebase();
 </script>
 <div class="pmd-overlay" id="pmd-overlay" onclick="pmdClose()"></div>
 <aside class="pmd-drawer" id="pmd-drawer" aria-label="Menú de navegación">

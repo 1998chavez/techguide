@@ -539,7 +539,7 @@ window.addEventListener('popstate', function(){
 });
 history.pushState(null,'',location.href);
 
-function cargar(){ EST.cargando=true; pintar(); if(window.bootDN) bootDN(); }
+function cargar(){ EST.cargando=true; pintar(); if(window.hidratarFirebase) hidratarFirebase(); }
 
 if(!ASESOR){
   document.getElementById('cuerpo').innerHTML='<div class="empty">'
@@ -553,136 +553,101 @@ if(!ASESOR){
 </script>
 
 <script>
-window.bootDN = async function(){
-  if(!ASESOR || !window.TG_FB) return;
+/* [v1.12.1] Sobre TG_DASH. La DN agrupa TODAS las regiones. */
+window.hidratarFirebase = async function(){
+  if(!ASESOR || !window.TG_DASH) return;
   var periodo = EST.periodo;
   try{
-    var direcciones = await TG_FB.plantillaNacional();
-    var ventasPorTienda = await TG_FB.ventasDePeriodo(periodo);
+    var me = await TG_DASH.miDoc(ASESOR.attuid || ASESOR.id) || {};
+    var rol = String(me.rol || ASESOR.rol || '').toLowerCase();
+    var region = me.region || ASESOR.region || '';
+    var emps = await TG_DASH.cargarEmpleados(
+      rol==='director_nacional' ? 'TODAS' : (region || 'TODAS'));
 
-    function mapear(v){
-      var t=(v.tipo==='pospago'||v.tipo==='migra')?'equipo'
-           :v.tipo==='renov'?'renovacion':v.tipo==='acces'?'accesorio':v.tipo;
-      var met = t==='equipo'?'equipo':t==='renovacion'?'renovacion'
-              :(t==='accesorio'||t==='addon')?'accesorios'
-              :t==='seguro'?'seguros':t==='prepago'?'prepago':t;
-      return {tipo:t, metrica:met, plan:v.plan, unidades:1, com:v.com, valor:v.valor,
-              recarga:v.recarga, alphacomm:v.alphacomm, precioEquipo:v.precioEquipo};
-    }
+    /* Agrupar: zona (regional) -> tiendas. Si no hay campo zona, la región
+       hace de zona, que es como venía el árbol viejo. */
+    var zonas={};
+    emps.forEach(function(o){
+      if(!o.tienda) return;
+      var z = String(o.zona || o.region || 'sin-zona');
+      if(!zonas[z]) zonas[z]={ id:z, nombre:bonito(z), regional:'', tiendas:{}, asesores:0 };
+      var Z=zonas[z];
+      if(!Z.tiendas[o.tienda]) Z.tiendas[o.tienda]={ id:o.tienda, nombre:bonito(o.tienda), gerente:'' };
+      var r=String(o.rol||'').toLowerCase();
+      if(r==='gerente') Z.tiendas[o.tienda].gerente=o.nombre||'';
+      else if(r==='regional'){ if(!Z.regional) Z.regional=o.nombre||''; }
+      else Z.asesores++;
+    });
 
-    /* Una tienda: unidades, base y el bono de su gerente. */
-    async function calcTienda(t){
-      var vs=(ventasPorTienda[t.id]||[]).map(mapear);
-      var cq=await TG_FB.cuotasDeTienda(t.id, periodo);
-      var u={}, b={}, tot=0, bono=0, pts=0;
-      vs.forEach(function(v){
-        u[v.metrica]=(u[v.metrica]||0)+1;
-        if(typeof comisionUnitaria2026==='function'){
-          var c=comisionUnitaria2026(v); b[v.metrica]=(b[v.metrica]||0)+c; tot+=c;
+    var datos = await Promise.all(Object.keys(zonas).map(async function(k){
+      var Z=zonas[k];
+      var ids=Object.keys(Z.tiendas);
+      var uni={}, base={}, cuotas={}, total=0, bono=0, pts=0;
+      var detalle = await Promise.all(ids.map(async function(id){
+        var v = await TG_DASH.loadVentasTienda(id, periodo);
+        var cq = await cargarCuotas(id, periodo);
+        var tu={ equipo:v.po||0, servicio:0, renovacion:v.re||0,
+                 accesorios:v.ac||0, seguros:v.se||0, prepago:v.pr||0 };
+        var tb={ equipo:0, servicio:0, renovacion:0, accesorios:0, seguros:0, prepago:0 };
+        if(typeof COM_EQUIPO_2026!=='undefined'){
+          Object.keys(v.ventasPo||{}).forEach(function(p){ tb.equipo += (COM_EQUIPO_2026[p]||0)*v.ventasPo[p]; });
+          Object.keys(v.ventasRe||{}).forEach(function(p){ tb.renovacion += (COM_EQUIPO_2026[p]||0)*v.ventasRe[p]; });
         }
-      });
-      if(typeof calcularGerente2026==='function'){
-        var mets=['equipo','servicio','renovacion','accesorios','seguros','prepago'].map(function(k){
-          var c=cq[k]||0;
-          return { nombre:k, baseTienda:b[k]||0, alcance:c>0?((u[k]||0)/c)*100:0 };
-        });
-        var ar=(typeof calcularARPU2026==='function')?calcularARPU2026(vs):{equipo:null,servicio:null};
-        var g=calcularGerente2026(mets,{arpuEquipo:ar.equipo,arpuServicio:ar.servicio});
-        bono=g.bonoSemanal; pts=g.puntosTotales;
-      }
-      return { id:t.id, nombre:t.nombre, gerente:t.gerente,
-               unidades:u, base:b, cuotas:cq, total:tot, bonoGte:bono, ptsGte:pts };
-    }
-
-    function acumular(destino, origen){
-      Object.keys(origen).forEach(function(k){ destino[k]=(destino[k]||0)+origen[k]; });
-    }
-
-    var datos = await Promise.all(direcciones.map(async function(D){
-      var uni={}, base={}, cuotas={}, total=0, bonoDir=0, ptsDir=0, nTiendas=0;
-      var zonas = await Promise.all(D.zonas.map(async function(Z){
-        var zu={}, zb={}, zc={}, zt=0, zbono=0, zpts=0;
-        var tiendas = await Promise.all(Z.tiendas.map(calcTienda));
-        tiendas.forEach(function(t){
-          acumular(zu,t.unidades); acumular(zb,t.base); acumular(zc,t.cuotas);
-          zt+=t.total; zbono+=t.bonoGte; zpts+=t.ptsGte;
-        });
-        nTiendas += tiendas.length;
-        acumular(uni,zu); acumular(base,zb); acumular(cuotas,zc);
-        total+=zt; bonoDir+=zbono; ptsDir+=zpts;
-        return { id:Z.id, nombre:Z.nombre, gerente:Z.regional,
-                 unidades:zu, base:zb, cuotas:zc, total:zt,
-                 bonoGte:zbono, ptsGte:zpts, tiendas:tiendas.length };
+        var tt=0;
+        Object.keys(v.porAsesor||{}).forEach(function(a){ tt += (v.porAsesor[a].com||0); });
+        if(typeof calcularGerente2026==='function'){
+          var mets=['equipo','servicio','renovacion','accesorios','seguros','prepago'].map(function(m){
+            var c=cq[m]||0;
+            return { nombre:m, baseTienda:tb[m]||0, alcance:c>0?((tu[m]||0)/c)*100:0 };
+          });
+          var g=calcularGerente2026(mets,{});
+          bono+=g.bonoSemanal; pts+=g.puntosTotales;
+        }
+        Object.keys(tu).forEach(function(m){ uni[m]=(uni[m]||0)+tu[m]; });
+        Object.keys(tb).forEach(function(m){ base[m]=(base[m]||0)+tb[m]; });
+        Object.keys(cq).forEach(function(m){ cuotas[m]=(cuotas[m]||0)+cq[m]; });
+        total += tt || (tb.equipo+tb.renovacion);
+        return { id:id, nombre:Z.tiendas[id].nombre, gerente:Z.tiendas[id].gerente,
+                 unidades:tu, cuotas:cq, base:tb, total:tt };
       }));
-      return { id:D.id, nombre:D.nombre, director:D.director,
-               unidades:uni, base:base, cuotas:cuotas, total:total,
-               zonas:zonas.length, tiendas:nTiendas, asesores:D.asesores,
-               bonoDir:bonoDir, ptsDir:ptsDir, detalleZonas:zonas };
+      return { id:Z.id, nombre:Z.nombre, director:Z.regional, unidades:uni, base:base,
+               cuotas:cuotas, total:total, tiendas:ids.length, asesores:Z.asesores,
+               bonoDir:bono, ptsDir:pts, detalleZonas:detalle, zonas:1 };
     }));
     EST.regiones = datos;
-  }catch(e){ console.error('bootDN', e); EST.regiones=[]; }
+  }catch(e){ console.error('hidratarFirebase', e); EST.regiones=[]; }
   EST.cargando=false;
   pintar();
 };
-</script>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getFirestore, collection, doc, getDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-const cfg={apiKey:"AIzaSyC9qhK78TKkLUu_gcN3WRwyKV8-mTk1Lsc",authDomain:"techguide-primemx.firebaseapp.com",projectId:"techguide-primemx",storageBucket:"techguide-primemx.firebasestorage.app"};
-const db=getFirestore(initializeApp(cfg));
 
+async function cargarCuotas(tienda, periodo){
+  try{
+    if(window.TG_FB && TG_FB.cuotasDeTienda) return await TG_FB.cuotasDeTienda(tienda, periodo);
+    var c = await TG_DASH.loadCuota(tienda, periodo);
+    return (typeof c==='number') ? { equipo:c } : {};
+  }catch(e){ return {}; }
+}
 function bonito(id){
   return String(id).replace(/^prm[-_]/i,'').replace(/[-_]+/g,' ')
     .replace(/\b\w/g, function(c){ return c.toUpperCase(); });
 }
-
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getFirestore, collection, doc, getDoc, setDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+const cfg={apiKey:"AIzaSyC9qhK78TKkLUu_gcN3WRwyKV8-mTk1Lsc",authDomain:"techguide-primemx.firebaseapp.com",projectId:"techguide-primemx",storageBucket:"techguide-primemx.firebasestorage.app",messagingSenderId:"53436933819",appId:"1:53436933819:web:fef1e0299e41c136c5ab9e"};
+const db=getFirestore(initializeApp(cfg));
+window.TG_DASH={
+  async cargarEmpleados(region){const arr=[];try{let q1;if(region&&region!=='TODAS'){q1=query(collection(db,'empleados'),where('region','==',region));}else{q1=collection(db,'empleados');}const snap=await getDocs(q1);snap.forEach(d=>{const o=d.data()||{};o.attuid=o.attuid||d.id;arr.push(o);});}catch(e){console.error('cargarEmpleados',e);}return arr;},
+  async miDoc(attuid){try{if(!attuid)return null;const s=await getDoc(doc(db,'empleados',attuid));return s.exists()?Object.assign({attuid:attuid},s.data()):null;}catch(e){console.error('miDoc',e);return null;}},
+  async empleadosDeTiendas(ids){const arr=[];try{ids=(ids||[]).filter(Boolean);for(let i=0;i<ids.length;i+=30){const chunk=ids.slice(i,i+30);const snap=await getDocs(query(collection(db,'empleados'),where('tienda','in',chunk)));snap.forEach(d=>{const o=d.data()||{};o.attuid=o.attuid||d.id;arr.push(o);});}}catch(e){console.error('empleadosDeTiendas',e);}return arr;},
+  async loadCuota(tienda,mes){try{const s=await getDoc(doc(db,'comisiones_cuotas',tienda+'__'+mes));return (s.exists()&&s.data().cuota)?s.data().cuota:null;}catch(e){console.error('loadCuota',e);return null;}},
+  async saveCuota(tienda,mes,cuota,by){await setDoc(doc(db,'comisiones_cuotas',tienda+'__'+mes),{tienda,mes,cuota,by:by||'',ts:serverTimestamp()},{merge:true});},
+  async loadVentasTienda(tienda,periodo){const r={po:0,re:0,ac:0,acAlpha:0,se:0,pr:0,ventasPo:{},ventasRe:{},nuevos:0,mixNum:0,mixDen:0,porAsesor:{}};try{const snap=await getDocs(query(collection(db,'comisiones_ventas'),where('tienda','==',tienda)));const MM={pospago:'po',migra:'po',renov:'re',seguro:'se',addon:'se',acces:'ac',prepago:'pr'};snap.forEach(d=>{const o=d.data();if(!o||o.periodo!==periodo)return;const k=MM[o.tipo];if(!k)return;const esAddon=(o.tipo==='addon');if(!esAddon)r[k]++;if(k==='ac'&&o.sub&&o.sub.indexOf('ALPHACOMM')>-1)r.acAlpha++;if(k==='po'){if(o.plan)r.ventasPo[o.plan]=(r.ventasPo[o.plan]||0)+1;/* r.nuevos = TODA venta con equipo nuevo, sin importar familia. Alimenta opsNuevo y por tanto el attach rate de accesorios, que el PDF (GT pag.7) define como 'Accesorios / OPS equipo nuevo = Pospago con equipo nuevo + Renovaciones', sin excluir familias. */if(o.tag==='nuevo')r.nuevos++;/* [v1.11.67] El MIX es otra cuenta: PDF jul26 dice que solo Premium y Lite se consideran para mix y ARPU. A Negocios suma al avance (r.po) pero no al mix, con equipo o sin el. */if(cuentaParaArpuMix(o.plan)){r.mixDen++;if(o.tag==='nuevo')r.mixNum++;}}if(k==='re'&&o.plan)r.ventasRe[o.plan]=(r.ventasRe[o.plan]||0)+1;const aid=o.attuid||'?';if(!r.porAsesor[aid])r.porAsesor[aid]={po:0,re:0,ac:0,se:0,pr:0,com:0,lineas:[]};if(!esAddon)r.porAsesor[aid][k]++;r.porAsesor[aid].com+=(o.com||0);r.porAsesor[aid].lineas.push({k:k,tipo:o.tipo,title:o.title||'',sub:o.sub||'',plan:o.plan||'',modelo:o.modelo||'',com:o.com||0,tag:o.tag||'',pos:!!o.pos,line:!!o.line,seg:!!o.seg});});}catch(e){console.error('loadVentasTienda',e);}return r;},
+  async gerentesPorRegion(region){const out={};try{const snap=await getDocs(query(collection(db,'empleados'),where('region','==',region)));snap.forEach(d=>{const o=d.data();if(o&&String(o.rol||'').toLowerCase()==='gerente'&&o.tienda)out[o.tienda]=o.nombre||'';});}catch(e){console.error('gerentes',e);}return out;},
+  async gerentesPorTiendas(ids){const out={};try{ids=(ids||[]).filter(Boolean);for(let i=0;i<ids.length;i+=30){const chunk=ids.slice(i,i+30);const snap=await getDocs(query(collection(db,'empleados'),where('tienda','in',chunk)));snap.forEach(d=>{const o=d.data();if(o&&String(o.rol||'').toLowerCase()==='gerente'&&o.tienda)out[o.tienda]=o.nombre||'';});}}catch(e){console.error('gerentesPorTiendas',e);}return out;}
+};
 window.TG_FB={
-  /* Toda la plantilla nacional en una consulta. Se agrupa en tres niveles:
-     dirección → zona → tienda. Nombrar bien importa: aquí 'region' es la
-     dirección (el nivel del director) y 'zona' la del regional. */
-  async plantillaNacional(){
-    const dir={};
-    try{
-      const s=await getDocs(query(collection(db,'empleados')));
-      s.forEach(function(d){
-        const o=d.data();
-        if(!o || !o.tienda) return;
-        const rd = String(o.direccion || o.region || 'sin-direccion');
-        const rz = String(o.zona || o.region || 'sin-zona');
-        if(!dir[rd]) dir[rd]={ id:rd, nombre:bonito(rd), director:'', zonas:{}, asesores:0 };
-        const D=dir[rd];
-        if(!D.zonas[rz]) D.zonas[rz]={ id:rz, nombre:bonito(rz), regional:'', tiendas:{} };
-        const Z=D.zonas[rz];
-        if(!Z.tiendas[o.tienda]) Z.tiendas[o.tienda]={ id:o.tienda, nombre:bonito(o.tienda), gerente:'' };
-        const rol=String(o.rol||'').toLowerCase();
-        if(rol==='gerente') Z.tiendas[o.tienda].gerente=o.nombre||'';
-        else if(rol==='regional'){ if(!Z.regional) Z.regional=o.nombre||''; }
-        else if(rol==='director'){ if(!D.director) D.director=o.nombre||''; }
-        else D.asesores++;
-      });
-    }catch(e){ console.error('plantillaNacional',e); }
-    return Object.keys(dir).map(function(k){
-      const D=dir[k];
-      return { id:D.id, nombre:D.nombre, director:D.director, asesores:D.asesores,
-               zonas:Object.keys(D.zonas).map(function(z){
-                 const Z=D.zonas[z];
-                 return { id:Z.id, nombre:Z.nombre, regional:Z.regional,
-                          tiendas:Object.keys(Z.tiendas).map(function(t){ return Z.tiendas[t]; }) };
-               }) };
-    });
-  },
-  async ventasDePeriodo(periodo){
-    const porTienda={};
-    try{
-      const s=await getDocs(query(collection(db,'comisiones_ventas'),where('periodo','==',periodo)));
-      s.forEach(function(d){
-        const o=d.data();
-        if(!o || !o.tienda) return;
-        (porTienda[o.tienda]=porTienda[o.tienda]||[]).push(o);
-      });
-    }catch(e){ console.error('ventasDePeriodo',e); }
-    return porTienda;
-  },
   async cuotasDeTienda(tienda, periodo){
     try{
       const s=await getDoc(doc(db,'comisiones_cuotas',tienda+'__'+periodo));
@@ -698,8 +663,7 @@ window.TG_FB={
     }catch(e){ return {}; }
   }
 };
-
-if(window.bootDN) window.bootDN();
+if(window.hidratarFirebase)window.hidratarFirebase();
 </script>
 <div class="pmd-overlay" id="pmd-overlay" onclick="pmdClose()"></div>
 <aside class="pmd-drawer" id="pmd-drawer" aria-label="Menú de navegación">
