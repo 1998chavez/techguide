@@ -557,7 +557,20 @@ window.addEventListener('popstate', function(){
 });
 history.pushState(null,'',location.href);
 
-function cargar(){ EST.cargando=true; pintar(); if(window.hidratarFirebase) hidratarFirebase(); }
+/* [v1.12.3] Antes, si hidratarFirebase no existía o tronaba, la pantalla se
+   quedaba colgada en "cargando" con los datos de la semana anterior — se
+   sentía como que el botón de semana no respondía. Ahora hay salida. */
+function cargar(){
+  EST.cargando=true; pintar();
+  if(typeof hidratarFirebase!=='function'){ EST.cargando=false; pintar(); return; }
+  var pedido=EST.periodo;
+  var reloj=setTimeout(function(){
+    if(EST.cargando && EST.periodo===pedido){ EST.cargando=false; pintar(); }
+  }, 12000);
+  Promise.resolve(hidratarFirebase()).catch(function(e){
+    console.error('hidratar', e);
+  }).then(function(){ clearTimeout(reloj); });
+}
 
 if(!ASESOR){
   document.getElementById('cuerpo').innerHTML='<div class="empty">'
@@ -769,6 +782,40 @@ if(window.hidratarFirebase)window.hidratarFirebase();
 </script>
 </body>
 </html>
+
+<script>
+/* [v1.12.3] toggleTheme y toggleDesktop viven en app.js, que los tableros NO
+   cargan: los interruptores de modo oscuro y escritorio del drawer estaban
+   muertos en las siete pantallas. Se replican aquí con la misma llave de
+   localStorage para que el cambio se respete al volver a la app. */
+if(typeof window.toggleTheme!=='function'){
+  window.toggleTheme=function(){
+    var cur=document.documentElement.getAttribute('data-theme');
+    var next=cur==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{ localStorage.setItem('theme',next); }catch(e){}
+    if(typeof pmdSyncTheme==='function') pmdSyncTheme();
+  };
+}
+if(typeof window.toggleDesktop!=='function'){
+  window.toggleDesktop=function(){
+    var on=document.documentElement.getAttribute('data-desktop')==='1';
+    if(on) document.documentElement.removeAttribute('data-desktop');
+    else document.documentElement.setAttribute('data-desktop','1');
+    try{ localStorage.setItem('desktopMode', on?'0':'1'); }catch(e){}
+    if(typeof pmdSyncDesktop==='function') pmdSyncDesktop();
+  };
+}
+/* Respetar lo elegido en la app al abrir el tablero. */
+(function(){
+  try{
+    var t=localStorage.getItem('theme');
+    if(t) document.documentElement.setAttribute('data-theme',t);
+    if(localStorage.getItem('desktopMode')==='1')
+      document.documentElement.setAttribute('data-desktop','1');
+  }catch(e){}
+})();
+</script>
 
 </div>
 </body>

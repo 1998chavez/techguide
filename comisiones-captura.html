@@ -189,7 +189,10 @@ var TIPOS=[
   {k:'seguro',    n:'Seguro',     s:'Sobre equipo nuevo',     seg:1},
   {k:'accesorio', n:'Accesorio',  s:'ALPHACOMM u otra',       acc:1},
   {k:'prepago',   n:'Prepago',    s:'Recarga ≥ $150',         pre:1},
-  {k:'addon',     n:'Add-on',     s:'80% de su valor',        add:1}
+  {k:'addon',     n:'Add-on',     s:'80% de su valor',        add:1},
+  /* [v1.12.3] Faltaba Control: es un producto de $50 al mes que sí se vende
+     y sí comisiona como add-on (80% de su valor). */
+  {k:'control',   n:'Control',    s:'$50 al mes',             ctrl:1}
 ];
 
 var PREMIUM=['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Diamante','Titanio'];
@@ -234,9 +237,14 @@ function equipos(){
 /* La comisión de esta venta, con el motor. Sin acelerador: ver nota arriba. */
 function comisionActual(){
   if(typeof comisionUnitaria2026!=='function' || !F.tipo) return {base:0,bono:0};
-  var v={ tipo:F.tipo, plan:F.plan, unidades:1,
-          valor:Number(F.valor)||0, recarga:Number(F.recarga)||0,
-          alphacomm:F.alphacomm, precioEquipo:F.precioEquipo };
+  /* Control comisiona como add-on sobre su precio fijo de $50. */
+  var esCtrl = F.tipo==='control';
+  var precioCtrl = (typeof CONTROL_PRICE!=='undefined') ? CONTROL_PRICE : 50;
+  var v={ tipo: esCtrl ? 'addon' : F.tipo,
+          plan: F.plan, unidades:1,
+          valor: esCtrl ? precioCtrl : (Number(F.valor)||0),
+          recarga: Number(F.recarga)||0,
+          alphacomm: F.alphacomm, precioEquipo: F.precioEquipo };
   var base=comisionUnitaria2026(v);
   /* Renovación anticipada: 6-12 meses paga la mitad, ≤6 no paga. */
   if(F.tipo==='renovacion' && F.meses!==''){
@@ -292,86 +300,101 @@ function pintar(){
         +'<span class="dev-x">✕</span></button>';
     } else {
       h+='<input class="busca" id="busca" placeholder="Buscar entre '+eq.length+' equipos" '
-        +'value="'+F.busca.replace(/"/g,'&quot;')+'" oninput="buscar(this.value)" autocomplete="off">';
-      var q=F.busca.toLowerCase().trim();
-      var res = q ? eq.filter(function(x){
-          return (x.nombre+' '+x.marca+' '+x.cap).toLowerCase().indexOf(q)>=0;
-        }).slice(0,8) : [];
-      if(q && !res.length) h+='<div class="nota-inline">Sin resultados para "'+F.busca+'".</div>';
-      res.forEach(function(x){
-        h+='<button class="dev" onclick="setDev(\''+x.id+'\')">'
-          +'<span class="dev-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg></span>'
-          +'<span style="flex:1;min-width:0"><span class="dev-m">'+x.marca+'</span>'
-          +'<span class="dev-n">'+x.nombre+'</span>'
-          +'<span class="dev-c">'+x.cap+' · '+fmx(x.contado)+'</span></span></button>';
-      });
+        +'value="'+F.busca.replace(/"/g,'&quot;')+'" oninput="buscar(this.value)" autocomplete="off">'
+        +'<div id="lista-dev">'+htmlResultados()+'</div>';
     }
   }
 
-  if(t && t.reno){
-    h+='<div class="sec-t">ANTIGÜEDAD DE LA LÍNEA</div>'
-      +'<input class="num" type="number" min="0" placeholder="Meses" value="'+F.meses+'" '
-      +'oninput="setCampo(\'meses\',this.value)">';
-    if(F.meses!==''){
-      var m=Number(F.meses);
-      if(m<=6) h+='<div class="alerta red">Renovación anticipada de 6 meses o menos: no paga comisión ni cuenta para alcance.</div>';
-      else if(m<=12) h+='<div class="alerta amber">Renovación anticipada: paga el 50% de la comisión.</div>';
-    }
-  }
-
-  if(t && t.seg){
-    h+='<div class="sec-t">PRECIO DEL EQUIPO ASEGURADO</div>'
-      +'<input class="num" type="number" min="0" placeholder="$" value="'+F.precioEquipo||''+'" '
-      +'oninput="setCampo(\'precioEquipo\',this.value)">';
-    if(F.precioEquipo && typeof seguroPorPrecio2026==='function'){
-      var tr=seguroPorPrecio2026(Number(F.precioEquipo));
-      h+='<div class="nota-inline">'+(tr?('Póliza de '+fmx(tr.precio)+' al mes'):'Fuera de los rangos de seguro')+'</div>';
-    }
-  }
-
-  if(t && (t.acc||t.add)){
-    h+='<div class="sec-t">VALOR</div>'
-      +'<input class="num" type="number" min="0" placeholder="$" value="'+F.valor+'" '
-      +'oninput="setCampo(\'valor\',this.value)">';
-    if(t.acc){
-      h+='<div class="segm" style="margin-top:9px">'
-        +'<button class="sg'+(F.alphacomm?' on':'')+'" onclick="setMarca(true)">ALPHACOMM · 10%</button>'
-        +'<button class="sg'+(!F.alphacomm?' on':'')+'" onclick="setMarca(false)">Otra marca · 2%</button>'
-        +'</div>';
-    }
-  }
-
-  if(t && t.pre){
-    h+='<div class="sec-t">MONTO DE LA RECARGA</div>'
-      +'<input class="num" type="number" min="0" placeholder="$" value="'+F.recarga+'" '
-      +'oninput="setCampo(\'recarga\',this.value)">';
-    if(F.recarga!=='' && Number(F.recarga)<150){
-      h+='<div class="alerta red">La recarga mínima para comisionar es $150.</div>';
-    }
-  }
-
-  if(t && listo()){
-    var c=comisionActual();
-    h+='<div class="resu"><div class="resu-row"><span>Comisión de esta venta</span>'
-      +'<b>'+fmx(c.base)+'</b></div>';
-    if(c.bono>0){
-      h+='<div class="resu-row bono"><span>Bono de valor</span><b>+'+fmx(c.bono)+'</b></div>';
-    }
-    h+='</div>';
-  }
+  h+='<div id="depende">'+htmlDependiente()+'</div>';
 
   document.getElementById('cuerpo').innerHTML=h;
   document.getElementById('barra').style.display = F.tipo ? 'block' : 'none';
   var b=document.getElementById('btn-guardar');
   if(b){ b.disabled=!listo()||F.guardando; b.textContent=F.guardando?'Guardando…':'Registrar'; }
-  var bq=document.getElementById('busca');
-  if(bq && document.activeElement!==bq && F.busca) bq.focus();
+}
+
+function htmlResultados(){
+  var eq=equipos();
+  var q=F.busca.toLowerCase().trim();
+  if(!q) return '';
+  var res=eq.filter(function(x){
+    return (x.nombre+' '+x.marca+' '+x.cap).toLowerCase().indexOf(q)>=0;
+  }).slice(0,8);
+  if(!res.length) return '<div class="nota-inline">Sin resultados para "'+F.busca+'".</div>';
+  var h='';
+  res.forEach(function(x){
+    h+='<button class="dev" onclick="setDev(\''+x.id+'\')">'
+      +'<span class="dev-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg></span>'
+      +'<span style="flex:1;min-width:0"><span class="dev-m">'+x.marca+'</span>'
+      +'<span class="dev-n">'+x.nombre+'</span>'
+      +'<span class="dev-c">'+x.cap+' \u00b7 '+fmx(x.contado)+'</span></span></button>';
+  });
+  return h;
+}
+
+/* Todo lo que depende de lo que se teclea: campos numéricos, alertas y resumen. */
+function htmlDependiente(){
+  var t=tipoDe(F.tipo);
+  if(!t) return '';
+  var h='';
+
+  if(t.reno){
+    h+='<div class="sec-t">ANTIG\u00dcEDAD DE LA L\u00cdNEA</div>'
+      +'<input class="num" type="number" min="0" inputmode="numeric" placeholder="Meses" '
+      +'value="'+F.meses+'" oninput="setCampo(\'meses\',this.value)">';
+    if(F.meses!==''){
+      var m=Number(F.meses);
+      if(m<=6) h+='<div class="alerta red">Renovaci\u00f3n anticipada de 6 meses o menos: no paga comisi\u00f3n ni cuenta para alcance.</div>';
+      else if(m<=12) h+='<div class="alerta amber">Renovaci\u00f3n anticipada: paga el 50% de la comisi\u00f3n.</div>';
+    }
+  }
+  if(t.seg){
+    h+='<div class="sec-t">PRECIO DEL EQUIPO ASEGURADO</div>'
+      +'<input class="num" type="number" min="0" inputmode="numeric" placeholder="$" '
+      +'value="'+(F.precioEquipo||'')+'" oninput="setCampo(\'precioEquipo\',this.value)">';
+    if(F.precioEquipo && typeof seguroPorPrecio2026==='function'){
+      var tr=seguroPorPrecio2026(Number(F.precioEquipo));
+      h+='<div class="nota-inline">'+(tr?('P\u00f3liza de '+fmx(tr.precio)+' al mes'):'Fuera de los rangos de seguro')+'</div>';
+    }
+  }
+  if(t.acc||t.add){
+    h+='<div class="sec-t">VALOR</div>'
+      +'<input class="num" type="number" min="0" inputmode="numeric" placeholder="$" '
+      +'value="'+F.valor+'" oninput="setCampo(\'valor\',this.value)">';
+    if(t.acc){
+      h+='<div class="segm" style="margin-top:9px">'
+        +'<button class="sg'+(F.alphacomm?' on':'')+'" onclick="setMarca(true)">ALPHACOMM \u00b7 10%</button>'
+        +'<button class="sg'+(!F.alphacomm?' on':'')+'" onclick="setMarca(false)">Otra marca \u00b7 2%</button>'
+        +'</div>';
+    }
+  }
+  if(t.pre){
+    h+='<div class="sec-t">MONTO DE LA RECARGA</div>'
+      +'<input class="num" type="number" min="0" inputmode="numeric" placeholder="$" '
+      +'value="'+F.recarga+'" oninput="setCampo(\'recarga\',this.value)">';
+    if(F.recarga!=='' && Number(F.recarga)<150){
+      h+='<div class="alerta red">La recarga m\u00ednima para comisionar es $150.</div>';
+    }
+  }
+  if(t.ctrl){
+    h+='<div class="nota-inline">Control tiene precio fijo de '
+      +fmx(typeof CONTROL_PRICE!=='undefined'?CONTROL_PRICE:50)+' al mes.</div>';
+  }
+  if(listo()){
+    var c=comisionActual();
+    h+='<div class="resu"><div class="resu-row"><span>Comisi\u00f3n de esta venta</span>'
+      +'<b>'+fmx(c.base)+'</b></div>';
+    if(c.bono>0) h+='<div class="resu-row bono"><span>Bono de valor</span><b>+'+fmx(c.bono)+'</b></div>';
+    h+='</div>';
+  }
+  return h;
 }
 
 /* ¿Están los campos mínimos para registrar? */
 function listo(){
   var t=tipoDe(F.tipo);
   if(!t) return false;
+  if(t.ctrl) return true;   // Control no pide datos: precio fijo
   if(t.plan && !F.plan) return false;
   if(t.seg && !F.precioEquipo) return false;
   if((t.acc||t.add) && !F.valor) return false;
@@ -385,19 +408,49 @@ function setTipo(k){
   F.familia='Premium';
   document.getElementById('nav-t').textContent=tipoDe(k).n;
   pintar();
+  refrescarDependientes();
 }
 function setFam(f){ F.familia=f; F.plan=null; pintar(); }
-function setPlan(p){ F.plan=p; pintar(); }
+function setPlan(p){
+  F.plan=p;
+  pintar();                 // los chips cambian de estado
+  refrescarDependientes();  // y el resumen debe recalcularse
+}
 function setDev(id){
   var e=equipos(); e.forEach(function(x){
     if(x.id===id){ F.devId=id; F.devNombre=x.nombre; F.precioEquipo=x.contado; }
   });
-  F.busca=''; pintar();
+  F.busca=''; pintar(); refrescarDependientes();
 }
-function limpiarDev(){ F.devId=null; F.devNombre=''; F.precioEquipo=0; pintar(); }
-function buscar(v){ F.busca=v; pintar(); }
+function limpiarDev(){
+  F.devId=null; F.devNombre=''; F.precioEquipo=0;
+  pintar(); refrescarDependientes();
+}
 function setMarca(a){ F.alphacomm=a; pintar(); }
-function setCampo(k,v){ F[k]=v; pintar(); }
+
+/* [v1.12.3] Antes esto llamaba a pintar() en cada tecla: el input se destruía
+   y el cursor se perdía a media palabra. Ahora solo se refrescan las zonas
+   que dependen del valor, sin tocar el campo donde se está escribiendo. */
+function setCampo(k,v){
+  F[k]=v;
+  refrescarDependientes();
+}
+
+function buscar(v){
+  F.busca=v;
+  var lista=document.getElementById('lista-dev');
+  if(lista) lista.innerHTML=htmlResultados();
+  else pintar();
+}
+
+/* Resumen de comisión + alertas: lo único que cambia al teclear. */
+function refrescarDependientes(){
+  var cont=document.getElementById('depende');
+  if(!cont) return;          // sin contenedor no hay nada que refrescar
+  cont.innerHTML=htmlDependiente();
+  var b=document.getElementById('btn-guardar');
+  if(b){ b.disabled=!listo()||F.guardando; }
+}
 
 function volver(){
   var rol=String((ASESOR&&ASESOR.rol)||'asesor').toLowerCase();
@@ -428,7 +481,11 @@ async function guardar(){
       fecha: new Date().toISOString().slice(0,10)
     };
     if(F.precioEquipo) v.precioEquipo=Number(F.precioEquipo);
-    if(F.valor!=='') v.valor=Number(F.valor);
+    if(F.tipo==='control'){
+      v.tipo='addon';
+      v.valor=(typeof CONTROL_PRICE!=='undefined'?CONTROL_PRICE:50);
+      v.title='Control';
+    } else if(F.valor!==''){ v.valor=Number(F.valor); }
     if(F.recarga!=='') v.recarga=Number(F.recarga);
     if(F.tipo==='accesorio') v.alphacomm=!!F.alphacomm;
     if(F.meses!=='') v.mesesVigencia=Number(F.meses);
@@ -563,6 +620,40 @@ window.TG_FB={
 </script>
 </body>
 </html>
+
+<script>
+/* [v1.12.3] toggleTheme y toggleDesktop viven en app.js, que los tableros NO
+   cargan: los interruptores de modo oscuro y escritorio del drawer estaban
+   muertos en las siete pantallas. Se replican aquí con la misma llave de
+   localStorage para que el cambio se respete al volver a la app. */
+if(typeof window.toggleTheme!=='function'){
+  window.toggleTheme=function(){
+    var cur=document.documentElement.getAttribute('data-theme');
+    var next=cur==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{ localStorage.setItem('theme',next); }catch(e){}
+    if(typeof pmdSyncTheme==='function') pmdSyncTheme();
+  };
+}
+if(typeof window.toggleDesktop!=='function'){
+  window.toggleDesktop=function(){
+    var on=document.documentElement.getAttribute('data-desktop')==='1';
+    if(on) document.documentElement.removeAttribute('data-desktop');
+    else document.documentElement.setAttribute('data-desktop','1');
+    try{ localStorage.setItem('desktopMode', on?'0':'1'); }catch(e){}
+    if(typeof pmdSyncDesktop==='function') pmdSyncDesktop();
+  };
+}
+/* Respetar lo elegido en la app al abrir el tablero. */
+(function(){
+  try{
+    var t=localStorage.getItem('theme');
+    if(t) document.documentElement.setAttribute('data-theme',t);
+    if(localStorage.getItem('desktopMode')==='1')
+      document.documentElement.setAttribute('data-desktop','1');
+  }catch(e){}
+})();
+</script>
 
 </div>
 </body>

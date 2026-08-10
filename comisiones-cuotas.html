@@ -240,9 +240,28 @@ function semanasChips(){
 }
 
 function irSemana(v){
-  if(EST.sucio && !confirm('Tienes cambios sin guardar. ¿Cambiar de semana?')) return;
+  if(v===EST.mes) return;
+  /* Antes esto abría un confirm() que en móvil a veces ni aparece y dejaba
+     la semana sin cambiar. Ahora solo pregunta si de verdad se escribió algo. */
+  if(EST.sucio && hayCambios()){
+    if(!confirm('Tienes cambios sin guardar. ¿Cambiar de semana?')) return;
+  }
   EST.mes=v; EST.sucio=false; cargar();
   setTimeout(centrarSemana, 30);
+}
+
+/* ¿Hay algún campo con valor distinto al guardado? */
+function hayCambios(){
+  var d=(EST.doc&&EST.doc.metricas)||{};
+  for(var i=0;i<CAMPOS.length;i++){
+    var el=document.getElementById('in-'+CAMPOS[i].k);
+    if(!el) continue;
+    var v=el.value===''?null:Number(el.value);
+    var prev=d[CAMPOS[i].k];
+    var pv=prev&&prev.valor!==undefined?Number(prev.valor):null;
+    if(v!==pv) return true;
+  }
+  return false;
 }
 
 /* La semana activa suele quedar fuera de vista al abrir; se centra sola. */
@@ -357,7 +376,7 @@ async function guardar(){
 }
 
 async function cargar(){
-  if(!window.TG_FB || !TG_FB.loadCuotas) return;
+  if(!window.TG_FB || !TG_FB.loadCuotas){ pintar(); return; }
   try{
     EST.doc = await TG_FB.loadCuotas(EST.tienda, EST.mes);
   }catch(e){ console.error('cargar', e); EST.doc=null; }
@@ -543,6 +562,40 @@ if(window.bootCuotas) window.bootCuotas();
 </script>
 </body>
 </html>
+
+<script>
+/* [v1.12.3] toggleTheme y toggleDesktop viven en app.js, que los tableros NO
+   cargan: los interruptores de modo oscuro y escritorio del drawer estaban
+   muertos en las siete pantallas. Se replican aquí con la misma llave de
+   localStorage para que el cambio se respete al volver a la app. */
+if(typeof window.toggleTheme!=='function'){
+  window.toggleTheme=function(){
+    var cur=document.documentElement.getAttribute('data-theme');
+    var next=cur==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{ localStorage.setItem('theme',next); }catch(e){}
+    if(typeof pmdSyncTheme==='function') pmdSyncTheme();
+  };
+}
+if(typeof window.toggleDesktop!=='function'){
+  window.toggleDesktop=function(){
+    var on=document.documentElement.getAttribute('data-desktop')==='1';
+    if(on) document.documentElement.removeAttribute('data-desktop');
+    else document.documentElement.setAttribute('data-desktop','1');
+    try{ localStorage.setItem('desktopMode', on?'0':'1'); }catch(e){}
+    if(typeof pmdSyncDesktop==='function') pmdSyncDesktop();
+  };
+}
+/* Respetar lo elegido en la app al abrir el tablero. */
+(function(){
+  try{
+    var t=localStorage.getItem('theme');
+    if(t) document.documentElement.setAttribute('data-theme',t);
+    if(localStorage.getItem('desktopMode')==='1')
+      document.documentElement.setAttribute('data-desktop','1');
+  }catch(e){}
+})();
+</script>
 
 </div>
 </body>
