@@ -179,6 +179,31 @@ body{margin:0;padding:0;background:var(--bg);color:var(--label);
 .btn-full svg{width:16px;height:16px}
 .btn-full:active{opacity:.8}
 
+/* ── Gerente y su bono: el dato que el regional viene a buscar ── */
+.hero-sp{display:flex;align-items:baseline;gap:8px;margin-top:11px;padding-top:10px;
+  border-top:1px solid var(--sep);color:var(--label3);font-size:11px}
+.hero-sp b{color:var(--mint);font-size:16px;font-weight:800;letter-spacing:-.02em}
+.hero-sp small{color:var(--label3);font-size:10px}
+.gte-row{display:flex;align-items:center;gap:8px;margin-top:9px;padding-top:8px;
+  border-top:1px solid rgba(237,242,248,.07)}
+.gte{width:24px;height:24px;border-radius:50%;background:var(--surface3);color:var(--label2);
+  display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;
+  flex-shrink:0;letter-spacing:.3px}
+.gte.sin{background:rgba(255,69,58,.15);color:var(--red-soft)}
+.gte.gde{width:40px;height:40px;font-size:14px}
+.gte-n{flex:1;min-width:0;color:var(--label3);font-size:11px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.gte-n.vacio{color:var(--red-soft)}
+.gte-v{color:var(--mint);font-size:13.5px;font-weight:800;letter-spacing:-.02em;
+  text-align:right;flex-shrink:0}
+.gte-v small{display:block;color:var(--label3);font-size:9px;font-weight:600}
+.gte-card{background:var(--surface2);border-radius:var(--r-lg);padding:13px 14px;
+  display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.gte-rol{display:block;color:var(--label3);font-size:9px;letter-spacing:.7px;font-weight:700}
+.gte-nom{display:block;color:var(--label);font-size:14px;font-weight:700;margin-top:1px}
+.gte-big{display:block;color:var(--mint);font-size:18px;font-weight:800;letter-spacing:-.02em}
+.gte-pts{display:block;color:var(--label3);font-size:10px;font-weight:600}
+
 /* ── Drawer compartido (antes en comisiones-ui.css; inline para que el
       tablero no dependa de un archivo externo que puede no resolver) ── */
 /* ============================================================================
@@ -276,6 +301,10 @@ function isoYear(d){
 function periodoDe(d){ return isoYear(d)+'-W'+String(isoWeek(d)).padStart(2,'0'); }
 function semDe(p){ return Number(String(p).split('-W')[1]||0); }
 
+function ini(nombre){
+  var p=String(nombre||'').trim().split(/\s+/);
+  return ((p[0]||'')[0]||'')+((p[1]||'')[0]||'');
+}
 function fmx(n){ return '$'+Math.round(n||0).toLocaleString('es-MX'); }
 function pct(u,c){ return (!c||c<=0)?0:(u/c)*100; }
 function claseMet(p){ return p<80?'r':(p<100?'a':'g'); }
@@ -335,11 +364,18 @@ function pintar(){
     if(r.sinCuota>0) sinCuotaAlguna++;
   });
 
+  var gteTot=0, ptsTot=0;
+  EST.tiendas.forEach(function(t){ gteTot+=t.bonoGte||0; ptsTot+=t.ptsGte||0; });
+
   h+='<div class="hero"><div class="hero-top">'
     +'<span class="hero-l">PRODUCCIÓN DE LA REGIÓN</span>'
     +'<span class="pill">Sem '+semDe(EST.periodo)+'</span></div>'
     +'<div class="hero-v">'+fmx(baseTot)+'</div>'
-    +'<div class="hero-s">comisión base generada por '+EST.tiendas.length+' tiendas</div></div>';
+    +'<div class="hero-s">comisión base de '+EST.tiendas.length+' tiendas</div>'
+    +'<div class="hero-sp"><span>Tus gerentes cobran</span>'
+    +'<b>'+fmx(gteTot)+'</b>'
+    +(ptsTot>0?'<small>+'+Math.round(ptsTot).toLocaleString('es-MX')+' pts</small>':'')
+    +'</div></div>';
 
   if(sinCuotaAlguna){
     h+='<div class="alerta amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>'
@@ -389,12 +425,19 @@ function pintar(){
       : '<span class="met-c'+(r.cobra<r.conCuota?' warn':'')+'">'
         +r.cobra+' de '+r.conCuota+' métricas cobrando'
         +(r.peor && r.peor.p<80 ? ' · '+r.peor.n+' al '+Math.round(r.peor.p)+'%' : '')+'</span>';
+    var gte = t.gerente
+      ? '<span class="gte">'+ini(t.gerente)+'</span><span class="gte-n">'+t.gerente+'</span>'
+      : '<span class="gte sin">?</span><span class="gte-n vacio">Sin gerente asignado</span>';
     h+='<button class="met '+cls+'" onclick="verTienda(\''+t.id+'\')">'
       +'<span class="met-row"><span style="flex:1;min-width:0">'
       +'<span class="met-n">'+t.nombre+'</span><br>'+det+'</span>'
-      +'<span><span class="met-p" style="font-size:15px">'+fmx(t.total)+'</span>'
-      +'<span class="met-x off">'+t.asesores+' asesores</span></span>'
-      +'<span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span></button>';
+      +'<span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span>'
+      /* Lo que gana el gerente: el dato que el regional viene a buscar. */
+      +'<span class="gte-row">'+gte
+      +'<span class="gte-v">'+fmx(t.bonoGte)
+      +(t.ptsGte>0?'<small>+'+Math.round(t.ptsGte).toLocaleString('es-MX')+' pts</small>':'')
+      +'</span></span>'
+      +'</button>';
   });
   h+='</div>';
 
@@ -406,8 +449,17 @@ function pintar(){
 function verTienda(id){
   var t=null; EST.tiendas.forEach(function(x){ if(x.id===id) t=x; });
   if(!t) return;
-  var h='<div class="det-hero"><div style="flex:1">'
-    +'<div class="hero-l">GENERÓ ESTA SEMANA</div>'
+  var h='';
+  if(t.gerente){
+    h+='<div class="gte-card"><span class="gte gde">'+ini(t.gerente)+'</span>'
+      +'<span style="flex:1;min-width:0"><span class="gte-rol">GERENTE</span>'
+      +'<span class="gte-nom">'+t.gerente+'</span></span>'
+      +'<span style="text-align:right"><span class="gte-big">'+fmx(t.bonoGte)+'</span>'
+      +(t.ptsGte>0?'<span class="gte-pts">+'+Math.round(t.ptsGte).toLocaleString('es-MX')+' pts</span>':'')
+      +'</span></div>';
+  }
+  h+='<div class="det-hero"><div style="flex:1">'
+    +'<div class="hero-l">LA TIENDA GENERÓ</div>'
     +'<div style="font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.1">'+fmx(t.total)+'</div></div>'
     +'<div style="text-align:right"><div style="color:var(--label3);font-size:10px">'+t.asesores+' asesores</div></div></div>';
 
@@ -488,6 +540,8 @@ window.bootRegional = async function(){
   var periodo = EST.periodo;
   try{
     var lista = await TG_FB.tiendasDeRegion(EST.region);
+    var plant = TG_FB.plantillaDeRegion
+      ? await TG_FB.plantillaDeRegion(EST.region) : {gerentes:{},asesores:{}};
     /* En paralelo: con 11 tiendas, en serie se sentiría lento. */
     var datos = await Promise.all(lista.map(async function(t){
       var ventas = await TG_FB.ventasDeTienda(t.id, periodo);
@@ -509,8 +563,29 @@ window.bootRegional = async function(){
         }
         if(v.attuid) ases[v.attuid]=1;
       });
+      /* [ago-2026] Lo que gana el gerente de esta tienda: 35% de la base de
+         cada métrica que llegó al 80%, más sus puntos de acelerador. Es el
+         dato que el regional necesita ver de un vistazo. */
+      var g=null;
+      if(typeof calcularGerente2026==='function'){
+        var mets=['equipo','servicio','renovacion','accesorios','seguros','prepago'].map(function(k){
+          var c=cuotas[k]||0;
+          return { nombre:k, baseTienda:base[k]||0,
+                   alcance: c>0 ? ((uni[k]||0)/c)*100 : 0 };
+        });
+        var ar = (typeof calcularARPU2026==='function')
+          ? calcularARPU2026(ventas.map(function(v){
+              return { tipo:(v.tipo==='pospago'||v.tipo==='migra')?'equipo'
+                          :v.tipo==='renov'?'renovacion':v.tipo, plan:v.plan, unidades:1 };
+            })) : {equipo:null,servicio:null};
+        g = calcularGerente2026(mets, { arpuEquipo:ar.equipo, arpuServicio:ar.servicio });
+      }
+      var info = plant.gerentes[t.id] || null;
       return { id:t.id, nombre:t.nombre, unidades:uni, base:base, cuotas:cuotas,
-               total:total, asesores:Object.keys(ases).length };
+               total:total, asesores:(plant.asesores[t.id]||Object.keys(ases).length),
+               gerente: info ? info.nombre : '',
+               bonoGte: g ? g.bonoSemanal : 0,
+               ptsGte: g ? g.puntosTotales : 0 };
     }));
     EST.tiendas = datos;
   }catch(e){ console.error('bootRegional', e); EST.tiendas=[]; }
@@ -546,6 +621,23 @@ window.TG_FB={
       });
     }catch(e){ console.error('tiendasDeRegion',e); }
     return out;
+  },
+  /* Gerente de cada tienda + conteo de asesores, desde empleados. */
+  async plantillaDeRegion(region){
+    const gte={}, cuenta={};
+    try{
+      const q = region ? query(collection(db,'empleados'), where('region','==',region))
+                       : query(collection(db,'empleados'));
+      const s=await getDocs(q);
+      s.forEach(function(d){
+        const o=d.data();
+        if(!o || !o.tienda) return;
+        const rol=String(o.rol||'').toLowerCase();
+        if(rol==='gerente') gte[o.tienda]={ nombre:o.nombre||'', attuid:o.attuid||d.id };
+        else cuenta[o.tienda]=(cuenta[o.tienda]||0)+1;
+      });
+    }catch(e){ console.error('plantillaDeRegion',e); }
+    return { gerentes:gte, asesores:cuenta };
   },
   async ventasDeTienda(tienda, periodo){
     const out=[];
