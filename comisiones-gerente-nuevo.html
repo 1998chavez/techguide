@@ -23,11 +23,9 @@
 body{margin:0;padding:0;background:var(--bg);color:var(--label);
   font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Inter,system-ui,sans-serif;
   -webkit-font-smoothing:antialiased}
-.phone{width:100%;background:var(--bg);color:var(--label);overflow:hidden;
-  position:relative;min-height:100vh;display:flex;flex-direction:column}
+.phone{width:100%;background:var(--bg);color:var(--label);overflow:hidden;position:relative;min-height:100vh;display:flex;flex-direction:column}
 .wrap{max-width:560px;margin:0 auto;width:100%;padding-bottom:40px}
-code{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:var(--surface2);
-  padding:2px 6px;border-radius:5px;color:var(--label2)}
+code{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:var(--surface2);padding:2px 6px;border-radius:5px;color:var(--label2)}
 
 .nav{position:sticky;top:0;z-index:40;background:rgba(8,13,22,.92);
   backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--sep);
@@ -279,6 +277,19 @@ var EST={ tab:'tienda', tienda:'', mes:'',
           misVentas:[], misUnidades:{},
           monedero:0, monSemana:0, res:null, resMias:null, asesores:[] };
 
+function isoWeek(d){
+  d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  var day=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-day);
+  var ys=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil((((d-ys)/86400000)+1)/7);
+}
+function isoYear(d){
+  d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  var day=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-day);
+  return d.getUTCFullYear();
+}
+function periodoDe(d){ return isoYear(d)+'-W'+String(isoWeek(d)).padStart(2,'0'); }
+
 function fmx(n){ return '$'+Math.round(n||0).toLocaleString('es-MX'); }
 function pts(n){ return Math.round(n||0).toLocaleString('es-MX'); }
 function pct(u,c){ return (!c||c<=0)?0:(u/c)*100; }
@@ -344,9 +355,9 @@ function htmlTienda(){
 
   h+='<div class="hero"><div class="hero-top">'
     +'<span class="hero-l">TU COBRO SEMANAL</span>'
-    +'<span class="pill">35% de tienda</span></div>'
+    +'<span class="pill">Sem '+isoWeek(new Date())+'</span></div>'
     +'<div class="hero-v">'+fmx(r.bonoSemanal)+'</div>'
-    +'<div class="hero-s">sobre '+fmx(r.baseTiendaTotal)+' que gener\u00f3 tu equipo</div></div>';
+    +'<div class="hero-s">35% sobre '+fmx(r.baseTiendaTotal)+' que gener\u00f3 tu equipo</div></div>';
 
   h+='<button class="mon" onclick="abrirMonedero()"><div class="mon-row">'
     +'<span class="mon-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 11h.01M2 9.5V13c0 .5.4 1 1 1h1.4c.3 1 .9 1.9 1.6 2.6V19a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1.1c.6.1 1.3.1 2 .1s1.4 0 2-.1V19a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2.4c1.6-1.3 2.5-3.1 2.5-5.1 0-3.9-3.6-7-8-7-2.2 0-4.2.8-5.6 2.1H5A2.5 2.5 0 0 0 2 9.5z"/></svg></span>'
@@ -362,7 +373,7 @@ function htmlTienda(){
   if(sinCuota){
     h+='<button class="cta-cuota" onclick="location.href=\'comisiones-cuotas.html\'">'
       +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>'
-      +'<span><b>Captura las cuotas del mes</b><br>Sin cuota no hay alcance ni comisi\u00f3n</span>'
+      +'<span><b>Captura las cuotas de la semana</b><br>Sin cuota no hay alcance ni comisi\u00f3n</span>'
       +'<span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>';
   }
 
@@ -506,9 +517,9 @@ window.bootGerente = async function(){
   var tienda = ASESOR.tienda || '';
   var attuid = ASESOR.attuid || ASESOR.id;
   var hoy = new Date();
+  var periodo = periodoDe(hoy);     // 2026-W32 — cuota y alcance son SEMANALES
   var mes = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0');
-  var periodo = (typeof periodoActual==='function') ? periodoActual() : mes;
-  EST.tienda=tienda; EST.mes=mes;
+  EST.tienda=tienda; EST.mes=mes; EST.periodo=periodo;
 
   function mapear(v){
     var t = (v.tipo==='pospago'||v.tipo==='migra') ? 'equipo'
@@ -539,7 +550,7 @@ window.bootGerente = async function(){
     // Las suyas, para la pestaña "Mis ventas".
     EST.misVentas = todas.filter(function(v){ return v._attuid===attuid; });
 
-    var c = await TG_FB.loadCuotas(tienda, mes);
+    var c = await TG_FB.loadCuotas(tienda, periodo);
     if(c){
       var m=c.metricas||{};
       ['equipo','servicio','renovacion','accesorios','seguros','prepago'].forEach(function(k){

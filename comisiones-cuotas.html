@@ -6,7 +6,7 @@
 <!-- [v1.11.62] Fuente única de incentivos: se editan en incentivos.js y los 5
      tableros los leen de ahí. Antes cada tablero traía su propia copia. -->
 <script src="incentivos.js"></script><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
-<title>Cuotas y ARPU — TechGuide</title>
+<title>Cuotas semanales — TechGuide</title>
 
 <style>
 :root{
@@ -80,6 +80,11 @@ input[type=number]:disabled{opacity:.45;cursor:not-allowed}
 .estado{color:var(--label3);font-size:11px;text-align:center;margin-top:8px}
 .estado.ok{color:var(--mint)}
 .estado.err{color:var(--red-soft)}
+.copiar{width:100%;margin-top:14px;background:var(--surface);border:1px solid var(--sep);
+  border-radius:var(--r-md);padding:11px;color:var(--cyan);font-size:12.5px;font-weight:600;
+  font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.copiar:active{opacity:.7}
+.copiar svg{width:15px;height:15px}
 .empty{text-align:center;padding:40px 20px;color:var(--label3);font-size:13px;line-height:1.6}
 
 /* ── Drawer compartido (antes en comisiones-ui.css; inline para que el
@@ -180,14 +185,38 @@ function puedoEditar(reg){
   return (JER[String(reg.rol).toLowerCase()]||0) <= miNivel();
 }
 
-function mesesOpciones(){
+/* Semana ISO — mismo formato que ya usan las ventas: 2026-W32. */
+function isoWeek(d){
+  d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  var day=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-day);
+  var ys=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil((((d-ys)/86400000)+1)/7);
+}
+function isoYear(d){
+  d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  var day=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-day);
+  return d.getUTCFullYear();
+}
+function periodoDe(d){ return isoYear(d)+'-W'+String(isoWeek(d)).padStart(2,'0'); }
+
+/* Lunes y domingo de esa semana, para mostrar el rango real. Sirve además
+   para las semanas recortadas de fin de mes. */
+function rangoSemana(d){
+  var l=new Date(d); l.setDate(l.getDate()-((l.getDay()||7)-1)); l.setHours(0,0,0,0);
+  var f=new Date(l); f.setDate(f.getDate()+6);
+  var M=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return l.getDate()+' '+M[l.getMonth()]+' – '+f.getDate()+' '+M[f.getMonth()];
+}
+
+function semanasOpciones(){
   var h=new Date(), o='';
-  for(var i=-1;i<=2;i++){
-    var d=new Date(h.getFullYear(), h.getMonth()+i, 1);
-    var v=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-    var M=['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
-           'septiembre','octubre','noviembre','diciembre'];
-    o+='<option value="'+v+'"'+(i===0?' selected':'')+'>'+M[d.getMonth()]+' '+d.getFullYear()+'</option>';
+  /* Tres semanas atrás, la actual y una adelante: alcanza para corregir
+     lo pasado y adelantar la que viene. */
+  for(var i=-3;i<=1;i++){
+    var d=new Date(h); d.setDate(d.getDate()+i*7);
+    var v=periodoDe(d);
+    var etq='Sem '+isoWeek(d)+' · '+rangoSemana(d)+(i===0?' (actual)':'');
+    o+='<option value="'+v+'"'+(v===EST.mes?' selected':'')+'>'+etq+'</option>';
   }
   return o;
 }
@@ -195,7 +224,7 @@ function mesesOpciones(){
 function pintar(){
   var h='';
 
-  h+='<div class="sel"><div class="sel-l">PERIODO</div><div class="sel-row">';
+  h+='<div class="sel"><div class="sel-l">SEMANA</div><div class="sel-row">';
   if(EST.tiendas.length>1){
     h+='<select id="f-tienda" onchange="cambiarTienda()">';
     EST.tiendas.forEach(function(t){
@@ -203,7 +232,7 @@ function pintar(){
     });
     h+='</select>';
   }
-  h+='<select id="f-mes" onchange="cambiarMes()">'+mesesOpciones()+'</select>';
+  h+='<select id="f-mes" onchange="cambiarMes()">'+semanasOpciones()+'</select>';
   h+='</div></div>';
 
   var d=EST.doc||{};
@@ -245,6 +274,10 @@ function pintar(){
     h+='</div>';
   });
 
+  h+='<button class="copiar" onclick="copiarAnterior()">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
+    +'Copiar cuotas de la semana anterior</button>';
+
   h+='<div class="aviso">'
     +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>'
     +'<span>Renovación no lleva ARPU mínimo. Sin cuota capturada, esa métrica '
@@ -252,6 +285,40 @@ function pintar(){
 
   document.getElementById('cuerpo').innerHTML=h;
   document.getElementById('barra').style.display='block';
+}
+
+/* Casi siempre la cuota se repite semana a semana; esto evita recapturar seis
+   campos. Respeta el candado: no pisa lo que fijó un mando superior. */
+async function copiarAnterior(){
+  var e=document.getElementById('estado');
+  var partes=EST.mes.split('-W');
+  var d=new Date(); d.setDate(d.getDate()-7);
+  // Reconstruir la semana anterior a la seleccionada
+  var y=Number(partes[0]), w=Number(partes[1])-1;
+  if(w<1){ y-=1; w=52; }
+  var previo=y+'-W'+String(w).padStart(2,'0');
+  e.textContent='Buscando la semana '+w+'…'; e.className='estado';
+  try{
+    var doc=await TG_FB.loadCuotas(EST.tienda, previo);
+    if(!doc || !doc.metricas || !Object.keys(doc.metricas).length){
+      e.textContent='La semana '+w+' no tiene cuotas capturadas.'; e.className='estado err'; return;
+    }
+    CAMPOS.forEach(function(c){
+      var el=document.getElementById('in-'+c.k);
+      var reg=doc.metricas[c.k];
+      if(el && !el.disabled && reg && reg.valor!==undefined) el.value=reg.valor;
+    });
+    ARPUS.forEach(function(c){
+      var el=document.getElementById('ar-'+c.k);
+      var reg=(doc.arpu||{})[c.k];
+      if(el && !el.disabled && reg && reg.valor!==undefined) el.value=reg.valor;
+    });
+    EST.sucio=true;
+    e.textContent='Copiado de la semana '+w+'. Revisa y guarda.'; e.className='estado ok';
+  }catch(err){
+    console.error('copiarAnterior', err);
+    e.textContent='No se pudo leer la semana anterior.'; e.className='estado err';
+  }
 }
 
 function marcarSucio(){
@@ -355,9 +422,8 @@ window.bootCuotas = async function(){
       +'Solo gerentes y mandos superiores pueden capturar cuotas.</div>';
     return;
   }
-  var h=new Date();
-  EST.mes = h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0');
-  EST.tienda = ASESOR.tienda || '';
+  EST.mes = periodoDe(new Date());     // 2026-W32
+  EST.tienda = ASESOR.tienda || ASESOR.sucursal || '';
   if(miNivel() >= JER.regional && window.TG_FB && TG_FB.listarTiendas){
     try{
       EST.tiendas = await TG_FB.listarTiendas(ASESOR.region||'');

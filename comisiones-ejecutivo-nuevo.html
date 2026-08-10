@@ -285,6 +285,22 @@ var METRICAS=[
 
 var EST = { ventas:[], cuotas:{}, unidades:{}, arpu:{}, monedero:0, monSemana:0, res:null };
 
+/* Semana ISO — mismo formato que las ventas: 2026-W32. Todo el esquema es
+   semanal: alcance, comisión y bono. El monedero es lo único que acumula
+   por mes. */
+function isoWeek(d){
+  d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  var day=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-day);
+  var ys=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil((((d-ys)/86400000)+1)/7);
+}
+function isoYear(d){
+  d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  var day=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-day);
+  return d.getUTCFullYear();
+}
+function periodoDe(d){ return isoYear(d)+'-W'+String(isoWeek(d)).padStart(2,'0'); }
+
 function fmx(n){ return '$'+Math.round(n).toLocaleString('es-MX'); }
 function pct(u,c){ return (!c||c<=0) ? 0 : (u/c)*100; }
 
@@ -568,8 +584,8 @@ window.bootComisiones = async function(){
   var attuid = ASESOR.attuid || ASESOR.id;
   var tienda = ASESOR.tienda || '';
   var hoy = new Date();
+  var periodo = periodoDe(hoy);          // 2026-W32 — la cuota es SEMANAL
   var mes = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0');
-  var periodo = (typeof periodoActual==='function') ? periodoActual() : mes;
   try{
     var ventas = await TG_FB.loadVentas(attuid, periodo);
     EST.ventas = ventas.map(function(v){
@@ -589,7 +605,7 @@ window.bootComisiones = async function(){
     EST.unidades = { equipo:alc.pospago||0, servicio:alc.servicio||0,
                      renovacion:alc.renov||0, accesorios:alc.acces||0,
                      seguros:alc.seguro||0, prepago:alc.prepago||0 };
-    var cuota = await TG_FB.loadCuotaTienda(tienda, mes);
+    var cuota = await TG_FB.loadCuotaTienda(tienda, periodo);
     if(cuota && typeof cuota==='object'){
       EST.cuotas = { equipo:cuota.equipo||cuota.pospago||0, servicio:cuota.servicio||0,
                      renovacion:cuota.renovacion||cuota.renov||0,
