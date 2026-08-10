@@ -605,6 +605,11 @@ window.bootComisiones = async function(){
     EST.unidades = { equipo:alc.pospago||0, servicio:alc.servicio||0,
                      renovacion:alc.renov||0, accesorios:alc.acces||0,
                      seguros:alc.seguro||0, prepago:alc.prepago||0 };
+    if(typeof calcularARPU2026==='function'){
+      var ar=calcularARPU2026(EST.ventas);
+      if(ar.equipo!==null) EST.arpu.equipo=ar.equipo;
+      if(ar.servicio!==null) EST.arpu.servicio=ar.servicio;
+    }
     var cuota = await TG_FB.loadCuotaTienda(tienda, periodo);
     if(cuota && typeof cuota==='object'){
       EST.cuotas = { equipo:cuota.equipo||cuota.pospago||0, servicio:cuota.servicio||0,

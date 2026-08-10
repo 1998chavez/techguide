@@ -7,7 +7,7 @@
      tableros los leen de ahí. Antes cada tablero traía su propia copia. -->
 <script src="incentivos.js"></script><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <title>Cuotas semanales — TechGuide</title>
-
+<script src="comisiones2026.js"></script>
 <style>
 :root{
   --bg:#080D16;--surface:#0F1622;--surface2:#16202E;--surface3:#1F2B3C;
@@ -163,17 +163,11 @@ try{ ASESOR=JSON.parse(localStorage.getItem('primemx_sesion_v1')||'null'); }catc
 var JER = { asesor:0, gerente:1, regional:2, director:3, director_nacional:4 };
 
 var CAMPOS=[
-  {k:'equipo',     n:'Equipo',      s:'Líneas nuevas con equipo'},
-  {k:'servicio',   n:'Servicio',    s:'Pospago solo servicio'},
-  {k:'renovacion', n:'Renovación',  s:'Renovaciones con equipo'},
-  {k:'accesorios', n:'Accesorios',  s:'Unidades vendidas'},
-  {k:'seguros',    n:'Seguros',     s:'Pólizas colocadas'},
-  {k:'prepago',    n:'Prepago',     s:'Recargas ≥ $150'}
+  {k:'equipo',n:'Equipo'},{k:'servicio',n:'Servicio'},{k:'renovacion',n:'Renovación'},
+  {k:'accesorios',n:'Accesorios'},{k:'seguros',n:'Seguros'},{k:'prepago',n:'Prepago'}
 ];
-var ARPUS=[
-  {k:'equipo',   n:'ARPU con equipo',    s:'Mínimo $700 para acelerador'},
-  {k:'servicio', n:'ARPU solo servicio', s:'Mínimo $400 para acelerador'}
-];
+/* El ARPU salió de aquí: no se captura, se calcula de las ventas
+   (calcularARPU2026) y los mínimos son fijos: $700 con equipo, $400 servicio. */
 
 var EST={ tienda:'', mes:'', doc:null, tiendas:[], miRol:'gerente', sucio:false };
 
@@ -215,7 +209,7 @@ function semanasOpciones(){
   for(var i=-3;i<=1;i++){
     var d=new Date(h); d.setDate(d.getDate()+i*7);
     var v=periodoDe(d);
-    var etq='Sem '+isoWeek(d)+' · '+rangoSemana(d)+(i===0?' (actual)':'');
+    var etq='Semana '+isoWeek(d)+(i===0?' · actual':'');
     o+='<option value="'+v+'"'+(v===EST.mes?' selected':'')+'>'+etq+'</option>';
   }
   return o;
@@ -224,16 +218,9 @@ function semanasOpciones(){
 function pintar(){
   var h='';
 
-  h+='<div class="sel"><div class="sel-l">SEMANA</div><div class="sel-row">';
-  if(EST.tiendas.length>1){
-    h+='<select id="f-tienda" onchange="cambiarTienda()">';
-    EST.tiendas.forEach(function(t){
-      h+='<option value="'+t.id+'"'+(t.id===EST.tienda?' selected':'')+'>'+t.nombre+'</option>';
-    });
-    h+='</select>';
-  }
-  h+='<select id="f-mes" onchange="cambiarMes()">'+semanasOpciones()+'</select>';
-  h+='</div></div>';
+  h+='<div class="sel"><div class="sel-l">SEMANA</div><div class="sel-row">'
+    +'<select id="f-mes" onchange="cambiarMes()">'+semanasOpciones()+'</select>'
+    +'</div></div>';
 
   var d=EST.doc||{};
   var m=d.metricas||{};
@@ -244,7 +231,7 @@ function pintar(){
     var val=reg&&reg.valor!==undefined?reg.valor:'';
     var edit=puedoEditar(reg);
     h+='<div class="q"><div class="q-row"><div class="q-n">'
-      +'<div class="q-nn">'+c.n+'</div><div class="q-ns">'+c.s+'</div></div>'
+      +'<div class="q-nn">'+c.n+'</div></div>'
       +'<input type="number" min="0" step="1" id="in-'+c.k+'" value="'+val+'" '
       +'placeholder="0" '+(edit?'':'disabled')+' oninput="marcarSucio()"></div>';
     if(reg&&reg.por){
@@ -258,30 +245,9 @@ function pintar(){
     h+='</div>';
   });
 
-  h+='<div class="sec-t">ARPU DE LA TIENDA</div>';
-  var a=d.arpu||{};
-  ARPUS.forEach(function(c){
-    var reg=a[c.k]||null;
-    var val=reg&&reg.valor!==undefined?reg.valor:'';
-    var edit=puedoEditar(reg);
-    h+='<div class="q"><div class="q-row"><div class="q-n">'
-      +'<div class="q-nn">'+c.n+'</div><div class="q-ns">'+c.s+'</div></div>'
-      +'<input type="number" min="0" step="1" id="ar-'+c.k+'" value="'+val+'" '
-      +'placeholder="0" '+(edit?'':'disabled')+' oninput="marcarSucio()"></div>';
-    if(reg&&reg.por){
-      h+='<div class="q-by'+(edit?'':' lock')+'">Fijado por '+reg.por+' ('+reg.rol+')</div>';
-    }
-    h+='</div>';
-  });
-
   h+='<button class="copiar" onclick="copiarAnterior()">'
     +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
-    +'Copiar cuotas de la semana anterior</button>';
-
-  h+='<div class="aviso">'
-    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>'
-    +'<span>Renovación no lleva ARPU mínimo. Sin cuota capturada, esa métrica '
-    +'aparece sin alcance en los tableros.</span></div>';
+    +'Copiar de la semana anterior</button>';
 
   document.getElementById('cuerpo').innerHTML=h;
   document.getElementById('barra').style.display='block';
@@ -306,11 +272,6 @@ async function copiarAnterior(){
     CAMPOS.forEach(function(c){
       var el=document.getElementById('in-'+c.k);
       var reg=doc.metricas[c.k];
-      if(el && !el.disabled && reg && reg.valor!==undefined) el.value=reg.valor;
-    });
-    ARPUS.forEach(function(c){
-      var el=document.getElementById('ar-'+c.k);
-      var reg=(doc.arpu||{})[c.k];
       if(el && !el.disabled && reg && reg.valor!==undefined) el.value=reg.valor;
     });
     EST.sucio=true;
@@ -356,7 +317,7 @@ function leerFormulario(){
     });
     return rechazados;
   }
-  var rech = aplicar(metricas,'in-',CAMPOS).concat(aplicar(arpu,'ar-',ARPUS));
+  var rech = aplicar(metricas,'in-',CAMPOS);
   return { metricas:metricas, arpu:arpu, rechazados:rech };
 }
 
@@ -400,10 +361,6 @@ function cambiarMes(){
   EST.mes=document.getElementById('f-mes').value;
   cargar();
 }
-function cambiarTienda(){
-  EST.tienda=document.getElementById('f-tienda').value;
-  cargar();
-}
 
 window.addEventListener('beforeunload', function(ev){
   if(EST.sucio){ ev.preventDefault(); ev.returnValue=''; }
@@ -424,12 +381,6 @@ window.bootCuotas = async function(){
   }
   EST.mes = periodoDe(new Date());     // 2026-W32
   EST.tienda = ASESOR.tienda || ASESOR.sucursal || '';
-  if(miNivel() >= JER.regional && window.TG_FB && TG_FB.listarTiendas){
-    try{
-      EST.tiendas = await TG_FB.listarTiendas(ASESOR.region||'');
-      if(EST.tiendas.length && !EST.tienda) EST.tienda=EST.tiendas[0].id;
-    }catch(e){ console.error('listarTiendas', e); }
-  }
   if(!EST.tienda){
     document.getElementById('cuerpo').innerHTML='<div class="empty">'
       +'Tu perfil no tiene tienda asignada.</div>';

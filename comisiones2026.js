@@ -383,6 +383,44 @@ function resolverCuota2026(registros){
            sobrescrita: registros.length > 1 };
 }
 
+
+/* ── ARPU ───────────────────────────────────────────────────────────────── */
+/*
+   [ago-2026] El ARPU NO se captura: sale de las ventas. Es el promedio de
+   renta por línea, y los mínimos son fijos para todos ($700 con equipo,
+   $400 solo servicio), así que no hay nada que teclear.
+   Regla del PDF: el ARPU con equipo se calcula solo con planes PREMIUM;
+   el de solo servicio con PREMIUM y LITE.
+*/
+var RENTA_2026 = {
+  'Azul 1':330,'Azul 2':435,'Azul 3':550,'Plata':650,'Oro':725,
+  'Black':825,'Platino':1035,'Diamante':1300,'Titanio':1499,
+  'Lite':299,'Lite 1':349,'Lite 2':449,'Lite 3':549,'Lite 4':669,
+  'Lite 5':999,'Ilimitado':1499
+};
+var ES_LITE_2026 = {'Lite':1,'Lite 1':1,'Lite 2':1,'Lite 3':1,'Lite 4':1,'Lite 5':1,'Ilimitado':1};
+
+function calcularARPU2026(ventas){
+  var eqSum=0, eqN=0, svSum=0, svN=0;
+  for(var i=0;i<ventas.length;i++){
+    var v=ventas[i];
+    var u=v.unidades||1;
+    var r=RENTA_2026[v.plan];
+    if(!r) continue;
+    if(v.tipo==='equipo' || v.tipo==='pospago' || v.tipo==='renovacion'){
+      if(ES_LITE_2026[v.plan]) continue;      // con equipo: solo PREMIUM
+      eqSum += r*u; eqN += u;
+    } else if(v.tipo==='servicio'){
+      svSum += r*u; svN += u;                 // solo servicio: PREMIUM y LITE
+    }
+  }
+  return {
+    equipo:   eqN ? Math.round(eqSum/eqN) : null,
+    servicio: svN ? Math.round(svSum/svN) : null,
+    lineasEquipo: eqN, lineasServicio: svN
+  };
+}
+
 if(typeof window !== 'undefined'){
   window.COM_EQUIPO_2026 = COM_EQUIPO_2026;
   window.COM_SERVICIO_2026 = COM_SERVICIO_2026;
@@ -398,6 +436,8 @@ if(typeof window !== 'undefined'){
   window.resolverCuota2026 = resolverCuota2026;
   window.pisoCumplido2026 = pisoCumplido2026;
   window.ARPU_MIN_2026 = ARPU_MIN_2026;
+  window.RENTA_2026 = RENTA_2026;
+  window.calcularARPU2026 = calcularARPU2026;
   window.seguroPorPrecio2026 = seguroPorPrecio2026;
   window.aceleradorPct2026 = aceleradorPct2026;
 }

@@ -16,8 +16,7 @@
   --blue:#31A5E5;--cyan:#4DB4EC;--green:#30D158;--mint:#3BC292;
   --red:#FF453A;--red-soft:#FF8A80;--amber:#FFD60A;
   --r-xl:22px;--r-lg:16px;--r-md:12px;
-  --att-blue:#31A5E5;--att-cyan:#4DB4EC;
-  --pmd-accent:#31A5E5;--pmd-navy:#13203E;--pmd-danger:#FF453A;
+  --att-blue:#31A5E5;--att-cyan:#4DB4EC;--pmd-accent:#31A5E5;--pmd-navy:#13203E;--pmd-danger:#FF453A;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;padding:0;background:var(--bg);color:var(--label);
@@ -556,9 +555,13 @@ window.bootGerente = async function(){
       ['equipo','servicio','renovacion','accesorios','seguros','prepago'].forEach(function(k){
         if(m[k] && m[k].valor!==undefined) EST.cuotas[k]=Number(m[k].valor);
       });
-      var a=c.arpu||{};
-      if(a.equipo) EST.arpu.equipo=Number(a.equipo.valor);
-      if(a.servicio) EST.arpu.servicio=Number(a.servicio.valor);
+    }
+    /* [ago-2026] El ARPU se calcula de las ventas reales de la tienda, no se
+       captura. Los mínimos son fijos: $700 con equipo, $400 solo servicio. */
+    if(typeof calcularARPU2026==='function'){
+      var ar=calcularARPU2026(todas);
+      if(ar.equipo!==null) EST.arpu.equipo=ar.equipo;
+      if(ar.servicio!==null) EST.arpu.servicio=ar.servicio;
     }
   }catch(e){ console.error('bootGerente', e); }
   recalcular();
