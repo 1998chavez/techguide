@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- [v1.11.62] Fuente única de incentivos: se editan en incentivos.js y los 5
+     tableros los leen de ahí. Antes cada tablero traía su propia copia. -->
+<script src="incentivos.js"></script><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<title>Comisiones · Regional — TechGuide</title>
+<script src="comisiones2026.js"></script>
+<style>
+:root{
+  --bg:#080D16;--surface:#0F1622;--surface2:#16202E;--surface3:#1F2B3C;
+  --label:#EDF2F8;--label2:#D7E0EB;--label3:#8A97A9;--label4:#414E5F;
+  --sep:rgba(237,242,248,0.10);
+  --blue:#31A5E5;--cyan:#4DB4EC;--green:#30D158;--mint:#3BC292;
+  --red:#FF453A;--red-soft:#FF8A80;--amber:#FFD60A;
+  --r-xl:22px;--r-lg:16px;--r-md:12px;
+  --att-blue:#31A5E5;--att-cyan:#4DB4EC;--pmd-accent:#31A5E5;--pmd-navy:#13203E;--pmd-danger:#FF453A;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;padding:0;background:var(--bg);color:var(--label);
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Inter,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.phone{width:100%;background:var(--bg);color:var(--label);overflow:hidden;position:relative;min-height:100vh;display:flex;flex-direction:column}
+.wrap{max-width:560px;margin:0 auto;width:100%;padding-bottom:40px}
+
+.nav{position:sticky;top:0;z-index:40;background:rgba(8,13,22,.92);
+  backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--sep);
+  display:flex;align-items:center;gap:8px;padding:12px 16px;
+  padding-top:calc(12px + env(safe-area-inset-top))}
+.nav-back{background:none;border:none;color:var(--blue);font-size:15px;
+  font-family:inherit;display:flex;align-items:center;gap:2px;padding:0;cursor:pointer}
+.nav-t{flex:1;font-size:16px;font-weight:600;letter-spacing:-.02em}
+.nav-cta{background:var(--blue);color:#fff;border:none;border-radius:22px;
+  padding:10px 17px;font-size:14px;font-weight:700;font-family:inherit;
+  display:flex;align-items:center;gap:6px;cursor:pointer;
+  box-shadow:0 2px 10px rgba(49,165,229,.32)}
+.nav-cta:active{opacity:.7}
+
+.pad{padding:14px 16px}
+
+/* ── Hero ── */
+.hero{background:var(--surface);border:1px solid rgba(0,168,224,.22);
+  border-radius:var(--r-xl);padding:16px 17px}
+.hero-top{display:flex;align-items:center;gap:8px}
+.hero-l{color:var(--label3);font-size:10px;letter-spacing:.7px;flex:1}
+.piso{display:flex;align-items:center;gap:4px;border-radius:20px;padding:3px 9px;
+  font-size:10px;font-weight:600;cursor:pointer;border:none;font-family:inherit}
+.piso.ok{background:rgba(48,209,88,.13);color:var(--green)}
+.piso.no{background:rgba(255,69,58,.13);color:var(--red-soft)}
+.hero-v{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-top:4px}
+.hero-v.off{color:var(--label4)}
+.hero-s{color:var(--label3);font-size:11.5px;margin-top:3px}
+
+/* ── Monedero ── */
+.mon{background:var(--surface);border:1px solid rgba(59,194,146,.28);
+  border-radius:var(--r-xl);padding:17px 17px 15px;margin-top:10px;
+  width:100%;text-align:left;font-family:inherit;cursor:pointer;display:block}
+.mon:active{opacity:.75}
+.mon-row{display:flex;align-items:center;gap:14px}
+.mon-ico{width:54px;height:54px;border-radius:16px;background:rgba(59,194,146,.14);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mon-ico svg{width:30px;height:30px;stroke:var(--mint)}
+.mon-l{color:var(--mint);font-size:10px;letter-spacing:.7px}
+.mon-v{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-top:2px;color:var(--label)}
+.mon-foot{display:flex;align-items:center;gap:7px;margin-top:13px;padding-top:12px;
+  border-top:1px solid var(--sep);color:var(--label3);font-size:11px}
+.mon-foot b{color:var(--mint);font-weight:700}
+
+/* ── Métricas ── */
+.sec{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 9px}
+.sec-t{color:var(--label3);font-size:10px;letter-spacing:.7px}
+.sec-r{color:var(--label3);font-size:10px}
+.mets{display:flex;flex-direction:column;gap:7px}
+.met{background:var(--surface2);border-left:3px solid var(--label4);
+  border-radius:0 var(--r-md) var(--r-md) 0;padding:11px 13px;
+  width:100%;text-align:left;font-family:inherit;border-top:none;border-right:none;
+  border-bottom:none;cursor:pointer;display:block}
+.met:active{opacity:.75}
+.met.g{border-left-color:var(--green)}
+.met.a{border-left-color:var(--amber)}
+.met.r{border-left-color:var(--red)}
+.met-row{display:flex;align-items:center;gap:10px}
+.met-n{color:var(--label);font-size:12.5px;font-weight:600}
+.met-c{color:var(--label3);font-size:10px;margin-top:2px}
+.met-c b{color:var(--label);font-weight:700}
+.met-c.warn{color:var(--amber)}
+.met-c.bad{color:var(--red-soft)}
+.met-p{font-size:18px;font-weight:800;letter-spacing:-.02em;text-align:right}
+.met-x{font-size:9.5px;text-align:right;margin-top:1px}
+.met-x.on{color:var(--mint)}
+.met-x.off{color:var(--label3)}
+.met-x.bad{color:var(--red-soft)}
+.chev{color:var(--label4);flex-shrink:0}
+.chev svg{width:15px;height:15px;display:block}
+.arpu{margin-top:8px;padding-top:7px;border-top:1px solid rgba(237,242,248,.07);
+  display:flex;align-items:center;gap:6px;color:var(--label3);font-size:9.5px}
+.arpu svg{width:11px;height:11px;flex-shrink:0}
+.arpu b{font-weight:700}
+.arpu.ok svg{stroke:var(--mint)} .arpu.ok b{color:var(--mint)}
+.arpu.no svg{stroke:var(--red-soft)} .arpu.no b{color:var(--red-soft)}
+
+.note{color:var(--label4);font-size:10px;text-align:center;margin-top:20px;
+  font-style:italic;line-height:1.5;padding:0 20px}
+
+/* ── Hoja de detalle ── */
+.sheet{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);
+  backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center}
+.sheet.open{display:flex}
+.sheet-in{background:var(--bg);width:100%;max-width:560px;max-height:92vh;
+  border-radius:24px 24px 0 0;overflow:hidden;display:flex;flex-direction:column;
+  animation:up .28s cubic-bezier(.32,.72,0,1)}
+@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-h{display:flex;align-items:center;gap:9px;padding:15px 17px;
+  border-bottom:1px solid var(--sep);background:var(--surface);flex-shrink:0}
+.sheet-t{flex:1;font-size:16px;font-weight:700;letter-spacing:-.02em}
+.sheet-x{background:none;border:none;color:var(--blue);font-size:14px;
+  font-family:inherit;cursor:pointer;padding:4px}
+.sheet-b{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:15px 17px 30px;
+  padding-bottom:calc(30px + env(safe-area-inset-bottom))}
+
+.esc{display:flex;flex-direction:column-reverse;gap:6px}
+.paso{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--surface2);border-radius:var(--r-md)}
+.paso.done{opacity:.45}
+.paso.now{background:rgba(48,209,88,.13);border:1px solid rgba(48,209,88,.32)}
+.paso.next{border:1px dashed rgba(255,214,10,.4)}
+.paso-i{font-size:13px;flex-shrink:0;display:flex}
+.paso-i svg{width:14px;height:14px}
+.paso.done .paso-i svg{stroke:var(--green)}
+.paso.now .paso-i svg{stroke:var(--green)}
+.paso.next .paso-i svg{stroke:var(--amber)}
+.paso-p{font-size:11px;font-weight:700;width:36px;color:var(--label3)}
+.paso.now .paso-p,.paso.now .paso-l{color:var(--green)}
+.paso.next .paso-p,.paso.next .paso-l{color:var(--amber)}
+.paso-l{font-size:11px;color:var(--label3);flex:1}
+.paso-v{font-size:11px;font-weight:700;color:var(--label3)}
+.paso.now .paso-v{color:var(--green)}
+.paso.next .paso-v{color:var(--amber)}
+
+.tip{margin-top:13px;border-radius:var(--r-md);padding:11px 13px;
+  display:flex;gap:9px;align-items:flex-start;font-size:11px;line-height:1.45}
+.tip.amber{background:rgba(255,214,10,.1);color:var(--amber)}
+.tip.red{background:rgba(255,69,58,.1);color:var(--red-soft)}
+.tip svg{width:14px;height:14px;flex-shrink:0;margin-top:1px}
+.tip b{font-weight:700}
+
+.lista{background:var(--surface);border-radius:var(--r-md);overflow:hidden;margin-top:9px}
+.li{display:flex;padding:10px 13px;font-size:11.5px}
+.li+.li{border-top:1px solid var(--sep)}
+.li-n{flex:1;color:var(--label)}
+.li-v{color:var(--label3)}
+
+.empty{text-align:center;padding:40px 20px;color:var(--label3);font-size:13px;line-height:1.6}
+
+/* ── Propio del hub regional ── */
+.pill{background:rgba(0,168,224,.13);color:var(--cyan);font-size:9.5px;font-weight:700;
+  padding:3px 9px;border-radius:20px}
+.weeks{display:flex;gap:7px;padding:2px 2px 4px;overflow-x:auto;margin-bottom:14px;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none}
+.weeks::-webkit-scrollbar{display:none}
+.wk{flex:0 0 auto;border:none;cursor:pointer;font-family:inherit;background:var(--surface);
+  color:var(--label3);border-radius:999px;padding:8px 15px;font-size:13px;font-weight:600}
+.wk small{display:block;font-size:9px;font-weight:600;opacity:.7;letter-spacing:.4px;
+  text-transform:uppercase}
+.wk.on{background:var(--blue);color:#fff}
+.alerta{border-radius:var(--r-md);padding:11px 13px;display:flex;gap:9px;
+  align-items:flex-start;font-size:11.5px;line-height:1.45;margin-top:9px}
+.alerta svg{width:15px;height:15px;flex-shrink:0;margin-top:1px}
+.alerta b{font-weight:800}
+.alerta.amber{background:rgba(255,214,10,.1);color:var(--amber)}
+.alerta.red{background:rgba(255,69,58,.1);color:var(--red-soft)}
+.det-hero{background:var(--surface);border:1px solid rgba(0,168,224,.22);
+  border-radius:var(--r-lg);padding:14px 15px;display:flex;align-items:flex-end;gap:12px}
+.btn-full{width:100%;margin-top:16px;background:var(--blue);color:#fff;border:none;
+  border-radius:14px;padding:13px;font-size:13.5px;font-weight:700;font-family:inherit;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-full svg{width:16px;height:16px}
+.btn-full:active{opacity:.8}
+
+/* ── Drawer compartido (antes en comisiones-ui.css; inline para que el
+      tablero no dependa de un archivo externo que puede no resolver) ── */
+/* ============================================================================
+   comisiones-ui.css — [v1.12.3] UI compartida de los 5 tableros de comisiones.
+   ANTES: cada comisiones-*.html traía su propia copia de este bloque (drawer
+   pmd-*). Ahora es una sola fuente; los tableros lo enlazan con <link>.
+   Nota: usa alias --pmd-* porque los tokens difieren entre tableros
+   (ejecutivo: --att-blue · mandos: --blue). También corrige que en los mandos
+   var(--att-blue) no existía y el avatar/switch quedaban sin fondo.
+   ========================================================================== */
+:root{--pmd-accent:#31A5E5;--pmd-navy:#101A30;--pmd-danger:#FF453A}
+:root[data-theme="light"]{--pmd-accent:#0E7DBE;--pmd-navy:#13203E;--pmd-danger:#D0291C}
+
+.pmd-overlay{position:fixed;inset:0;z-index:1200;background:rgba(9,13,22,.44);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:opacity .26s cubic-bezier(.32,.72,0,1),visibility .26s}
+.pmd-overlay.on{opacity:1;visibility:visible}
+.pmd-drawer{position:fixed;top:0;left:0;bottom:0;z-index:1201;width:84%;max-width:328px;background:var(--surface);box-shadow:0 18px 60px rgba(0,0,0,.5);transform:translateX(-102%);transition:transform .28s cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0)}
+.pmd-drawer.on{transform:none}
+.pmd-head{padding:22px 20px 18px;display:flex;align-items:center;gap:13px;width:100%;background:transparent;border:none;border-bottom:1px solid var(--sep);cursor:pointer;font-family:inherit;text-align:left;transition:background .16s ease}
+.pmd-head:hover{background:var(--surface2)}
+.pmd-avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--pmd-navy);color:#fff;font-weight:700;font-size:17px;flex-shrink:0;letter-spacing:.02em}
+.pmd-who b{display:block;font-size:16px;font-weight:800;color:var(--label);letter-spacing:-.01em}
+.pmd-who span{display:block;font-size:12.5px;color:var(--label3);margin-top:2px;font-weight:500}
+.pmd-head-chev{width:18px;height:18px;color:var(--label3);flex-shrink:0;margin-left:auto}
+.pmd-nav{padding:10px 12px 12px;display:flex;flex-direction:column;gap:1px;flex:1;overflow-y:auto}
+.pmd-item{display:flex;align-items:center;gap:13px;padding:12px 13px;border-radius:10px;background:transparent;border:none;color:var(--label);font-size:14.5px;font-weight:600;letter-spacing:-.01em;width:100%;text-align:left;cursor:pointer;font-family:inherit;transition:background .16s ease,transform .1s ease}
+.pmd-item svg{width:19px;height:19px;color:var(--label3);flex-shrink:0;stroke-width:1.9;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;transition:color .16s ease}
+.pmd-item:hover{background:var(--surface2)}
+.pmd-item:hover svg{color:var(--label)}
+.pmd-item:active{transform:scale(.98)}
+.pmd-item:focus-visible{outline:2px solid var(--pmd-accent);outline-offset:2px}
+.pmd-sep{height:1px;background:var(--sep);margin:10px 14px}
+.pmd-danger{color:var(--pmd-danger)} .pmd-danger svg{color:var(--pmd-danger)}
+.pmd-switch{width:38px;height:22px;border-radius:999px;background:var(--sep);position:relative;transition:background .2s ease;flex-shrink:0}
+.pmd-switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s ease}
+.pmd-switch.on{background:var(--pmd-accent)}
+.pmd-switch.on::after{transform:translateX(16px)}
+.pmd-foot{padding:14px 22px calc(16px + env(safe-area-inset-bottom,0));font-size:11px;color:var(--label3);border-top:1px solid var(--sep);font-weight:600}
+.pmd-foot b{font-weight:800;color:var(--label)} .pmd-foot b span{color:var(--pmd-accent)}
+
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="wrap">
+  <div class="nav">
+    <button class="nav-back" onclick="location.href='index.html'" aria-label="Volver">
+      <svg viewBox="0 0 9 15" width="8" height="14" fill="none"><path d="M7.5 1L1 7.5 7.5 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <span class="nav-t" id="nav-t">Mi región</span>
+  </div>
+
+  <div class="pad" id="cuerpo"><div class="empty">Cargando…</div></div>
+</div>
+
+<div class="sheet" id="sheet" onclick="if(event.target===this)cerrarSheet()">
+  <div class="sheet-in">
+    <div class="sheet-h">
+      <span class="sheet-t" id="sheet-t"></span>
+      <button class="sheet-x" onclick="cerrarSheet()">Cerrar</button>
+    </div>
+    <div class="sheet-b" id="sheet-b"></div>
+  </div>
+</div>
+
+<script>
+/* ══ HUB DEL REGIONAL · 2026 ══════════════════════════════════════════════
+   Vista de mando, no de cobro: el regional no vende y su variable no se
+   calcula aquí (pendiente de definir). Lo que necesita es ver dónde duele.
+
+   Decisión de diseño: las tiendas se ordenan de PEOR a MEJOR. Un regional
+   no abre esto para celebrar, lo abre para encontrar problemas.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+var ASESOR=null;
+try{ ASESOR=JSON.parse(localStorage.getItem('primemx_sesion_v1')||'null'); }catch(e){}
+
+var METRICAS=[
+  {k:'equipo',n:'Equipo'},{k:'servicio',n:'Servicio'},{k:'renovacion',n:'Renovación'},
+  {k:'accesorios',n:'Accesorios'},{k:'seguros',n:'Seguros'},{k:'prepago',n:'Prepago'}
+];
+
+var EST={ periodo:'', region:'', tiendas:[], cargando:true };
+
+function isoWeek(d){
+  d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  var day=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-day);
+  var ys=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil((((d-ys)/86400000)+1)/7);
+}
+function isoYear(d){
+  d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  var day=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-day);
+  return d.getUTCFullYear();
+}
+function periodoDe(d){ return isoYear(d)+'-W'+String(isoWeek(d)).padStart(2,'0'); }
+function semDe(p){ return Number(String(p).split('-W')[1]||0); }
+
+function fmx(n){ return '$'+Math.round(n||0).toLocaleString('es-MX'); }
+function pct(u,c){ return (!c||c<=0)?0:(u/c)*100; }
+function claseMet(p){ return p<80?'r':(p<100?'a':'g'); }
+
+function semanasChips(){
+  var h=new Date(), o='';
+  for(var i=-6;i<=1;i++){
+    var d=new Date(h); d.setDate(d.getDate()+i*7);
+    var v=periodoDe(d);
+    o+='<button class="wk'+(v===EST.periodo?' on':'')+'" onclick="irSemana(\''+v+'\')">'
+      +'<small>Sem</small>'+isoWeek(d)+'</button>';
+  }
+  return o;
+}
+function irSemana(v){ EST.periodo=v; cargar(); }
+function centrarSemana(){
+  var w=document.getElementById('weeks');
+  var a=w && w.querySelector('.wk.on');
+  if(w && a) w.scrollLeft = a.offsetLeft - (w.clientWidth/2) + (a.offsetWidth/2);
+}
+
+/* Resumen de una tienda: cuántas métricas cobran y cuál va peor. */
+function resumen(t){
+  var cobra=0, sinCuota=0, peor=null;
+  METRICAS.forEach(function(m){
+    var c=t.cuotas[m.k]||0;
+    if(!c){ sinCuota++; return; }
+    var p=pct(t.unidades[m.k]||0, c);
+    if(p>=80) cobra++;
+    if(peor===null || p<peor.p) peor={k:m.k, n:m.n, p:p};
+  });
+  return { cobra:cobra, sinCuota:sinCuota, peor:peor,
+           conCuota:METRICAS.length-sinCuota };
+}
+
+function pintar(){
+  var h='';
+  h+='<div class="weeks" id="weeks">'+semanasChips()+'</div>';
+
+  if(EST.cargando){
+    document.getElementById('cuerpo').innerHTML=h+'<div class="empty">Cargando tiendas…</div>';
+    centrarSemana(); return;
+  }
+  if(!EST.tiendas.length){
+    document.getElementById('cuerpo').innerHTML=h+'<div class="empty">'
+      +'No encontramos tiendas en tu región.<br><br><span style="font-size:12px">'
+      +'Revisa que tu perfil tenga región asignada.</span></div>';
+    centrarSemana(); return;
+  }
+
+  /* Panorama: base generada, tiendas con problema, métricas sin cuota. */
+  var baseTot=0, conProblema=0, sinCuotaAlguna=0;
+  EST.tiendas.forEach(function(t){
+    METRICAS.forEach(function(m){ baseTot += t.base[m.k]||0; });
+    var r=resumen(t);
+    if(r.conCuota>0 && r.cobra<r.conCuota) conProblema++;
+    if(r.sinCuota>0) sinCuotaAlguna++;
+  });
+
+  h+='<div class="hero"><div class="hero-top">'
+    +'<span class="hero-l">PRODUCCIÓN DE LA REGIÓN</span>'
+    +'<span class="pill">Sem '+semDe(EST.periodo)+'</span></div>'
+    +'<div class="hero-v">'+fmx(baseTot)+'</div>'
+    +'<div class="hero-s">comisión base generada por '+EST.tiendas.length+' tiendas</div></div>';
+
+  if(sinCuotaAlguna){
+    h+='<div class="alerta amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>'
+      +'<span><b>'+sinCuotaAlguna+'</b> tienda'+(sinCuotaAlguna===1?'':'s')+' sin cuota completa esta semana. '
+      +'Sin cuota no hay alcance ni comisión.</span></div>';
+  }
+  if(conProblema){
+    h+='<div class="alerta red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>'
+      +'<span><b>'+conProblema+'</b> tienda'+(conProblema===1?'':'s')+' con métricas abajo del 80%.</span></div>';
+  }
+
+  /* Métricas agregadas de la región */
+  h+='<div class="sec"><span class="sec-t">MÉTRICAS DE LA REGIÓN</span></div><div class="mets">';
+  METRICAS.forEach(function(m){
+    var u=0,c=0,tiendasMal=0;
+    EST.tiendas.forEach(function(t){
+      u+=t.unidades[m.k]||0; c+=t.cuotas[m.k]||0;
+      if((t.cuotas[m.k]||0)>0 && pct(t.unidades[m.k]||0,t.cuotas[m.k])<80) tiendasMal++;
+    });
+    var p=pct(u,c);
+    h+='<button class="met '+claseMet(p)+'" onclick="verMetrica(\''+m.k+'\')">'
+      +'<span class="met-row"><span style="flex:1;min-width:0">'
+      +'<span class="met-n">'+m.n+'</span><br>'
+      +'<span class="met-c'+(tiendasMal?' bad':'')+'">'+u+' de '+Math.round(c)
+      +(tiendasMal?' · <b>'+tiendasMal+'</b> tienda'+(tiendasMal===1?'':'s')+' abajo del 80%':'')+'</span></span>'
+      +'<span><span class="met-p">'+Math.round(p)+'%</span></span>'
+      +'<span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span></button>';
+  });
+  h+='</div>';
+
+  /* Tiendas: de peor a mejor. Los problemas primero. */
+  var orden=EST.tiendas.slice().sort(function(a,b){
+    var ra=resumen(a), rb=resumen(b);
+    if(ra.sinCuota!==rb.sinCuota) return rb.sinCuota-ra.sinCuota;
+    var pa=ra.peor?ra.peor.p:999, pb=rb.peor?rb.peor.p:999;
+    return pa-pb;
+  });
+
+  h+='<div class="sec"><span class="sec-t">MIS TIENDAS</span>'
+    +'<span class="sec-r">de peor a mejor</span></div><div class="mets">';
+  orden.forEach(function(t){
+    var r=resumen(t);
+    var cls = r.sinCuota===METRICAS.length ? 'r'
+            : (r.cobra<r.conCuota ? 'a' : 'g');
+    var det = r.sinCuota===METRICAS.length
+      ? '<span class="met-c bad">Sin cuota capturada</span>'
+      : '<span class="met-c'+(r.cobra<r.conCuota?' warn':'')+'">'
+        +r.cobra+' de '+r.conCuota+' métricas cobrando'
+        +(r.peor && r.peor.p<80 ? ' · '+r.peor.n+' al '+Math.round(r.peor.p)+'%' : '')+'</span>';
+    h+='<button class="met '+cls+'" onclick="verTienda(\''+t.id+'\')">'
+      +'<span class="met-row"><span style="flex:1;min-width:0">'
+      +'<span class="met-n">'+t.nombre+'</span><br>'+det+'</span>'
+      +'<span><span class="met-p" style="font-size:15px">'+fmx(t.total)+'</span>'
+      +'<span class="met-x off">'+t.asesores+' asesores</span></span>'
+      +'<span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span></button>';
+  });
+  h+='</div>';
+
+  h+='<div class="note">Las cantidades son una simulación informativa y no representan el cobro real.</div>';
+  document.getElementById('cuerpo').innerHTML=h;
+  centrarSemana();
+}
+
+function verTienda(id){
+  var t=null; EST.tiendas.forEach(function(x){ if(x.id===id) t=x; });
+  if(!t) return;
+  var h='<div class="det-hero"><div style="flex:1">'
+    +'<div class="hero-l">GENERÓ ESTA SEMANA</div>'
+    +'<div style="font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.1">'+fmx(t.total)+'</div></div>'
+    +'<div style="text-align:right"><div style="color:var(--label3);font-size:10px">'+t.asesores+' asesores</div></div></div>';
+
+  h+='<div class="sec-t" style="margin:16px 2px 9px">SUS MÉTRICAS</div><div class="mets">';
+  METRICAS.forEach(function(m){
+    var c=t.cuotas[m.k]||0, u=t.unidades[m.k]||0, p=pct(u,c);
+    var det = !c ? '<span class="met-c bad">Sin cuota</span>'
+      : '<span class="met-c'+(p<80?' bad':(p<100?' warn':''))+'">'+u+' de '+Math.round(c)+'</span>';
+    h+='<div class="met '+(!c?'r':claseMet(p))+'" style="cursor:default">'
+      +'<span class="met-row"><span style="flex:1;min-width:0">'
+      +'<span class="met-n">'+m.n+'</span><br>'+det+'</span>'
+      +'<span><span class="met-p">'+(c?Math.round(p)+'%':'—')+'</span>'
+      +'<span class="met-x off">'+fmx(t.base[m.k]||0)+'</span></span></span></div>';
+  });
+  h+='</div>';
+
+  /* El regional puede fijar o corregir la cuota de esta tienda. */
+  h+='<button class="btn-full" onclick="location.href=\'comisiones-cuotas.html?t='
+    +encodeURIComponent(t.id)+'&p='+encodeURIComponent(EST.periodo)+'\'">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>'
+    +'Capturar cuota de esta tienda</button>';
+
+  document.getElementById('sheet-t').textContent=t.nombre;
+  document.getElementById('sheet-b').innerHTML=h;
+  document.getElementById('sheet').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function verMetrica(k){
+  var m=null; METRICAS.forEach(function(x){ if(x.k===k) m=x; });
+  var filas=EST.tiendas.map(function(t){
+    return { n:t.nombre, u:t.unidades[k]||0, c:t.cuotas[k]||0,
+             p:pct(t.unidades[k]||0, t.cuotas[k]||0), b:t.base[k]||0 };
+  }).sort(function(a,b){ return a.p-b.p; });
+
+  var h='<div class="sec-t" style="margin:0 2px 9px">TIENDA POR TIENDA · DE PEOR A MEJOR</div>'
+    +'<div class="lista">';
+  filas.forEach(function(f){
+    var color = !f.c ? 'var(--red-soft)' : (f.p<80?'var(--red-soft)':(f.p<100?'var(--amber)':'var(--mint)'));
+    h+='<div class="li"><span class="li-n">'+f.n+'</span>'
+      +'<span class="li-v" style="color:'+color+';font-weight:700">'
+      +(f.c?Math.round(f.p)+'%':'sin cuota')+'</span></div>';
+  });
+  h+='</div>';
+  document.getElementById('sheet-t').textContent=m?m.n:'Métrica';
+  document.getElementById('sheet-b').innerHTML=h;
+  document.getElementById('sheet').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function cerrarSheet(){
+  document.getElementById('sheet').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+window.addEventListener('popstate', function(){
+  var s=document.getElementById('sheet');
+  if(s && s.classList.contains('open')){ cerrarSheet(); history.pushState(null,'',location.href); }
+});
+history.pushState(null,'',location.href);
+
+function cargar(){ EST.cargando=true; pintar(); if(window.bootRegional) bootRegional(); }
+
+if(!ASESOR){
+  document.getElementById('cuerpo').innerHTML='<div class="empty">'
+    +'No encontramos tu sesión.<br><br><span style="font-size:12px">'
+    +'Entra desde TechGuide en vez de abrir esta página directo.</span></div>';
+} else {
+  EST.periodo=periodoDe(new Date());
+  EST.region=ASESOR.region||'';
+  pintar();
+}
+</script>
+
+<script>
+window.bootRegional = async function(){
+  if(!ASESOR || !window.TG_FB) return;
+  var periodo = EST.periodo;
+  try{
+    var lista = await TG_FB.tiendasDeRegion(EST.region);
+    /* En paralelo: con 11 tiendas, en serie se sentiría lento. */
+    var datos = await Promise.all(lista.map(async function(t){
+      var ventas = await TG_FB.ventasDeTienda(t.id, periodo);
+      var cuotas = await TG_FB.cuotasDeTienda(t.id, periodo);
+      var uni={}, base={}, total=0, ases={};
+      ventas.forEach(function(v){
+        var tipo = (v.tipo==='pospago'||v.tipo==='migra') ? 'equipo'
+                 : v.tipo==='renov' ? 'renovacion'
+                 : v.tipo==='acces' ? 'accesorio' : v.tipo;
+        var met = tipo==='equipo' ? 'equipo' : tipo==='renovacion' ? 'renovacion'
+                : (tipo==='accesorio'||tipo==='addon') ? 'accesorios'
+                : tipo==='seguro' ? 'seguros' : tipo==='prepago' ? 'prepago' : tipo;
+        uni[met]=(uni[met]||0)+1;
+        if(typeof comisionUnitaria2026==='function'){
+          var c=comisionUnitaria2026({tipo:tipo, plan:v.plan, com:v.com, valor:v.valor,
+                                      recarga:v.recarga, alphacomm:v.alphacomm,
+                                      precioEquipo:v.precioEquipo});
+          base[met]=(base[met]||0)+c; total+=c;
+        }
+        if(v.attuid) ases[v.attuid]=1;
+      });
+      return { id:t.id, nombre:t.nombre, unidades:uni, base:base, cuotas:cuotas,
+               total:total, asesores:Object.keys(ases).length };
+    }));
+    EST.tiendas = datos;
+  }catch(e){ console.error('bootRegional', e); EST.tiendas=[]; }
+  EST.cargando=false;
+  pintar();
+};
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getFirestore, collection, doc, getDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+const cfg={apiKey:"AIzaSyC9qhK78TKkLUu_gcN3WRwyKV8-mTk1Lsc",authDomain:"techguide-primemx.firebaseapp.com",projectId:"techguide-primemx",storageBucket:"techguide-primemx.firebasestorage.app"};
+const db=getFirestore(initializeApp(cfg));
+
+function bonito(id){
+  return String(id).replace(/^prm[-_]/i,'').replace(/[-_]+/g,' ')
+    .replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+}
+
+window.TG_FB={
+  /* Tiendas de la región, deducidas de empleados. */
+  async tiendasDeRegion(region){
+    const out=[], vistas={};
+    try{
+      const q = region ? query(collection(db,'empleados'), where('region','==',region))
+                       : query(collection(db,'empleados'));
+      const s=await getDocs(q);
+      s.forEach(function(d){
+        const o=d.data();
+        if(o && o.tienda && !vistas[o.tienda]){
+          vistas[o.tienda]=1;
+          out.push({ id:o.tienda, nombre:bonito(o.tienda) });
+        }
+      });
+    }catch(e){ console.error('tiendasDeRegion',e); }
+    return out;
+  },
+  async ventasDeTienda(tienda, periodo){
+    const out=[];
+    try{
+      const s=await getDocs(query(collection(db,'comisiones_ventas'),where('tienda','==',tienda)));
+      s.forEach(function(d){ const o=d.data(); if(o && o.periodo===periodo) out.push(o); });
+    }catch(e){ console.error('ventasDeTienda',e); }
+    return out;
+  },
+  async cuotasDeTienda(tienda, periodo){
+    try{
+      const s=await getDoc(doc(db,'comisiones_cuotas',tienda+'__'+periodo));
+      if(!s.exists()) return {};
+      const d=s.data();
+      if(!d.metricas && typeof d.cuota==='number') return { equipo:d.cuota };
+      const r={};
+      Object.keys(d.metricas||{}).forEach(function(k){
+        const v=d.metricas[k];
+        if(v && v.valor!==undefined) r[k]=Number(v.valor);
+      });
+      return r;
+    }catch(e){ console.error('cuotasDeTienda',e); return {}; }
+  }
+};
+
+if(window.bootRegional) window.bootRegional();
+</script>
+<div class="pmd-overlay" id="pmd-overlay" onclick="pmdClose()"></div>
+<aside class="pmd-drawer" id="pmd-drawer" aria-label="Menú de navegación">
+  <button class="pmd-head" onclick="pmdGo('perfil')" aria-label="Editar perfil">
+    <div class="pmd-avatar" id="pmd-avatar">PM</div>
+    <div class="pmd-who"><b id="pmd-name">Prime MX</b><span id="pmd-role">Fuerza de ventas</span></div>
+    <svg class="pmd-head-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+  </button>
+  <nav class="pmd-nav">
+    <button class="pmd-item" onclick="pmdGo('inicio')"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>Inicio</button>
+    <button class="pmd-item" onclick="pmdGo('momento')"><svg viewBox="0 0 24 24"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>Equipos del momento</button>
+    <button class="pmd-item" onclick="pmdGo('topcomm')"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>Top comisiones</button>
+    <button class="pmd-item" style="background:var(--surface2)" onclick="pmdGo('comisiones')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.2v9.6M14.6 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.6 0-2.7.9-2.7 2.1s1.1 1.8 2.7 2.1 2.7.9 2.7 2.1-1.1 2.1-2.7 2.1c-1.1 0-2.1-.5-2.6-1.3"/></svg><span style="flex:1">Comisiones</span><span style="width:6px;height:6px;border-radius:50%;background:var(--att-blue);flex-shrink:0"></span></button>
+    <button class="pmd-item" id="pmd-cuotas" style="display:none" onclick="pmdGo('cuotas')"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Cuotas y ARPU</button>
+    <button class="pmd-item" onclick="pmdGo('dash')"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 5-7"/></svg>Actividad</button>
+    <button class="pmd-item" onclick="pmdGo('calc')"><svg viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M8 6.5h8M8 11h2M8 15h2M14 11h2M14 15h2M11 11h2M11 15h2"/></svg>Calculadora</button>
+    <button class="pmd-item" onclick="pmdGo('diag')"><svg viewBox="0 0 24 24"><path d="M3.5 13a8.5 8.5 0 0 1 17 0"/><path d="M12 13l4-3.5"/><circle cx="12" cy="13" r="1.4" fill="currentColor" stroke="none"/></svg>Diagnóstico</button>
+    <button class="pmd-item" id="pmd-accesos" style="display:none" onclick="pmdGo('accesos')"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4.5"/><path d="M11 12l8-8 2 2M16 7l2 2"/></svg>Accesos</button>
+    <div class="pmd-sep"></div>
+    <button class="pmd-item" id="pmd-theme" onclick="toggleTheme()"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span style="flex:1">Modo oscuro</span><span class="pmd-switch" id="pmd-theme-sw"></span></button>
+    <button class="pmd-item" id="pmd-desktop" onclick="toggleDesktop()"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span style="flex:1">Modo escritorio</span><span class="pmd-switch" id="pmd-desktop-sw"></span></button>
+    <button class="pmd-item" onclick="pmdGo('refresh')"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Actualizar datos</button>
+    <button class="pmd-item pmd-danger" onclick="pmdGo('logout')"><svg viewBox="0 0 24 24"><path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10"/><path d="M17 8l4 4-4 4M9 12h12"/></svg>Cerrar sesión</button>
+  </nav>
+  <div class="pmd-foot"><b>PRIME<span>MX</span></b> · TechGuide</div>
+</aside>
+<script>
+/* ── Menú lateral (drawer) — portado del home v1.11.47 ── */
+(function(){
+  var d=document.getElementById('pmd-drawer'), ov=document.getElementById('pmd-overlay');
+  if(!d||!ov) return;
+  function pmdCuotasVisible(){
+    /* La entrada de cuotas solo existe para gerente en adelante. */
+    try{
+      var s=JSON.parse(localStorage.getItem('primemx_sesion_v1')||'null');
+      var J={gerente:1,regional:2,director:3,director_nacional:4};
+      var el=document.getElementById('pmd-cuotas');
+      if(el && s && J[String(s.rol||'').toLowerCase()]) el.style.display='';
+    }catch(e){}
+  }
+  function pmdSes(){try{return JSON.parse(localStorage.getItem('primemx_sesion_v1')||'null');}catch(e){return null;}}
+  window.pmdOpen=function(){ pmdCuotasVisible();
+    try{
+      var s=pmdSes();
+      if(s&&s.attuid){
+        var nm=s.name||s.nombre||'Asesor';
+        var eN=document.getElementById('pmd-name'); if(eN)eN.textContent=nm;
+        var eR=document.getElementById('pmd-role');
+        if(eR){var r=String(s.rol||'asesor'); var reg=s.region?(' · '+s.region):''; eR.textContent=r.charAt(0).toUpperCase()+r.slice(1)+reg;}
+        var eA=document.getElementById('pmd-avatar');
+        if(eA){var p=String(nm).trim().split(/\s+/); eA.textContent=(((p[0]||'')[0]||'')+((p[1]||'')[0]||''))||(String(nm)[0]||'P');}
+        var acc=document.getElementById('pmd-accesos');
+        if(acc){var rl=String(s.rol||'').toLowerCase();acc.style.display=(s.attuid==='DC499W'||['regional','director','director_nacional'].indexOf(rl)>=0)?'flex':'none';}
+      }
+    }catch(e){}
+    if(window.pmdSyncTheme)pmdSyncTheme(); if(window.pmdSyncDesktop)pmdSyncDesktop();
+    d.classList.add('on'); ov.classList.add('on'); document.body.style.overflow='hidden';
+  };
+  window.pmdClose=function(){ d.classList.remove('on'); ov.classList.remove('on'); document.body.style.overflow=''; };
+  window.pmdSyncTheme=function(){ var sw=document.getElementById('pmd-theme-sw'); if(!sw)return; sw.classList.toggle('on',document.documentElement.getAttribute('data-theme')!=='light'); };
+  window.pmdGo=function(a){
+    var go=function(url){ pmdClose(); setTimeout(function(){ location.href=url; },160); };
+    switch(a){
+      case 'inicio':  go('index.html'); break;
+      case 'momento': go('index.html#momento'); break;
+      case 'topcomm': go('index.html#topcomm'); break;
+      case 'comisiones': pmdClose(); break;
+      case 'cuotas': go('comisiones-cuotas.html'); break;
+      case 'dash':    go('index.html#actividad'); break;
+      case 'calc':    go('index.html#calc'); break;
+      case 'diag':    go('index.html#diag'); break;
+      case 'accesos': go('index.html#accesos'); break;
+      case 'perfil':  go('index.html#perfil'); break;
+      case 'refresh': pmdClose(); setTimeout(function(){ if(typeof refreshDash==='function')refreshDash(); },220); break;
+      case 'logout':  pmdClose(); setTimeout(function(){ if(confirm('¿Cerrar sesión?')){ try{localStorage.removeItem('primemx_sesion_v1');}catch(e){} location.href='index.html'; } },200); break;
+    }
+  };
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape')pmdClose(); });
+  var sx=null;
+  d.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; },{passive:true});
+  d.addEventListener('touchmove',function(e){ if(sx===null)return; var dx=e.touches[0].clientX-sx; if(dx<0)d.style.transform='translateX('+dx+'px)'; },{passive:true});
+  d.addEventListener('touchend',function(e){ if(sx===null)return; var dx=e.changedTouches[0].clientX-sx; d.style.transform=''; if(dx<-70)pmdClose(); sx=null; });
+})();
+</script>
+</body>
+</html>
+
+</div>
+</body>
+</html>

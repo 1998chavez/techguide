@@ -80,6 +80,10 @@ input[type=number]:disabled{opacity:.45;cursor:not-allowed}
 .estado{color:var(--label3);font-size:11px;text-align:center;margin-top:8px}
 .estado.ok{color:var(--mint)}
 .estado.err{color:var(--red-soft)}
+.tienda-chip{display:inline-flex;align-items:center;gap:7px;background:var(--surface2);
+  border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:600;color:var(--cyan);
+  margin-bottom:12px}
+.tienda-chip svg{width:14px;height:14px}
 .weeks{display:flex;gap:7px;padding:2px 2px 4px;overflow-x:auto;margin-bottom:14px;
   -webkit-overflow-scrolling:touch;scrollbar-width:none}
 .weeks::-webkit-scrollbar{display:none}
@@ -180,6 +184,11 @@ var CAMPOS=[
 
 var EST={ tienda:'', mes:'', doc:null, tiendas:[], miRol:'gerente', sucio:false };
 
+function bonito(id){
+  return String(id).replace(/^prm[-_]/i,'').replace(/[-_]+/g,' ')
+    .replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+}
+
 function miNivel(){ return JER[String(EST.miRol||'').toLowerCase()] || 0; }
 
 /* ¿Puedo editar este campo? Solo si nadie de jerarquía mayor lo fijó. */
@@ -241,6 +250,10 @@ function centrarSemana(){
 function pintar(){
   var h='';
 
+  if(EST.ajena){
+    h+='<div class="tienda-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l2-5h14l2 5M4 9v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9M3 9h18M9 21v-6h6v6"/></svg>'
+      +bonito(EST.tienda)+'</div>';
+  }
   h+='<div class="weeks" id="weeks">'+semanasChips()+'</div>';
 
   var d=EST.doc||{};
@@ -397,8 +410,13 @@ window.bootCuotas = async function(){
       +'Solo gerentes y mandos superiores pueden capturar cuotas.</div>';
     return;
   }
-  EST.mes = periodoDe(new Date());     // 2026-W32
-  EST.tienda = ASESOR.tienda || ASESOR.sucursal || '';
+  /* El regional llega desde el drill de una tienda: ?t=tienda&p=semana.
+     El gerente entra sin parámetros y usa la suya. */
+  var qs = new URLSearchParams(location.search);
+  var tParam = qs.get('t'), pParam = qs.get('p');
+  EST.mes = pParam || periodoDe(new Date());
+  EST.tienda = tParam || ASESOR.tienda || ASESOR.sucursal || '';
+  EST.ajena = !!(tParam && tParam !== (ASESOR.tienda||ASESOR.sucursal));
   if(!EST.tienda){
     document.getElementById('cuerpo').innerHTML='<div class="empty">'
       +'Tu perfil no tiene tienda asignada.</div>';
