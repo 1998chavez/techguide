@@ -7,10 +7,10 @@
      tableros los leen de ahí. Antes cada tablero traía su propia copia. -->
 <script src="incentivos.js"></script><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <title>Cuotas semanales — TechGuide</title>
-<script src="comisiones2026.js"></script>
+
 <style>
 :root{
-  --bg:#080D16;--surface:#0F1622;--surface2:#16202E;--surface3:#1F2B3C;
+  --bg:#080D16;--surface:#131C2B;--surface2:#1D2939;--surface3:#28374B;
   --label:#EDF2F8;--label2:#D7E0EB;--label3:#8A97A9;--label4:#414E5F;
   --sep:rgba(237,242,248,0.10);
   --blue:#31A5E5;--cyan:#4DB4EC;--green:#30D158;--mint:#3BC292;
@@ -223,13 +223,18 @@ function rangoSemana(d){
 /* Barra de semanas con scroll horizontal, igual que el tablero de ventas.
    Seis atrás y una adelante: alcanza para corregir lo pasado y dejar lista
    la que viene. La actual arranca seleccionada. */
+/* [v1.12.2] El esquema 2026 arranca en la semana 32: no tiene sentido
+   ofrecer semanas anteriores, no hay nada que capturar ahí. */
+var SEMANA_INICIO = 32;
+
 function semanasChips(){
   var h=new Date(), o='';
-  for(var i=-6;i<=1;i++){
-    var d=new Date(h); d.setDate(d.getDate()+i*7);
-    var v=periodoDe(d);
+  var actual=isoWeek(h), anio=isoYear(h);
+  var hasta=Math.max(actual+1, SEMANA_INICIO+1);
+  for(var w=SEMANA_INICIO; w<=hasta; w++){
+    var v=anio+'-W'+String(w).padStart(2,'0');
     o+='<button class="wk'+(v===EST.mes?' on':'')+'" onclick="irSemana(\''+v+'\')">'
-      +'<small>Sem</small>'+isoWeek(d)+'</button>';
+      +'<small>Sem</small>'+w+'</button>';
   }
   return o;
 }
@@ -279,42 +284,9 @@ function pintar(){
     h+='</div>';
   });
 
-  h+='<button class="copiar" onclick="copiarAnterior()">'
-    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
-    +'Copiar de la semana anterior</button>';
-
   document.getElementById('cuerpo').innerHTML=h;
   document.getElementById('barra').style.display='block';
   centrarSemana();
-}
-
-/* Casi siempre la cuota se repite semana a semana; esto evita recapturar seis
-   campos. Respeta el candado: no pisa lo que fijó un mando superior. */
-async function copiarAnterior(){
-  var e=document.getElementById('estado');
-  var partes=EST.mes.split('-W');
-  var d=new Date(); d.setDate(d.getDate()-7);
-  // Reconstruir la semana anterior a la seleccionada
-  var y=Number(partes[0]), w=Number(partes[1])-1;
-  if(w<1){ y-=1; w=52; }
-  var previo=y+'-W'+String(w).padStart(2,'0');
-  e.textContent='Buscando la semana '+w+'…'; e.className='estado';
-  try{
-    var doc=await TG_FB.loadCuotas(EST.tienda, previo);
-    if(!doc || !doc.metricas || !Object.keys(doc.metricas).length){
-      e.textContent='La semana '+w+' no tiene cuotas capturadas.'; e.className='estado err'; return;
-    }
-    CAMPOS.forEach(function(c){
-      var el=document.getElementById('in-'+c.k);
-      var reg=doc.metricas[c.k];
-      if(el && !el.disabled && reg && reg.valor!==undefined) el.value=reg.valor;
-    });
-    EST.sucio=true;
-    e.textContent='Copiado de la semana '+w+'. Revisa y guarda.'; e.className='estado ok';
-  }catch(err){
-    console.error('copiarAnterior', err);
-    e.textContent='No se pudo leer la semana anterior.'; e.className='estado err';
-  }
 }
 
 function marcarSucio(){
