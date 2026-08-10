@@ -80,6 +80,15 @@ input[type=number]:disabled{opacity:.45;cursor:not-allowed}
 .estado{color:var(--label3);font-size:11px;text-align:center;margin-top:8px}
 .estado.ok{color:var(--mint)}
 .estado.err{color:var(--red-soft)}
+.weeks{display:flex;gap:7px;padding:2px 2px 4px;overflow-x:auto;margin-bottom:14px;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none}
+.weeks::-webkit-scrollbar{display:none}
+.wk{flex:0 0 auto;border:none;cursor:pointer;font-family:inherit;background:var(--surface);
+  color:var(--label3);border-radius:999px;padding:8px 15px;font-size:13px;font-weight:600;
+  transition:.18s}
+.wk small{display:block;font-size:9px;font-weight:600;opacity:.7;letter-spacing:.4px;
+  text-transform:uppercase}
+.wk.on{background:var(--blue);color:#fff}
 .copiar{width:100%;margin-top:14px;background:var(--surface);border:1px solid var(--sep);
   border-radius:var(--r-md);padding:11px;color:var(--cyan);font-size:12.5px;font-weight:600;
   font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
@@ -202,25 +211,37 @@ function rangoSemana(d){
   return l.getDate()+' '+M[l.getMonth()]+' – '+f.getDate()+' '+M[f.getMonth()];
 }
 
-function semanasOpciones(){
+/* Barra de semanas con scroll horizontal, igual que el tablero de ventas.
+   Seis atrás y una adelante: alcanza para corregir lo pasado y dejar lista
+   la que viene. La actual arranca seleccionada. */
+function semanasChips(){
   var h=new Date(), o='';
-  /* Tres semanas atrás, la actual y una adelante: alcanza para corregir
-     lo pasado y adelantar la que viene. */
-  for(var i=-3;i<=1;i++){
+  for(var i=-6;i<=1;i++){
     var d=new Date(h); d.setDate(d.getDate()+i*7);
     var v=periodoDe(d);
-    var etq='Semana '+isoWeek(d)+(i===0?' · actual':'');
-    o+='<option value="'+v+'"'+(v===EST.mes?' selected':'')+'>'+etq+'</option>';
+    o+='<button class="wk'+(v===EST.mes?' on':'')+'" onclick="irSemana(\''+v+'\')">'
+      +'<small>Sem</small>'+isoWeek(d)+'</button>';
   }
   return o;
+}
+
+function irSemana(v){
+  if(EST.sucio && !confirm('Tienes cambios sin guardar. ¿Cambiar de semana?')) return;
+  EST.mes=v; EST.sucio=false; cargar();
+  setTimeout(centrarSemana, 30);
+}
+
+/* La semana activa suele quedar fuera de vista al abrir; se centra sola. */
+function centrarSemana(){
+  var w=document.getElementById('weeks');
+  var a=w && w.querySelector('.wk.on');
+  if(w && a) w.scrollLeft = a.offsetLeft - (w.clientWidth/2) + (a.offsetWidth/2);
 }
 
 function pintar(){
   var h='';
 
-  h+='<div class="sel"><div class="sel-l">SEMANA</div><div class="sel-row">'
-    +'<select id="f-mes" onchange="cambiarMes()">'+semanasOpciones()+'</select>'
-    +'</div></div>';
+  h+='<div class="weeks" id="weeks">'+semanasChips()+'</div>';
 
   var d=EST.doc||{};
   var m=d.metricas||{};
@@ -251,6 +272,7 @@ function pintar(){
 
   document.getElementById('cuerpo').innerHTML=h;
   document.getElementById('barra').style.display='block';
+  centrarSemana();
 }
 
 /* Casi siempre la cuota se repite semana a semana; esto evita recapturar seis
@@ -357,10 +379,6 @@ async function cargar(){
   pintar();
 }
 
-function cambiarMes(){
-  EST.mes=document.getElementById('f-mes').value;
-  cargar();
-}
 
 window.addEventListener('beforeunload', function(ev){
   if(EST.sucio){ ev.preventDefault(); ev.returnValue=''; }
