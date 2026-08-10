@@ -625,11 +625,13 @@ function goHome(){show('s-home');document.getElementById('search-in').value=''}
 // Esta bandera corta TODAS las vías de entrada de una sola vez (CTA del home,
 // drawer, pmdGo, router por hash y enlaces directos), así no queda ninguna
 // puerta abierta por descuido.
-// [v1.12.0] REACTIVADO con el esquema 2026. Los cinco tableros corren sobre
-// comisiones2026.js, verificado contra los dos ejemplos del PDF.
-// Para volver a apagarlo: poner true aquí y regresar los display:none de
-// index.html (CTA del home y entrada del drawer).
-window.COMISIONES_OFF = false;
+// [v1.12.6] APAGADO. El esquema 2026 sigue en desarrollo y no está listo para
+// producción. Los archivos comisiones-*.html quedan en el repo pero son
+// inalcanzables desde la app.
+// Para reactivar: false aquí + quitar el display:none de la entrada del
+// drawer en index.html. El CTA del home NO se reactiva: por decisión de
+// Diego, Comisiones vive solo en el menú hamburguesa.
+window.COMISIONES_OFF = true;
 
 function abrirComisiones(){
   if(window.COMISIONES_OFF){
