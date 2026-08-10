@@ -9,7 +9,7 @@
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v11107-fix-a5pro5g-ago07';
+const CACHE_NAME = 'techguide-v1120-comisiones2026-ago09';
 // [v1.11.103] Caché SEPARADO y ESTABLE para los pesados que NO cambian entre
 // versiones: vendors.js (999KB, html2canvas+jsPDF) y catalog-img.js (866KB,
 // las fotos del catálogo). Antes vivían en CACHE_NAME, así que CADA bump
@@ -21,7 +21,7 @@ const SCOPE = '/techguide/';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1788500024';
+const BUILD_ID = '1788500025';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la
@@ -36,6 +36,10 @@ const OFFLINE_ASSETS = [
   SCOPE + 'comisiones-regional.html',
   SCOPE + 'comisiones-director.html',
   SCOPE + 'comisiones-dn.html',
+  // [v1.12.0] Esquema 2026: motor, captura de venta y captura de cuotas.
+  SCOPE + 'comisiones2026.js?v=' + BUILD_ID,
+  SCOPE + 'comisiones-captura.html',
+  SCOPE + 'comisiones-cuotas.html',
   // [v1.11.62] incentivos.js va SIN ?v=: es chico y se sirve stale-while-revalidate
   // para que los tableros (que no tienen BUILD_ID propio) puedan pedirlo igual.
   SCOPE + 'incentivos.js',

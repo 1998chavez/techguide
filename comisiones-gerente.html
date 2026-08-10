@@ -7,690 +7,602 @@
      tableros los leen de ahí. Antes cada tablero traía su propia copia. -->
 <script src="incentivos.js"></script><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <title>Comisiones · Gerente — TechGuide</title>
+<script src="comisiones2026.js"></script>
 <style>
 :root{
   --bg:#080D16;--surface:#0F1622;--surface2:#16202E;--surface3:#1F2B3C;
-  --label:#EDF2F8;--label2:#D7E0EB;--label3:#8A97A9;--label4:#414E5F;--sep:rgba(237,242,248,0.10);
-  --tint:rgba(255,255,255,.045);--shadow:rgba(0,0,0,.45);
-  --blue:#31A5E5;--cyan:#4DB4EC;
-  --green:#30D158;--red:#FF453A;--amber:#FFD60A;
-  --t-blue:#4DB4EC;--t-green:#3BC292;--t-amber:#FFD60A;--t-red:#FF8A80;--t-orange:#FF9F0A;
-  --r-xl:22px;--r-lg:16px;--r-md:12px;--r-sm:9px;
-  --fd:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",system-ui,sans-serif;
-  --fm:"SF Mono","Roboto Mono",ui-monospace,monospace;--ease:cubic-bezier(.16,1,.3,1);
-}
-:root[data-theme="light"]{
-  --bg:#F3F5F8;--surface:#FFFFFF;--surface2:#EBEFF4;--surface3:#DFE5EC;
-  --label:#0B1524;--label2:#24303F;--label3:#6D7B8E;--label4:#B3BDC9;--sep:rgba(11,21,36,0.10);
-  --tint:rgba(11,21,36,.04);--shadow:rgba(11,21,36,.10);
-  --blue:#0E7DBE;--cyan:#0E7DBE;
-  --green:#1E9E45;--red:#D0291C;--amber:#B58A00;
-  --t-blue:#0B6AA2;--t-green:#178A66;--t-amber:#A57C00;--t-red:#C42818;--t-orange:#CF5A00;
+  --label:#EDF2F8;--label2:#D7E0EB;--label3:#8A97A9;--label4:#414E5F;
+  --sep:rgba(237,242,248,0.10);
+  --blue:#31A5E5;--cyan:#4DB4EC;--green:#30D158;--mint:#3BC292;
+  --red:#FF453A;--red-soft:#FF8A80;--amber:#FFD60A;
+  --r-xl:22px;--r-lg:16px;--r-md:12px;
+  --att-blue:#31A5E5;--att-cyan:#4DB4EC;--pmd-accent:#31A5E5;--pmd-navy:#13203E;--pmd-danger:#FF453A;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0}
-body{background:var(--bg);color:var(--label);font-family:var(--fd);min-height:100vh;-webkit-font-smoothing:antialiased}
+body{margin:0;padding:0;background:var(--bg);color:var(--label);
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Inter,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
 .phone{width:100%;background:var(--bg);color:var(--label);overflow:hidden;position:relative;min-height:100vh;display:flex;flex-direction:column}
-[data-desktop="1"] .phone{max-width:1180px;margin:0 auto}
-.statusbar{height:14px}
-.hdr{padding:14px 20px 8px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:linear-gradient(180deg,var(--bg) 70%,transparent);z-index:20}
-.hdr .back{color:var(--t-blue);font-size:15px;font-weight:500;cursor:pointer}.hdr .back:active{opacity:.6}
-.hdr .htitle{text-align:center}.hdr h1{font-size:17px;font-weight:700;margin:0;letter-spacing:-.2px}
-.themebtn{border:none;background:var(--surface2);color:var(--label2);width:34px;height:30px;border-radius:9px;cursor:pointer;font-size:14px;display:grid;place-items:center;line-height:1}.themebtn:active{transform:scale(.92)}
-.scroll{flex:1;overflow-y:auto;padding:4px 16px 34px}.scroll::-webkit-scrollbar{display:none}
-.weeks{display:flex;gap:7px;padding:6px 4px 14px;overflow-x:auto}.weeks::-webkit-scrollbar{display:none}
-.wk{flex:0 0 auto;border:none;cursor:pointer;font-family:var(--fd);background:var(--surface);color:var(--label3);border-radius:999px;padding:8px 15px;font-size:13px;font-weight:600;transition:.18s}
-.wk small{display:block;font-size:9px;font-weight:600;opacity:.7;letter-spacing:.4px;text-transform:uppercase}
-.wk.on{background:var(--label);color:var(--bg)}
+.wrap{max-width:560px;margin:0 auto;width:100%;padding-bottom:40px}
+code{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:var(--surface2);padding:2px 6px;border-radius:5px;color:var(--label2)}
 
-.hero{background:radial-gradient(130% 130% at 0% 0%,rgba(0,168,224,.18),var(--surface) 55%);border:1px solid rgba(0,168,224,.22);border-radius:var(--r-xl);padding:17px 19px}
-.idrow{display:flex;align-items:center;gap:13px}
-.idav{width:46px;height:46px;border-radius:13px;flex:0 0 auto;background:rgba(0,168,224,.18);color:var(--t-blue);display:grid;place-items:center;font-family:var(--fm);font-weight:800;font-size:16px}
-.idname{font-size:19px;font-weight:700;letter-spacing:-.3px}
-.idrole{font-size:12.5px;color:var(--label3);font-weight:500;margin-top:3px}
+.nav{position:sticky;top:0;z-index:40;background:rgba(8,13,22,.92);
+  backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--sep);
+  display:flex;align-items:center;gap:8px;padding:12px 16px;
+  padding-top:calc(12px + env(safe-area-inset-top))}
+.nav-back{background:none;border:none;color:var(--blue);font-size:15px;
+  font-family:inherit;display:flex;align-items:center;gap:2px;padding:0;cursor:pointer}
+.nav-t{flex:1;font-size:16px;font-weight:600;letter-spacing:-.02em}
+.nav-cta{background:var(--blue);color:#fff;border:none;border-radius:22px;
+  padding:10px 17px;font-size:14px;font-weight:700;font-family:inherit;
+  display:flex;align-items:center;gap:6px;cursor:pointer;
+  box-shadow:0 2px 10px rgba(49,165,229,.32)}
+.nav-cta:active{opacity:.7}
 
-.slab{font-size:12.5px;color:var(--label3);font-weight:700;letter-spacing:.3px;text-transform:uppercase;margin:22px 6px 10px;display:flex;justify-content:space-between;align-items:center;gap:12px}
-.simnote{font-size:11px;color:var(--label3);line-height:1.45;background:var(--tint);border-radius:12px;padding:11px 14px;margin-top:20px;text-align:center}.simnote b{color:var(--label2);font-weight:700}
-.slab .cnt{flex:0 0 auto}.cbtn{flex:0 0 auto;white-space:nowrap}
-.slab .cnt{color:var(--label4);font-family:var(--fm);text-transform:none}
-.cbtn{border:none;background:none;color:var(--t-blue);font-family:var(--fd);font-size:12px;font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0}
-.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.tile{background:var(--surface);border-radius:15px;padding:14px 15px}
-.tile.full{grid-column:1/-1}
-.tih{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--label2)}
-.tih .lock{margin-left:auto;font-size:9.5px;font-weight:700;color:var(--label3);background:var(--tint);padding:3px 9px;border-radius:6px}
-.tiv{font-family:var(--fm);font-size:27px;font-weight:700;letter-spacing:-1px;margin:8px 0 9px;font-variant-numeric:tabular-nums}
-.tiv.green{color:var(--t-green)}.tiv.amber{color:var(--t-amber)}.tiv.empty{color:var(--label4)}.tiv.red{color:var(--t-red)}
-.tibar{height:7px;background:var(--surface3);border-radius:99px;overflow:hidden}
-.tibarf{display:block;height:100%;border-radius:99px}.tibarf.green{background:linear-gradient(90deg,var(--green),#5BE584)}.tibarf.amber{background:linear-gradient(90deg,var(--amber),#FFE34D)}.tibarf.red{background:linear-gradient(90deg,var(--red),#FF8A80)}
-.tisub{font-size:10.5px;color:var(--label3);font-weight:500;margin-top:9px}
+.pad{padding:14px 16px}
 
-.bonohero{display:block;width:100%;text-align:left;cursor:pointer;background:radial-gradient(130% 130% at 100% 0%,rgba(255,159,10,.18),var(--surface) 60%);border:1px solid rgba(255,159,10,.28);border-radius:var(--r-xl);padding:17px 19px;margin-top:14px;font-family:var(--fd);transition:.15s}.bonohero:active{transform:scale(.99)}
-.bhtop{display:flex;align-items:center;justify-content:space-between}
-.bhlab{font-size:13px;font-weight:700;color:var(--label2)}
-.bhchev{color:var(--label4);font-size:18px}
-.bhval{font-family:var(--fm);font-size:34px;font-weight:700;color:var(--t-orange);letter-spacing:-1px;margin:6px 0 3px;font-variant-numeric:tabular-nums}
-.bhsub{font-size:11.5px;color:var(--label3);font-weight:500}
+/* ── Hero ── */
+.hero{background:var(--surface);border:1px solid rgba(0,168,224,.22);
+  border-radius:var(--r-xl);padding:16px 17px}
+.hero-top{display:flex;align-items:center;gap:8px}
+.hero-l{color:var(--label3);font-size:10px;letter-spacing:.7px;flex:1}
+.piso{display:flex;align-items:center;gap:4px;border-radius:20px;padding:3px 9px;
+  font-size:10px;font-weight:600;cursor:pointer;border:none;font-family:inherit}
+.piso.ok{background:rgba(48,209,88,.13);color:var(--green)}
+.piso.no{background:rgba(255,69,58,.13);color:var(--red-soft)}
+.hero-v{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-top:4px}
+.hero-v.off{color:var(--label4)}
+.hero-s{color:var(--label3);font-size:11.5px;margin-top:3px}
 
-.gwrap{display:flex;flex-direction:column;gap:9px}
-/* [v1.11.63] tarjetas de "qué falta para cobrar" */
-.gapcard{background:var(--surface);border:1px solid var(--sep);border-radius:14px;padding:13px 14px}
-.gapok{border-color:rgba(52,199,89,.45)}
-.gapwarn{border-color:rgba(255,149,0,.5)}
-.gaptop{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.gaplab{font-size:13.5px;font-weight:700}
-.gapdelta{font-size:15px;font-weight:800;color:var(--t-orange,#FF6F00);flex-shrink:0}
-.gapdim{color:var(--label4,#8E8E93) !important;font-size:12px;font-weight:700}
-/* [v1.11.65] lista "para cobrar todo te falta" dentro del sheet del bono */
-.fltwrap{display:flex;flex-direction:column;gap:7px;margin-top:2px}
-.fltrow{display:flex;align-items:center;gap:9px;background:rgba(128,128,128,.10);border-radius:10px;padding:11px 12px}
-.fltdot{width:7px;height:7px;border-radius:50%;background:var(--t-amber,#FFD60A);flex-shrink:0}
-.fltdot.ok{background:#34C759}
-.flttx{font-size:12.5px;line-height:1.4;color:var(--label2,#C7C7CC)}
-.fltok .flttx{color:#34C759}
-.gapnum{display:flex;align-items:baseline;gap:7px;margin-top:7px;flex-wrap:wrap}
-.gapnow{font-size:22px;font-weight:800;color:#FF3B30}
-.gaparrow{font-size:13px;color:var(--label4,#8E8E93)}
-.gapmeta{font-size:15px;font-weight:700;color:#34C759}
-.gapfalta{font-size:11.5px;color:var(--label3);margin-left:auto;background:rgba(128,128,128,.14);padding:3px 8px;border-radius:99px;font-weight:600}
-.gapsub{font-size:11.5px;color:var(--label3);line-height:1.45;margin-top:6px}
-.gapcoach{margin-top:10px;padding-top:9px;border-top:1px solid var(--sep)}
-.gapcoachlab{font-size:10px;font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
-.gapcrow{display:flex;align-items:center;gap:8px;padding:3px 0}
-.gapcn{font-size:12.5px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gapcd{font-size:11px;color:var(--label3);flex-shrink:0}
-.gapcp{font-size:12.5px;font-weight:700;color:#FF9500;flex-shrink:0;min-width:34px;text-align:right}
-.gapbtn{margin-top:9px;font-size:12px;font-weight:700;color:var(--t-orange,#FF6F00);cursor:pointer}
-.abtn{display:flex;align-items:center;gap:12px;width:100%;cursor:pointer;border:none;font-family:var(--fd);background:var(--surface);border-radius:14px;padding:12px 15px;transition:.15s;text-align:left}
-.abtn:active{transform:scale(.99)}
-.aava{width:38px;height:38px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;font-size:13px;font-weight:800;font-family:var(--fm);background:rgba(0,168,224,.16);color:var(--t-blue)}
-.aava.dim{background:var(--surface3);color:var(--label4)}
-.ameta{flex:1;min-width:0;display:flex;flex-direction:column}
-.ameta .an{font-size:14.5px;font-weight:700;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ameta .asub{font-size:11.5px;color:var(--label3);font-weight:500;margin-top:2px}
-.aright{text-align:right;flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
-.acom{font-family:var(--fm);font-size:14.5px;font-weight:700;color:var(--t-orange);font-variant-numeric:tabular-nums}.acom.z{color:var(--label4)}
-.aflag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px}
-.aflag.full{background:rgba(48,209,88,.16);color:var(--t-green)}.aflag.low{background:rgba(255,69,58,.16);color:var(--t-red)}
-.teamhero{display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--sep);border-radius:var(--r-lg);padding:16px 18px;margin-top:14px}
-.teamhero .thlab{font-size:13.5px;color:var(--label2);font-weight:700}.teamhero .thval{font-family:var(--fm);font-size:24px;font-weight:700;color:var(--t-orange);font-variant-numeric:tabular-nums}
+/* ── Monedero ── */
+.mon{background:var(--surface);border:1px solid rgba(59,194,146,.28);
+  border-radius:var(--r-xl);padding:17px 17px 15px;margin-top:10px;
+  width:100%;text-align:left;font-family:inherit;cursor:pointer;display:block}
+.mon:active{opacity:.75}
+.mon-row{display:flex;align-items:center;gap:14px}
+.mon-ico{width:54px;height:54px;border-radius:16px;background:rgba(59,194,146,.14);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mon-ico svg{width:30px;height:30px;stroke:var(--mint)}
+.mon-l{color:var(--mint);font-size:10px;letter-spacing:.7px}
+.mon-v{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-top:2px;color:var(--label)}
+.mon-foot{display:flex;align-items:center;gap:7px;margin-top:13px;padding-top:12px;
+  border-top:1px solid var(--sep);color:var(--label3);font-size:11px}
+.mon-foot b{color:var(--mint);font-weight:700}
 
-.scrim{position:absolute;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:.25s;z-index:40;backdrop-filter:blur(2px)}.scrim.on{opacity:1;pointer-events:auto}
-.sheet{position:absolute;left:0;right:0;bottom:0;z-index:50;background:var(--surface);border-radius:26px 26px 0 0;padding:8px 18px 24px;transform:translateY(110%);transition:transform .32s var(--ease);min-height:72%;max-height:94%;overflow-y:auto}.sheet::-webkit-scrollbar{display:none}.sheet.on{transform:translateY(0)}
-.grip{width:38px;height:5px;background:var(--surface3);border-radius:9px;margin:6px auto 12px}
-.shead{display:flex;align-items:center;gap:11px;margin-bottom:6px}
-.shead .sava{width:36px;height:36px;border-radius:10px;flex:0 0 auto;display:grid;place-items:center;font-size:13px;font-weight:800;font-family:var(--fm);background:rgba(0,168,224,.16);color:var(--t-blue)}
-.shead h2{font-size:19px;font-weight:700;margin:0;letter-spacing:-.3px;flex:1}
-.shead .sb{border:none;background:var(--surface2);color:var(--t-blue);width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:17px;display:grid;place-items:center}
-.ssub{font-size:12px;color:var(--label3);font-weight:500;margin:0 0 16px;padding-left:1px}
+/* ── Métricas ── */
+.sec{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 9px}
+.sec-t{color:var(--label3);font-size:10px;letter-spacing:.7px}
+.sec-r{color:var(--label3);font-size:10px}
+.mets{display:flex;flex-direction:column;gap:7px}
+.met{background:var(--surface2);border-left:3px solid var(--label4);
+  border-radius:0 var(--r-md) var(--r-md) 0;padding:11px 13px;
+  width:100%;text-align:left;font-family:inherit;border-top:none;border-right:none;
+  border-bottom:none;cursor:pointer;display:block}
+.met:active{opacity:.75}
+.met.g{border-left-color:var(--green)}
+.met.a{border-left-color:var(--amber)}
+.met.r{border-left-color:var(--red)}
+.met-row{display:flex;align-items:center;gap:10px}
+.met-n{color:var(--label);font-size:12.5px;font-weight:600}
+.met-c{color:var(--label3);font-size:10px;margin-top:2px}
+.met-c b{color:var(--label);font-weight:700}
+.met-c.warn{color:var(--amber)}
+.met-c.bad{color:var(--red-soft)}
+.met-p{font-size:18px;font-weight:800;letter-spacing:-.02em;text-align:right}
+.met-x{font-size:9.5px;text-align:right;margin-top:1px}
+.met-x.on{color:var(--mint)}
+.met-x.off{color:var(--label3)}
+.met-x.bad{color:var(--red-soft)}
+.chev{color:var(--label4);flex-shrink:0}
+.chev svg{width:15px;height:15px;display:block}
+.arpu{margin-top:8px;padding-top:7px;border-top:1px solid rgba(237,242,248,.07);
+  display:flex;align-items:center;gap:6px;color:var(--label3);font-size:9.5px}
+.arpu svg{width:11px;height:11px;flex-shrink:0}
+.arpu b{font-weight:700}
+.arpu.ok svg{stroke:var(--mint)} .arpu.ok b{color:var(--mint)}
+.arpu.no svg{stroke:var(--red-soft)} .arpu.no b{color:var(--red-soft)}
 
-.metrow{padding:13px 0}.metrow+.metrow{border-top:1px solid var(--sep)}
-.mtop{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}
-.mlab{font-size:14px;font-weight:600}.mlab .me{margin-right:7px}
-.qbox{display:flex;align-items:center;gap:7px;flex:0 0 auto}.qbox label{font-size:10.5px;color:var(--label3);font-weight:600}
-.qbox input{width:78px;font-family:var(--fm);font-size:15px;font-weight:700;color:var(--label);background:var(--surface2);border:1px solid var(--sep);border-radius:10px;padding:9px 11px;text-align:center;outline:none;-moz-appearance:textfield}
-.qbox input::-webkit-outer-spin-button,.qbox input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}.qbox input:focus{border-color:var(--blue)}
-.mbot{display:flex;align-items:center;gap:10px}.mbot .mreal{font-size:11.5px;color:var(--label3);font-weight:500;width:74px;flex:0 0 auto}
-.mbar{flex:1;height:7px;background:var(--surface3);border-radius:99px;overflow:hidden}.mbar .mf{height:100%;border-radius:99px;transition:width .35s var(--ease)}.mf.green{background:linear-gradient(90deg,var(--green),#5BE584)}.mf.amber{background:linear-gradient(90deg,var(--amber),#FFE34D)}
-.mpct{font-family:var(--fm);font-size:12px;font-weight:700;width:58px;text-align:right;flex:0 0 auto}.mpct.green{color:var(--t-green)}.mpct.amber{color:var(--t-amber)}.mpct.empty{color:var(--label4)}
-.savebtn{width:100%;border:none;cursor:pointer;font-family:var(--fd);font-size:16px;font-weight:700;background:var(--blue);color:#fff;height:50px;border-radius:14px;margin-top:18px}.savebtn:active{transform:translateY(1px)}
-.shint{font-size:11px;color:var(--label3);line-height:1.45;margin:12px 2px 0;text-align:center}
+.note{color:var(--label4);font-size:10px;text-align:center;margin-top:20px;
+  font-style:italic;line-height:1.5;padding:0 20px}
 
-.dcom{text-align:center;margin:4px 0 18px}
-.dcom .dcv{font-family:var(--fm);font-size:40px;font-weight:700;letter-spacing:-.8px;color:var(--t-orange);font-variant-numeric:tabular-nums}.dcom .dcv .cur{font-size:21px;vertical-align:6px}
-.dcom .dcl{font-size:12px;color:var(--label3);font-weight:500;margin-top:1px}
-.dstats{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.dstat{background:var(--tint);border-radius:12px;padding:12px 13px}
-.dstat .dk{font-size:11px;color:var(--label3);font-weight:600;display:flex;align-items:center;gap:6px}
-.dstat .dv{font-family:var(--fm);font-size:20px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
-.dflags{margin-top:14px;display:flex;flex-direction:column;gap:8px}
-.dfl{display:flex;gap:9px;align-items:center;font-size:12px;font-weight:500;padding:10px 12px;border-radius:11px;line-height:1.35}
-.dfl.ok{background:rgba(48,209,88,.12);color:var(--t-green)}.dfl.no{background:rgba(255,214,10,.1);color:var(--t-amber)}
-.dfl .e{flex:0 0 auto;font-size:14px}
-.vsec{font-size:12px;color:var(--label3);font-weight:700;letter-spacing:.3px;text-transform:uppercase;margin:20px 2px 9px}
-.vlist{display:flex;flex-direction:column;background:var(--surface2);border-radius:13px;overflow:hidden}
-.vrow{display:flex;align-items:center;gap:11px;padding:11px 13px;border-top:1px solid var(--sep)}.vrow:first-child{border-top:none}
-.vic{width:30px;height:30px;border-radius:9px;flex:0 0 auto;display:grid;place-items:center;font-size:14px;background:var(--tint)}
-.vmeta{flex:1;min-width:0;display:flex;flex-direction:column}
-.vt{font-size:13px;font-weight:600}.vs{font-size:11px;color:var(--label3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.vcom{font-family:var(--fm);font-size:13px;font-weight:700;color:var(--t-orange);flex:0 0 auto}
-.vempty{padding:16px;text-align:center;color:var(--label3);font-size:12.5px}
+/* ── Hoja de detalle ── */
+.sheet{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);
+  backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center}
+.sheet.open{display:flex}
+.sheet-in{background:var(--bg);width:100%;max-width:560px;max-height:92vh;
+  border-radius:24px 24px 0 0;overflow:hidden;display:flex;flex-direction:column;
+  animation:up .28s cubic-bezier(.32,.72,0,1)}
+@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-h{display:flex;align-items:center;gap:9px;padding:15px 17px;
+  border-bottom:1px solid var(--sep);background:var(--surface);flex-shrink:0}
+.sheet-t{flex:1;font-size:16px;font-weight:700;letter-spacing:-.02em}
+.sheet-x{background:none;border:none;color:var(--blue);font-size:14px;
+  font-family:inherit;cursor:pointer;padding:4px}
+.sheet-b{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:15px 17px 30px;
+  padding-bottom:calc(30px + env(safe-area-inset-bottom))}
 
-.bsec{font-size:11px;color:var(--label3);font-weight:700;letter-spacing:.3px;text-transform:uppercase;margin:18px 2px 9px}
-.brow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:9px 2px}.brow+.brow{border-top:1px solid var(--sep)}
-.brow .bk{font-size:13px;color:var(--label2);font-weight:600}.brow .bk small{display:block;font-size:10.5px;color:var(--label3);font-weight:500;margin-top:2px}
-.brow .bv{font-family:var(--fm);font-size:14px;font-weight:700;flex:0 0 auto;font-variant-numeric:tabular-nums}
-.bfac{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 6px}
-.fchip{font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:7px;font-family:var(--fm)}
-.fchip.on{background:rgba(48,209,88,.16);color:var(--t-green)}.fchip.off{background:var(--surface3);color:var(--label4)}
-.btot{display:flex;justify-content:space-between;align-items:center;background:var(--tint);border-radius:13px;padding:14px 15px;margin-top:14px}
-.btot .btl{font-size:13px;font-weight:700}.btot .btv{font-family:var(--fm);font-size:20px;font-weight:700;color:var(--t-orange);font-variant-numeric:tabular-nums}
-.bnote{display:flex;gap:9px;align-items:flex-start;font-size:11.5px;font-weight:500;padding:11px 12px;border-radius:11px;line-height:1.4;margin-top:10px;background:rgba(255,214,10,.1);color:var(--t-amber)}.bnote .e{flex:0 0 auto}
-.hide{display:none !important}
-@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+.esc{display:flex;flex-direction:column-reverse;gap:6px}
+.paso{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--surface2);border-radius:var(--r-md)}
+.paso.done{opacity:.45}
+.paso.now{background:rgba(48,209,88,.13);border:1px solid rgba(48,209,88,.32)}
+.paso.next{border:1px dashed rgba(255,214,10,.4)}
+.paso-i{font-size:13px;flex-shrink:0;display:flex}
+.paso-i svg{width:14px;height:14px}
+.paso.done .paso-i svg{stroke:var(--green)}
+.paso.now .paso-i svg{stroke:var(--green)}
+.paso.next .paso-i svg{stroke:var(--amber)}
+.paso-p{font-size:11px;font-weight:700;width:36px;color:var(--label3)}
+.paso.now .paso-p,.paso.now .paso-l{color:var(--green)}
+.paso.next .paso-p,.paso.next .paso-l{color:var(--amber)}
+.paso-l{font-size:11px;color:var(--label3);flex:1}
+.paso-v{font-size:11px;font-weight:700;color:var(--label3)}
+.paso.now .paso-v{color:var(--green)}
+.paso.next .paso-v{color:var(--amber)}
+
+.tip{margin-top:13px;border-radius:var(--r-md);padding:11px 13px;
+  display:flex;gap:9px;align-items:flex-start;font-size:11px;line-height:1.45}
+.tip.amber{background:rgba(255,214,10,.1);color:var(--amber)}
+.tip.red{background:rgba(255,69,58,.1);color:var(--red-soft)}
+.tip svg{width:14px;height:14px;flex-shrink:0;margin-top:1px}
+.tip b{font-weight:700}
+
+.lista{background:var(--surface);border-radius:var(--r-md);overflow:hidden;margin-top:9px}
+.li{display:flex;padding:10px 13px;font-size:11.5px}
+.li+.li{border-top:1px solid var(--sep)}
+.li-n{flex:1;color:var(--label)}
+.li-v{color:var(--label3)}
+
+.empty{text-align:center;padding:40px 20px;color:var(--label3);font-size:13px;line-height:1.6}
+/* ── Propio del hub del gerente ── */
+.tabs{display:flex;gap:5px;padding:10px 16px 0;max-width:560px;margin:0 auto;width:100%}
+.tab{flex:1;background:var(--surface);border:1px solid transparent;border-radius:11px;
+  padding:9px;font-size:12.5px;font-weight:600;font-family:inherit;color:var(--label3);
+  cursor:pointer}
+.tab.on{background:var(--surface2);border-color:rgba(0,168,224,.32);color:var(--cyan)}
+.pill{background:rgba(0,168,224,.13);color:var(--cyan);font-size:9.5px;font-weight:700;
+  padding:3px 9px;border-radius:20px}
+.pill.verde{background:rgba(48,209,88,.13);color:var(--green)}
+.cta-cuota{width:100%;margin-top:10px;background:var(--surface);
+  border:1px dashed rgba(255,214,10,.4);border-radius:var(--r-lg);padding:13px 14px;
+  display:flex;align-items:center;gap:11px;font-family:inherit;text-align:left;cursor:pointer}
+.cta-cuota:active{opacity:.75}
+.cta-cuota svg{width:19px;height:19px;stroke:var(--amber);flex-shrink:0}
+.cta-cuota span{color:var(--label3);font-size:11px;line-height:1.45;flex:1}
+.cta-cuota b{color:var(--amber);font-weight:700;font-size:12.5px}
+.aviso-info{background:var(--surface);border-radius:var(--r-md);padding:11px 13px;
+  display:flex;gap:9px;align-items:flex-start;color:var(--label3);font-size:11px;
+  line-height:1.45;margin-top:10px}
+.aviso-info svg{width:14px;height:14px;flex-shrink:0;margin-top:1px;stroke:var(--cyan)}
+.det-hero{background:var(--surface);border:1px solid rgba(0,168,224,.22);
+  border-radius:var(--r-lg);padding:14px 15px;display:flex;align-items:flex-end;gap:12px}
+.tip.verde{background:rgba(59,194,146,.1);color:var(--mint)}
+.btn-mini{background:var(--blue);color:#fff;border:none;border-radius:12px;
+  padding:10px 18px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
+
+/* ── Drawer compartido (antes en comisiones-ui.css; inline para que el
+      tablero no dependa de un archivo externo que puede no resolver) ── */
+/* ============================================================================
+   comisiones-ui.css — [v1.12.3] UI compartida de los 5 tableros de comisiones.
+   ANTES: cada comisiones-*.html traía su propia copia de este bloque (drawer
+   pmd-*). Ahora es una sola fuente; los tableros lo enlazan con <link>.
+   Nota: usa alias --pmd-* porque los tokens difieren entre tableros
+   (ejecutivo: --att-blue · mandos: --blue). También corrige que en los mandos
+   var(--att-blue) no existía y el avatar/switch quedaban sin fondo.
+   ========================================================================== */
+:root{--pmd-accent:#31A5E5;--pmd-navy:#101A30;--pmd-danger:#FF453A}
+:root[data-theme="light"]{--pmd-accent:#0E7DBE;--pmd-navy:#13203E;--pmd-danger:#D0291C}
+
+.pmd-overlay{position:fixed;inset:0;z-index:1200;background:rgba(9,13,22,.44);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:opacity .26s cubic-bezier(.32,.72,0,1),visibility .26s}
+.pmd-overlay.on{opacity:1;visibility:visible}
+.pmd-drawer{position:fixed;top:0;left:0;bottom:0;z-index:1201;width:84%;max-width:328px;background:var(--surface);box-shadow:0 18px 60px rgba(0,0,0,.5);transform:translateX(-102%);transition:transform .28s cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0)}
+.pmd-drawer.on{transform:none}
+.pmd-head{padding:22px 20px 18px;display:flex;align-items:center;gap:13px;width:100%;background:transparent;border:none;border-bottom:1px solid var(--sep);cursor:pointer;font-family:inherit;text-align:left;transition:background .16s ease}
+.pmd-head:hover{background:var(--surface2)}
+.pmd-avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--pmd-navy);color:#fff;font-weight:700;font-size:17px;flex-shrink:0;letter-spacing:.02em}
+.pmd-who b{display:block;font-size:16px;font-weight:800;color:var(--label);letter-spacing:-.01em}
+.pmd-who span{display:block;font-size:12.5px;color:var(--label3);margin-top:2px;font-weight:500}
+.pmd-head-chev{width:18px;height:18px;color:var(--label3);flex-shrink:0;margin-left:auto}
+.pmd-nav{padding:10px 12px 12px;display:flex;flex-direction:column;gap:1px;flex:1;overflow-y:auto}
+.pmd-item{display:flex;align-items:center;gap:13px;padding:12px 13px;border-radius:10px;background:transparent;border:none;color:var(--label);font-size:14.5px;font-weight:600;letter-spacing:-.01em;width:100%;text-align:left;cursor:pointer;font-family:inherit;transition:background .16s ease,transform .1s ease}
+.pmd-item svg{width:19px;height:19px;color:var(--label3);flex-shrink:0;stroke-width:1.9;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;transition:color .16s ease}
+.pmd-item:hover{background:var(--surface2)}
+.pmd-item:hover svg{color:var(--label)}
+.pmd-item:active{transform:scale(.98)}
+.pmd-item:focus-visible{outline:2px solid var(--pmd-accent);outline-offset:2px}
+.pmd-sep{height:1px;background:var(--sep);margin:10px 14px}
+.pmd-danger{color:var(--pmd-danger)} .pmd-danger svg{color:var(--pmd-danger)}
+.pmd-switch{width:38px;height:22px;border-radius:999px;background:var(--sep);position:relative;transition:background .2s ease;flex-shrink:0}
+.pmd-switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s ease}
+.pmd-switch.on{background:var(--pmd-accent)}
+.pmd-switch.on::after{transform:translateX(16px)}
+.pmd-foot{padding:14px 22px calc(16px + env(safe-area-inset-bottom,0));font-size:11px;color:var(--label3);border-top:1px solid var(--sep);font-weight:600}
+.pmd-foot b{font-weight:800;color:var(--label)} .pmd-foot b span{color:var(--pmd-accent)}
+
 </style>
 </head>
 <body>
 <div class="phone">
-  <div class="statusbar"></div>
-  <style>#refreshBtn.spin svg{animation:tgspin .8s linear infinite}@keyframes tgspin{to{transform:rotate(360deg)}}</style><div class="hdr"><button class="themebtn" onclick="pmdOpen()" aria-label="Menú"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="htitle"><h1>Comisiones</h1></div><span class="hdr-actions" style="display:inline-flex;gap:6px;align-items:center"><button class="themebtn" id="refreshBtn" onclick="refreshDash()" title="Actualizar"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button></span></div>
-  <div class="scroll">
-    <div class="weeks" id="weeks"></div>
-    <button onclick="location.href='comisiones-ejecutivo.html'" style="width:100%;border:none;cursor:pointer;font-size:15.5px;font-weight:700;background:linear-gradient(180deg,#FF9F0A,#E8730C);color:#1a1000;height:50px;border-radius:15px;box-shadow:0 8px 22px -8px rgba(255,107,0,.45);display:flex;align-items:center;justify-content:center;gap:8px;margin:2px 0 14px">Mis ventas y comisión personal</button>
-
-    <div class="hero">
-      <div class="idrow"><div class="idav">MS</div><div class="idmeta"><div class="idname">Mónica Salas</div><div class="idrole">Gerente · León Centro</div></div></div>
-    </div>
-
-    <button class="bonohero" onclick="openBono()">
-      <div class="bhtop"><span class="bhlab">Tu bono gerencial</span><span class="bhchev">›</span></div>
-      <div class="bhval" id="bonoVal">$0</div>
-      <div class="bhsub" id="bonoSub">—</div>
+<div class="wrap">
+  <div class="nav">
+    <button class="nav-back" onclick="location.href='index.html'" aria-label="Volver">
+      <svg viewBox="0 0 9 15" width="8" height="14" fill="none"><path d="M7.5 1L1 7.5 7.5 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
-
-    <div class="slab">Avance de tu tienda por indicador <button class="cbtn" onclick="openCuota()">Ajustar cuota ›</button></div>
-    <div class="tiles" id="tiles"></div>
-
-  <div class="slab">Qué falta para cobrar</div>
-  <div id="gapWrap" class="gwrap"></div>
-
-    <div class="teamhero"><span class="thlab">El equipo cobra</span><span class="thval" id="teamTot">$0</span></div>
-    <div class="slab">Tu equipo <span class="cnt">6 asesores</span></div>
-    <div id="aseWrap" class="gwrap"></div>
-    <div class="simnote">Las cantidades son una <b>simulación informativa</b> y no representan el cobro real.</div>
+    <span class="nav-t" id="nav-t">Mi tienda</span>
+    <button class="nav-cta" onclick="abrirCaptura()">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Registrar venta
+    </button>
   </div>
 
-  <div class="scrim" id="scrim" onclick="closeSheet()"></div>
-
-  <div class="sheet" id="sheetCuota">
-    <div class="grip"></div>
-    <div class="shead"><div class="sava" id="cuAva">LC</div><h2 id="cuName">León Centro</h2><button class="sb" onclick="closeSheet()">✕</button></div>
-    <p class="ssub" id="cuSub">Cuota · semana 25</p>
-    <div id="metWrap"></div>
-    <button class="savebtn" onclick="guardarCuota()">Guardar cuota</button>
-    <p class="shint">La barra es lo que la tienda lleva vendido contra su cuota.</p>
+  <div class="tabs">
+    <button class="tab on" id="tab-tienda" onclick="verTab('tienda')">Mi tienda</button>
+    <button class="tab" id="tab-mias" onclick="verTab('mias')">Mis ventas</button>
   </div>
 
-  <div class="sheet" id="sheetAse">
-    <div class="grip"></div>
-    <div class="shead"><div class="sava" id="aAva">DR</div><h2 id="aName">Asesor</h2><button class="sb" onclick="closeSheet()">✕</button></div>
-    <p class="ssub" id="aId">ATTUID</p>
-    <div class="dcom"><div class="dcv"><span class="cur">$</span><span id="aCom">0</span></div><div class="dcl">comisión de la semana</div></div>
-    <div class="dstats" id="aStats"></div>
-    <div class="dflags" id="aFlags"></div>
-    <div class="vsec">Ventas de la semana</div>
-    <div class="vlist" id="aVentas"></div>
-  </div>
+  <div class="pad" id="cuerpo"><div class="empty">Cargando…</div></div>
+</div>
 
-  <div class="sheet" id="sheetBono">
-    <div class="grip"></div>
-    <div class="shead"><div class="sava" style="background:rgba(255,159,10,.18);color:var(--t-orange)">$</div><h2>Tu bono gerencial</h2><button class="sb" onclick="closeSheet()">✕</button></div>
-    <div class="dcom"><div class="dcv" id="bTotal"><span class="cur">$</span>0</div><div class="dcl" id="bTotalSub">total de la semana</div></div>
-    <div id="bBody"></div>
+<div class="sheet" id="sheet" onclick="if(event.target===this)cerrarSheet()">
+  <div class="sheet-in">
+    <div class="sheet-h">
+      <span class="sheet-t" id="sheet-t"></span>
+      <button class="sheet-x" onclick="cerrarSheet()">Cerrar</button>
+    </div>
+    <div class="sheet-b" id="sheet-b"></div>
   </div>
-
-  <div class="toast" id="toast" style="position:absolute;left:50%;bottom:30px;transform:translate(-50%,20px);z-index:60;background:var(--green);color:#06210f;font-weight:700;font-size:13.5px;padding:12px 20px;border-radius:13px;opacity:0;pointer-events:none;transition:.3s">✓ Cuota guardada</div>
 </div>
 
 <script>
-const fmt=n=>Math.round(n).toLocaleString('es-MX');
-const MET=[{k:'po',label:'Pospago',e:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>'},{k:'re',label:'Renovaciones',e:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>'},{k:'ac',label:'Accesorios',e:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>'},{k:'se',label:'Seguros',e:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'},{k:'pr',label:'Prepago',e:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1.5" y="4.5" width="21" height="15" rx="2.5"/><path d="M1.5 10h21"/></svg>'}];
+/* ══ HUB DEL GERENTE · 2026 ═══════════════════════════════════════════════
+   Dos sombreros en una pantalla:
+   · Mi tienda — el 35% de la comisión base que genera su equipo, más su
+     monedero en PUNTOS (acelerador 3%/5% + puntos de marca).
+   · Mis ventas — el gerente también vende. Sus ventas suman a la tienda,
+     no a ningún asesor, y se le pagan con las reglas del ejecutivo salvo
+     el piso de 2 ventas, del que está exento.
+   ═════════════════════════════════════════════════════════════════════════ */
 
-/* [v1.11.64] PLAN_ARPU se mudó a incentivos.js (fuente única, ya incluye Lite y A Negocios). */
-/* Titanio: renta real $799 para el ARPU (la comisión sí paga como Black). */
-/* [v1.11.67] PDF jul26: el ARPU solo considera Premium y Lite. cuentaParaArpuMix()
-   deja fuera A Negocios y cualquier plan sin renta registrada (ver incentivos.js). */
-function arpuOf(v){let u=0,s=0;for(const p in v){if(!cuentaParaArpuMix(p))continue;u+=v[p];s+=v[p]*(PLAN_ARPU[p]||0);}return u>0?Math.round(s/u):0;}
-/* ===== comisión real del asesor — MISMO motor que el ejecutivo (recalcHero): candado tienda 80% + 2 pospago, escalado por alcance (100% con 6+ ventas), incentivos equipo/mix/seguros ===== */
-var METRIC_ALC={pospago:'pospago',migra:'pospago',renov:'renov',seguro:'seguro',addon:'seguro',acces:'acces',prepago:'prepago'};
-var PLAN_ORDER=['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Diamante','Titanio','Titanio Trade In'];
-function isAzul3plus(p){return PLAN_ORDER.indexOf(p)>=2;}
-function isPlataPlus(p){return PLAN_ORDER.indexOf(p)>=3;}
+var ASESOR=null;
+try{ ASESOR=JSON.parse(localStorage.getItem('primemx_sesion_v1')||'null'); }catch(e){}
 
+var METRICAS=[
+  {k:'equipo',n:'Equipo'},{k:'servicio',n:'Servicio'},{k:'renovacion',n:'Renovación'},
+  {k:'accesorios',n:'Accesorios'},{k:'seguros',n:'Seguros'},{k:'prepago',n:'Prepago'}
+];
 
-function incentivoEquipo(modelo,plan){var bp=EQUIP_INC_BY_PLAN[modelo];var m=bp?(bp[plan]||0):(EQUIP_INC[modelo]||0);if(plan==='Titanio Trade In')m=Math.min(Math.round(m*0.5),150);return m;}
-var MIX_TIENDA=0; /* mix real de la tienda; se asigna antes de calcular comisiones */
-function comisionAsesor(L,ALC,esGte){
-  L=Array.isArray(L)?L:[];
-  let pos=0,lines=0;L.forEach(function(v){if(v.pos)pos++;if(v.line)lines++;});
-  const incInd=lines>=6;
-  const po=ALC.pospago||0,re=ALC.renov||0,ac=ALC.acces||0;
-  const accede=(po>=0.80)&&(esGte||pos>=2);
-  if(!accede)return {pay:0,base:0,incEq:0,incMix:0,inc7:0,accede:false};
-  let base=0;L.forEach(function(v){var a=ALC[METRIC_ALC[v.tipo]]||0;if(a>=0.80)base+=incInd?(v.com||0):(v.com||0)*Math.min(a,1);});base=Math.round(base);
-  const incEqL=L.filter(function(v){return (v.tipo==='pospago'||v.tipo==='renov'||v.tipo==='migra')&&v.modelo&&incentivoEquipo(v.modelo,v.plan)>0&&isAzul3plus(v.plan)&&(v.tipo==='renov'?v.tag!=='zero':v.tag==='nuevo');});const incEq=incEqL.filter(function(v){var mn=EQUIP_INC_MIN_UNITS[v.modelo]||0;return mn<=1||incEqL.filter(function(x){return x.modelo===v.modelo;}).length>=mn;}).reduce(function(s,v){return s+incentivoEquipo(v.modelo,v.plan);},0);
-  /* [v1.11.72] MISMO fix que comisiones-ejecutivo (v1.11.71): el incentivo mix
-     de $100/línea aplica POR INDICADOR que llega al 100%, no con un candado único
-     (pospago O renov) que pagaba todas las líneas juntas. Este tablero calculaba
-     la comisión del asesor con el bug viejo, por eso el gerente veía un número y
-     el asesor otro. Ahora coinciden. */
-  const linPos=L.filter(function(v){return (v.tipo==='pospago'||v.tipo==='migra')&&v.line&&isAzul3plus(v.plan);});
-  const linRen=L.filter(function(v){return v.tipo==='renov'&&v.line&&isAzul3plus(v.plan);});
-  const linP=linPos.filter(function(v){return isPlataPlus(v.plan);});
-  let incMix=0;
-  if(MIX_TIENDA>=55&&po>=1.00)incMix+=linPos.length*100;   /* pospago paga pospago */
-  if(MIX_TIENDA>=55&&re>=1.00)incMix+=linRen.length*100;   /* renov paga renov */
-  if(po>=1.00&&re>=1.00&&ac>=1.00&&MIX_TIENDA>=60)incMix+=linP.length*200;
-  const segSum=L.filter(function(v){return v.seg;}).reduce(function(s,v){return s+(v.com||0);},0);
-  const inc7=(lines>=7&&(ALC.seguro||0)>=0.80)?Math.round(segSum*0.10):0; /* +10% requiere 7+ ventas Y seguros >=80% (solo gatea el extra, no la comision base del seguro) */
-  return {pay:base+incEq+incMix+inc7,base:base,incEq:incEq,incMix:incMix,inc7:inc7,accede:true};
+var EST={ tab:'tienda', tienda:'', mes:'',
+          baseTienda:{}, unidades:{}, cuotas:{}, arpu:{},
+          misVentas:[], misUnidades:{},
+          monedero:0, monSemana:0, res:null, resMias:null, asesores:[] };
+
+function isoWeek(d){
+  d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  var day=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-day);
+  var ys=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil((((d-ys)/86400000)+1)/7);
+}
+function isoYear(d){
+  d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  var day=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-day);
+  return d.getUTCFullYear();
+}
+function periodoDe(d){ return isoYear(d)+'-W'+String(isoWeek(d)).padStart(2,'0'); }
+
+function fmx(n){ return '$'+Math.round(n||0).toLocaleString('es-MX'); }
+function pts(n){ return Math.round(n||0).toLocaleString('es-MX'); }
+function pct(u,c){ return (!c||c<=0)?0:(u/c)*100; }
+function faltan(u,c,meta){ if(!c||c<=0) return null; var n=Math.ceil(c*meta/100-u); return n>0?n:0; }
+function mesNombre(){
+  var M=['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
+         'septiembre','octubre','noviembre','diciembre'];
+  return M[new Date().getMonth()];
+}
+function claseMet(p){ return p<80?'r':(p<100?'a':'g'); }
+
+/* El gerente sube de escalón al 100% (+3%) y al 110% (+5%) — distinto del
+   ejecutivo, que arranca en 105%. */
+function siguienteGer(p){
+  if(p<80) return {meta:80,txt:'para cobrar'};
+  if(p<100) return {meta:100,txt:'para +3%'};
+  if(p<110) return {meta:110,txt:'para +5%'};
+  return null;
 }
 
-
-let TIENDA={id:'PRM TDA LEON CENTRO',n:'León Centro',ini:'LC',
-  cuota:{po:0,re:0,ac:0,se:0,pr:0},
-  real:{po:0,re:0,ac:0,se:0,pr:0},
-  mix:0,accAlpha:0,accTot:0,opsNuevo:0,
-  ventasPo:{},
-  ventasRe:{}};
-/* ARPU se calcula del desglose por plan (PLAN_ARPU); Titanio cuenta con su renta real $799. */
-
-/* asesores de la tienda. po/re/ac/se = unidades vendidas; com = comisión estimada */
-let ASESORES=[];
-
-const alc=(real,cuota)=>cuota>0?Math.min(real/cuota,1):null;
-const cls=a=>a==null?'empty':a>=0.80?'green':'amber';
-
-function renderStore(){
-  const tile=(m,lock)=>{
-    const av=alc(TIENDA.real[m.k],TIENDA.cuota[m.k]),c=cls(av),pc=av==null?0:Math.round(av*100);
-    const sub=`<div class="tisub">${TIENDA.cuota[m.k]>0?TIENDA.real[m.k]+' / '+TIENDA.cuota[m.k]+(m.k==='po'?' activaciones':''):'sin cuota'}</div>`;
-    const lk=lock?'<span class="lock"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg> desbloqueo</span>':'';
-    return `<div class="tile ${lock?'full':''}"><div class="tih"><span>${m.e}</span>${m.label}${lk}</div><div class="tiv ${c}">${av==null?'—':pc+'%'}</div><div class="tibar"><span class="tibarf ${c}" style="width:${pc}%"></span></div>${sub}</div>`;
-  };
-  const allV={...TIENDA.ventasPo};for(const p in TIENDA.ventasRe)allV[p]=(allV[p]||0)+TIENDA.ventasRe[p];
-  const arpuG=arpuOf(TIENDA.ventasPo),arpuOk=arpuG>=630;
-  const mixV=TIENDA.mix,mixc=mixV>=65?'green':mixV>=60?'amber':'red';
-  const arpuTile=`<div class="tile"><div class="tih"><span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.2v9.6M14.6 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.6 0-2.7.9-2.7 2.1s1.1 1.8 2.7 2.1 2.7.9 2.7 2.1-1.1 2.1-2.7 2.1c-1.1 0-2.1-.5-2.6-1.3"/></svg></span>ARPU</div><div class="tiv ${arpuOk?'green':'amber'}">$${fmt(arpuG)}</div><div class="tisub">${arpuOk?'≥ $630 · activa incentivo':'abajo de $630'}</div></div>`;
-  const mixTile=`<div class="tile"><div class="tih"><span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg></span>Mix equipo nuevo</div><div class="tiv ${mixc}">${mixV}%</div><div class="tibar"><span class="tibarf ${mixc}" style="width:${mixV}%"></span></div><div class="tisub">mín 60% · óptimo 65%</div></div>`;
-  document.getElementById('tiles').innerHTML=tile(MET[0],true)+tile(MET[1])+tile(MET[2])+tile(MET[3])+tile(MET[4])+arpuTile+mixTile;
-}
-
-/* ---- bono gerencial ---- */
-function calcBono(){
-  const arpuPo=arpuOf(TIENDA.ventasPo),arpuRe=arpuOf(TIENDA.ventasRe);
-  const allV={...TIENDA.ventasPo};for(const p in TIENDA.ventasRe)allV[p]=(allV[p]||0)+TIENDA.ventasRe[p];
-  const arpuGen=arpuPo;
-  const A={po:alc(TIENDA.real.po,TIENDA.cuota.po),re:alc(TIENDA.real.re,TIENDA.cuota.re),ac:alc(TIENDA.real.ac,TIENDA.cuota.ac),pr:alc(TIENDA.real.pr,TIENDA.cuota.pr),se:alc(TIENDA.real.se,TIENDA.cuota.se)};
-  const ko=A.po>=0.80;                                   // candado: pospago ≥80%
-  const X=A.po>=0.80?0.25:0;                             // pospago
-  const otras=A.ac>=0.80&&A.pr>=0.80&&A.se>=0.80;
-  const Z=otras?0.05:0;                                  // otras métricas (acc+prepago+seguros)
-  const Y=A.re>=0.80?0.25:0;                             // renovaciones
-  const M=TIENDA.mix>=60?0.05:0;                         // mix
-  const basePo=TIENDA.real.po*arpuPo*(X+Z);
-  const baseRe=TIENDA.real.re*arpuRe*(Y+M);
-  const base=ko?(basePo+baseRe):0;
-  // incentivo ARPU-Mix gerente (sobre el ARPU general de la tienda)
-  let arpuMix=0,arpuMixTxt='no aplica';
-  if(ko&&TIENDA.mix>=60){ /* candado global: cualquier incentivo requiere mix >=60% */
-    if(A.po>=1.00&&arpuGen>=660){arpuMix=1100;arpuMixTxt='pospago ≥100% · ARPU ≥$660';}
-    else if(A.po>=0.80&&arpuGen>=630){arpuMix=600;arpuMixTxt='pospago ≥80% · ARPU ≥$630';}
-    if(A.po>=1.00&&A.re>=1.00&&TIENDA.mix>=65){
-      if(arpuGen>=660){arpuMix=2800;arpuMixTxt='logro ≥100% · ARPU ≥$660 + adicional';}
-      else if(arpuGen>=630){arpuMix=1400;arpuMixTxt='logro ≥100% · ARPU ≥$630 + adicional';}
-    }
+function recalcular(){
+  if(typeof calcularGerente2026!=='function'){
+    document.getElementById('cuerpo').innerHTML='<div class="empty">'
+      +'No se pudo cargar el motor de comisiones.<br>Falta subir '
+      +'<code>comisiones2026.js</code> al servidor.</div>';
+    return;
   }
-  // incentivo accesorios gerente
-  const attach=TIENDA.opsNuevo>0?TIENDA.accTot/TIENDA.opsNuevo:0; /* PDF GT jul26 pág.7: TODOS los accesorios / OPS equipo nuevo (pospago nuevo + renov) */
-  let incAcc=0;
-  /* [v1.11.66] BUG CORREGIDO: faltaba el candado de renovaciones. El PDF de gerentes
-     (pág. 7) dice textual: "Solo necesitas cumplir con tu cuota SEMANAL de pospago
-     >=80%, renovación >= 80% y un mix >= 60%". El tablero del regional sí lo exigía
-     (bonoGerente) y este no, así que el gerente veía hasta $2,000 de más que su jefe.
-     Escalones del PDF: 55-59% = $500 · 60-69% = $800 · >=70% = $2,000. */
-  if(ko&&A.re>=0.80&&TIENDA.mix>=60&&attach>=0.55) incAcc=attach>=0.70?2000:attach>=0.60?800:500;
-  const subtotal=base+arpuMix+incAcc;
-  const desbloqueo=(A.po+A.re)>=2.00&&TIENDA.mix>=60;
-  const total=ko?(desbloqueo?subtotal:Math.min(subtotal,20000)):0;
-  return {A,ko,X,Z,Y,M,otras,arpuPo,arpuRe,arpuGen,basePo,baseRe,base,arpuMix,arpuMixTxt,attach,incAcc,subtotal,desbloqueo,total,topado:!desbloqueo&&subtotal>20000};
-}
-/* ---- [v1.11.65] "Para cobrar todo te falta" ------------------------------ */
-/* Es la MISMA lista que el regional ve de cada tienda (bonoGerente().falta en
-   comisiones-regional/director/dn). Hasta ahora el gerente era el único que no
-   la veía: el mando sabía qué le faltaba y el dueño del número no.
-   Se genera desde calcBono() —el motor del propio gerente— para que el sheet no
-   pueda contradecir al monto que muestra arriba. Textos idénticos a los del
-   regional, en segunda persona. */
-function faltaGerente(b){
-  if(b.A.po==null) return ['Asignar cuota a la tienda'];
-  if(!b.ko) return ['Subir pospago al 80% — es el candado principal, sin él no se libera nada'];
-  const f=[];
-  /* [v1.11.69] Incentivo ARPU-Mix — 4 escalones del PDF GT jul26 pág.6, no 2.
-     BASE POR LOGRO:      pospago>=80% y ARPU>=$630 => $600 · pospago>=100% y ARPU>=$660 => $1,100
-     ADICIONAL (se suma cuando logro pospago+renov >=100% Y mix>=65%):
-                          ARPU>=$630 => total $1,400 (+$800) · ARPU>=$660 => total $2,800 (+$1,700)
-     La lista apunta al SIGUIENTE escalón real y dice el salto (lo que ganas de más),
-     no el monto total del incentivo. Se calcula desde b.arpuMix, el mismo que paga
-     el bono, para que no pueda contradecirlo. */
-  {
-    const _am=b.arpuGen, _po=(b.A.po||0), _re=(b.A.re||0), _mx=TIENDA.mix;
-    const _adic=(_po>=1.00&&_re>=1.00&&_mx>=65); /* llave del bono adicional */
-    if(_am<630){
-      f.push('ARPU a $630 para activar el incentivo (+$600)');
-    } else if(!_adic){
-      /* ya cobra el base ($600 o $1,100); el gran salto es el adicional */
-      if(_po<1.00||_re<1.00) f.push('Pospago y renovaciones al 100% para el bono adicional de ARPU-Mix (+$800)');
-      else if(_mx<65) f.push('Mix de tienda a 65% para el bono adicional de ARPU-Mix (+$800)');
-      else if(_am<660) f.push('ARPU a $660 para subir el incentivo base (+$500)');
-    } else {
-      /* ya trae el adicional: solo falta el peldaño de ARPU $660 */
-      if(_am<660) f.push('ARPU a $660 para el incentivo máximo de $2,800 (+$1,400)');
-    }
-  }
-  /* [v1.11.68] Escalones reales del PDF GT jul26 pág.7: 55-59% = $500 · 60-69% = $800
-     · >=70% = $2,000. Antes esto decía "a 65%", que no corresponde a ningún escalón:
-     al que iba en 56% le pedía 9 puntos de más, y al que iba en 66% le escondía que con
-     4 puntos más pasaba de $800 a $2,000. Ahora la línea apunta al siguiente escalón real
-     y dice lo que ese salto paga. */
-  if(b.attach<0.55) f.push('Attach de accesorios a 55% para el incentivo (+$500)');
-  else if(b.attach<0.60) f.push('Attach de accesorios a 60% para subir el incentivo a $800 (+$300)');
-  else if(b.attach<0.70) f.push('Attach de accesorios a 70% para el incentivo máximo de $2,000 (+$1,200)');
-  if(b.A.re<0.80) f.push('Renovaciones a 80%');
-  if(TIENDA.mix<60) f.push('Mix de equipo nuevo a 60%');
-  if(b.A.se<0.80||b.A.ac<0.80||b.A.pr<0.80) f.push('Accesorios, seguros y prepago todos al 80%');
-  return f;
-}
-function renderBono(){
-  const b=calcBono();
-  document.getElementById('bonoVal').textContent='$'+fmt(b.total);
-  document.getElementById('bonoSub').textContent=!b.ko?'Bloqueado · pospago bajo 80%':b.topado?'En el tope de $20,000 · toca para ver':'Base + incentivos · toca para ver';
-}
-function openBono(){
-  const b=calcBono();
-  document.getElementById('bTotal').innerHTML='<span class="cur">$</span>'+fmt(b.total);
-  document.getElementById('bTotalSub').textContent=!b.ko?'la tienda no llega al 80% de pospago':b.topado?'tope de $20,000 esta semana':'total de la semana';
-  const fac=`<div class="bfac"><span class="fchip ${b.X?'on':'off'}">X pospago ${b.X?'25%':'0%'}</span><span class="fchip ${b.Z?'on':'off'}">Z otras ${b.Z?'5%':'0%'}</span><span class="fchip ${b.Y?'on':'off'}">Y renov ${b.Y?'25%':'0%'}</span><span class="fchip ${b.M?'on':'off'}">M mix ${b.M?'5%':'0%'}</span></div>`;
-  let html=`<p class="bsec">Bono base</p>${fac}`;
-  html+=`<div class="brow"><span class="bk">Pospago<small>${TIENDA.real.po} ventas × $${fmt(b.arpuPo)} ARPU × ${Math.round((b.X+b.Z)*100)}%</small></span><span class="bv">$${fmt(b.basePo)}</span></div>`;
-  html+=`<div class="brow"><span class="bk">Renovaciones<small>${TIENDA.real.re} ventas × $${fmt(b.arpuRe)} ARPU × ${Math.round((b.Y+b.M)*100)}%</small></span><span class="bv">$${fmt(b.baseRe)}</span></div>`;
-  if(!b.Z) html+=`<div class="brow"><span class="bk" style="color:var(--t-amber)">Z apagado<small>Seguros va en ${Math.round(b.A.se*100)}% — abajo del 80%</small></span><span class="bv" style="color:var(--label4)">—</span></div>`;
-  html+=`<p class="bsec">Incentivos</p>`;
-  html+=`<div class="brow"><span class="bk">ARPU-Mix<small>${b.arpuMixTxt}</small></span><span class="bv ${b.arpuMix?'':'off'}" style="color:${b.arpuMix?'var(--t-orange)':'var(--label4)'}">${b.arpuMix?'+$'+fmt(b.arpuMix):'—'}</span></div>`;
-  html+=`<div class="brow"><span class="bk">Accesorios<small>attach rate ${Math.round(b.attach*100)}% (accesorios ÷ nuevos + renov)</small></span><span class="bv" style="color:${b.incAcc?'var(--t-orange)':'var(--label4)'}">${b.incAcc?'+$'+fmt(b.incAcc):'—'}</span></div>`;
-  html+=`<div class="btot"><span class="btl">Suma${b.topado?' (antes del tope)':''}</span><span class="btv">$${fmt(b.subtotal)}</span></div>`;
-  if(b.topado){
-    const falta=200-Math.round((b.A.po+b.A.re)*100);
-    html+=`<div class="bnote"><span class="e"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg></span><span>El tope es $20,000. Para cobrar arriba necesitas pospago + renov ≥200% (vas ${Math.round((b.A.po+b.A.re)*100)}%, faltan ${falta} pts) y mix ≥60%.</span></div>`;
-    html+=`<div class="btot" style="background:rgba(255,159,10,.12)"><span class="btl">Total a cobrar</span><span class="btv">$${fmt(b.total)}</span></div>`;
-  }
-  const _falta=faltaGerente(b);
-  if(_falta.length){
-    html+=`<p class="bsec">Para cobrar todo te falta</p>`;
-    html+=`<div class="fltwrap">`;
-    _falta.forEach(x=>{ html+=`<div class="fltrow"><span class="fltdot"></span><span class="flttx">${x}</span></div>`; });
-    html+=`</div>`;
-  } else {
-    html+=`<p class="bsec">Para cobrar todo te falta</p><div class="fltwrap"><div class="fltrow fltok"><span class="fltdot ok"></span><span class="flttx">Nada. Estás cobrando todo lo que el esquema permite esta semana.</span></div></div>`;
-  }
-  document.getElementById('bBody').innerHTML=html;
-  document.getElementById('scrim').classList.add('on');document.getElementById('sheetBono').classList.add('on');document.getElementById('sheetBono').scrollTop=0;
-}
-/* ---- [v1.11.63] QUÉ FALTA PARA COBRAR ----------------------------------- */
-/* El esquema del gerente es de acantilados: mix ≥60%, attach 55/60/70%,
-   alcances ≥80%. A 59% de mix el bono se cae COMPLETO y dos ventas lo arreglan
-   — pero hoy eso se descubre cuando cierra el mes. Esto convierte cada candado
-   en "faltan N de X → +$Y", y para los que no dependen de cuota, dice a quién
-   coachear.
+  var mets=METRICAS.map(function(m){
+    return { nombre:m.n, baseTienda:EST.baseTienda[m.k]||0,
+             alcance:pct(EST.unidades[m.k]||0, EST.cuotas[m.k]||0),
+             ventasConIncentivo:0, puntosPorVenta:0 };
+  });
+  EST.res = calcularGerente2026(mets, {
+    arpuEquipo: EST.arpu.equipo, arpuServicio: EST.arpu.servicio
+  });
 
-   NO duplica ninguna regla del esquema: simula sobre calcBono() —el motor real—
-   y mide la diferencia. Si mañana cambia el esquema, este bloque se mueve solo.
-   Solo lee lo ya cargado (TIENDA + ASESORES): cero consultas nuevas. */
-function _bonoSi(cambios){
-  const bak = {mix:TIENDA.mix, accTot:TIENDA.accTot, real:Object.assign({},TIENDA.real)};
-  if(cambios.mix    !== undefined) TIENDA.mix = cambios.mix;
-  if(cambios.accTot !== undefined) TIENDA.accTot = cambios.accTot;
-  if(cambios.po     !== undefined) TIENDA.real.po = cambios.po;
-  if(cambios.re     !== undefined) TIENDA.real.re = cambios.re;
-  let r;
-  try{ r = calcBono(); }
-  finally { TIENDA.mix=bak.mix; TIENDA.accTot=bak.accTot; TIENDA.real=bak.real; }
-  return r;
+  var alcances={};
+  METRICAS.forEach(function(m){ alcances[m.k]=pct(EST.unidades[m.k]||0, EST.cuotas[m.k]||0); });
+  EST.resMias = calcularEjecutivo2026(EST.misVentas, alcances, {
+    arpu:{ equipo:EST.arpu.equipo, servicio:EST.arpu.servicio },
+    alcanceEquipo: alcances.equipo,
+    exigePiso: false      // el gerente no lleva piso
+  });
+  EST.alcances=alcances;
+  try{ pintar(); }catch(e){
+    console.error('pintar',e);
+    document.getElementById('cuerpo').innerHTML='<div class="empty">'
+      +'No se pudieron mostrar los datos.<br>Intenta recargar.</div>';
+  }
 }
-/* Asesores que arrastran el mix de la tienda (su % de pospago con equipo). */
-function _coachMix(){
-  return ASESORES.map(a=>{
-    const L=a.lineas||[];
-    /* [v1.11.67] misma regla que el mix de la tienda: solo Premium y Lite */
-    const p=L.filter(l=>l.k==='po'&&cuentaParaArpuMix(l.plan)).length;
-    const n=L.filter(l=>l.k==='po'&&cuentaParaArpuMix(l.plan)&&l.tag==='nuevo').length;
-    return {n:a.n, pct:p>0?Math.round(n/p*100):null, det:n+' de '+p+' con equipo'};
-  }).filter(x=>x.pct!==null && x.pct<60).sort((a,b)=>a.pct-b.pct).slice(0,3);
-}
-/* Asesores con attach de accesorios bajo (accesorios ÷ sus nuevos + renov). */
-function _coachAcc(){
-  return ASESORES.map(a=>{
-    const L=a.lineas||[];
-    const ops=L.filter(l=>l.k==='po'&&l.tag==='nuevo').length + L.filter(l=>l.k==='re').length;
-    return {n:a.n, pct:ops>0?Math.round((a.ac||0)/ops*100):null, det:(a.ac||0)+' de '+ops+' ventas'};
-  }).filter(x=>x.pct!==null && x.pct<55).sort((a,b)=>a.pct-b.pct).slice(0,3);
-}
-function calcGaps(){
-  const act=calcBono();
-  const po=TIENDA.real.po, re=TIENDA.real.re;
-  const nuevos=Math.max(0,(TIENDA.opsNuevo||0)-re);   /* opsNuevo = nuevos + renov */
-  const ops=TIENDA.opsNuevo||0;
-  const gaps=[];
 
-  /* 1) Candado maestro: pospago ≥80% de cuota. Sin esto el bono es $0. */
-  if(TIENDA.cuota.po>0 && act.A.po!==null && act.A.po<0.80){
-    const x=Math.max(1,Math.ceil(0.80*TIENDA.cuota.po)-po);
-    gaps.push({lab:'Pospago vs cuota',act:Math.round(act.A.po*100)+'%',meta:'80%',
-      falta:x+' pospago'+(x>1?'s':''),delta:_bonoSi({po:po+x}).total-act.total,coach:[],
-      nota:'Candado maestro: sin esto todo tu bono es $0.'});
-  }
-  /* 2) Mix ≥60%: candado de TODOS los incentivos gerenciales. */
-  if(po>0 && TIENDA.mix<60){
-    const x=Math.max(1,Math.ceil((0.6*po-nuevos)/0.4));
-    gaps.push({lab:'Mix equipo nuevo',act:TIENDA.mix+'%',meta:'60%',
-      falta:x+' pospago'+(x>1?'s':'')+' con equipo',delta:_bonoSi({mix:60}).total-act.total,coach:_coachMix(),
-      nota:'No pide vender más: pide que el pospago salga con equipo.'});
-  }
-  /* 3) Renovaciones ≥80% de cuota. */
-  if(TIENDA.cuota.re>0 && act.A.re!==null && act.A.re<0.80){
-    const x=Math.max(1,Math.ceil(0.80*TIENDA.cuota.re)-re);
-    gaps.push({lab:'Renovaciones vs cuota',act:Math.round(act.A.re*100)+'%',meta:'80%',
-      falta:x+' renovacion'+(x>1?'es':''),delta:_bonoSi({re:re+x}).total-act.total,coach:[]});
-  }
-  /* 4) Accesorios: escalones 55→$500, 60→$800, 70→$2,000. */
-  const attach=ops>0?TIENDA.accTot/ops:0;
-  const esc=[[0.55,500],[0.60,800],[0.70,2000]].find(e=>attach<e[0]);
-  if(esc && ops>0){
-    const x=Math.max(1,Math.ceil(esc[0]*ops)-TIENDA.accTot);
-    const dAcc=_bonoSi({accTot:TIENDA.accTot+x}).total-act.total;
-    /* Los incentivos gerenciales están encadenados: accesorios solo paga si
-       mix≥60 y pospago≥80. Si el escalón vale $0 hoy es porque un candado de
-       arriba está cerrado — decirlo así vale más que un "+$0" a secas, porque
-       además te da el ORDEN en que hay que atacar. */
-    let dCond=0;
-    if(dAcc<=0){
-      const abierto={mix:Math.max(TIENDA.mix,60)};
-      if(TIENDA.cuota.po>0 && act.A.po!==null && act.A.po<0.80) abierto.po=Math.ceil(0.80*TIENDA.cuota.po);
-      const conTodo=_bonoSi(Object.assign({accTot:TIENDA.accTot+x},abierto)).total;
-      dCond=conTodo-_bonoSi(abierto).total;
-    }
-    gaps.push({lab:'Accesorios (attach)',act:Math.round(attach*100)+'%',meta:Math.round(esc[0]*100)+'%',
-      falta:x+' accesorio'+(x>1?'s':''),delta:dAcc,deltaCond:dCond,coach:_coachAcc(),
-      nota:dCond>0?'Vale $'+fmt(Math.round(dCond))+' en cuanto abras los candados de arriba. Hoy paga $0 aunque llegues al escalón.'
-                  :'El escalón no depende de vender más equipos, solo de adjuntar.'});
-  }
-  return {gaps,sinCuota:!(TIENDA.cuota.po>0)};
+function pintar(){
+  document.getElementById('nav-t').textContent = EST.tab==='tienda' ? 'Mi tienda' : 'Mis ventas';
+  document.getElementById('tab-tienda').className = 'tab'+(EST.tab==='tienda'?' on':'');
+  document.getElementById('tab-mias').className = 'tab'+(EST.tab==='mias'?' on':'');
+  document.getElementById('cuerpo').innerHTML =
+    EST.tab==='tienda' ? htmlTienda() : htmlMias();
 }
-function renderGaps(){
-  const el=document.getElementById('gapWrap');
-  if(!el) return;
-  const {gaps,sinCuota}=calcGaps();
-  let h='';
+
+function htmlTienda(){
+  var r=EST.res, a=EST.alcances;
+  var h='';
+
+  h+='<div class="hero"><div class="hero-top">'
+    +'<span class="hero-l">TU COBRO SEMANAL</span>'
+    +'<span class="pill">Sem '+isoWeek(new Date())+'</span></div>'
+    +'<div class="hero-v">'+fmx(r.bonoSemanal)+'</div></div>';
+
+  h+='<button class="mon" onclick="abrirMonedero()"><div class="mon-row">'
+    +'<span class="mon-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 11h.01M2 9.5V13c0 .5.4 1 1 1h1.4c.3 1 .9 1.9 1.6 2.6V19a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1.1c.6.1 1.3.1 2 .1s1.4 0 2-.1V19a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2.4c1.6-1.3 2.5-3.1 2.5-5.1 0-3.9-3.6-7-8-7-2.2 0-4.2.8-5.6 2.1H5A2.5 2.5 0 0 0 2 9.5z"/></svg></span>'
+    +'<span style="flex:1;min-width:0"><span class="mon-l">TU MONEDERO \u00b7 '+mesNombre().toUpperCase()+'</span>'
+    +'<span class="mon-v">'+pts(EST.monedero)+' <small style="font-size:15px;color:var(--label3);font-weight:600">pts</small></span></span>'
+    +'<span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></div>'
+    +'<div class="mon-foot"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--mint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg>'
+    +'<span>'+(r.puntosTotales>0
+        ? 'Esta semana sumaste <b>'+pts(r.puntosTotales)+'</b>'
+        : 'A\u00fan sin acumular esta semana')+'</span></div></button>';
+
+  var sinCuota = METRICAS.every(function(m){ return !EST.cuotas[m.k]; });
   if(sinCuota){
-    h+='<div class="gapcard gapwarn"><div class="gaptop"><span class="gaplab">Sin cuota cargada</span></div>'
-     + '<div class="gapsub">Los indicadores contra cuota (pospago, renovaciones, seguros) no se pueden calcular. '
-     + 'Mix y accesorios sí, porque no dependen de cuota.</div>'
-     + '<div class="gapbtn" onclick="openCuota()">Ajustar cuota ›</div></div>';
+    h+='<button class="cta-cuota" onclick="location.href=\'comisiones-cuotas.html\'">'
+      +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>'
+      +'<span><b>Captura las cuotas de la semana</b><br>Sin cuota no hay alcance ni comisi\u00f3n</span>'
+      +'<span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>';
   }
-  if(!gaps.length && !sinCuota){
-    h+='<div class="gapcard gapok"><div class="gaptop"><span class="gaplab">Todos los candados abiertos ✓</span></div>'
-     + '<div class="gapsub">Tu tienda cumple mix, attach y alcances. Lo que sigue es subir ARPU y llegar a 100%.</div></div>';
-  }
-  gaps.forEach(g=>{
-    h+='<div class="gapcard">';
-    const _d = g.delta>0 ? '<span class="gapdelta">+$'+fmt(Math.round(g.delta))+'</span>'
-             : (g.deltaCond>0 ? '<span class="gapdelta gapdim">+$'+fmt(Math.round(g.deltaCond))+' bloqueado</span>' : '<span class="gapdelta gapdim">—</span>');
-    h+= '<div class="gaptop"><span class="gaplab">'+g.lab+'</span>'+_d+'</div>';
-    h+= '<div class="gapnum"><span class="gapnow">'+g.act+'</span><span class="gaparrow">→</span>'
-      + '<span class="gapmeta">'+g.meta+'</span><span class="gapfalta">faltan '+g.falta+'</span></div>';
-    if(g.nota) h+='<div class="gapsub">'+g.nota+'</div>';
-    if(g.coach && g.coach.length){
-      h+='<div class="gapcoach"><div class="gapcoachlab">A quién coachear</div>';
-      g.coach.forEach(c=>{ h+='<div class="gapcrow"><span class="gapcn">'+c.n+'</span><span class="gapcd">'+c.det+'</span><span class="gapcp">'+c.pct+'%</span></div>'; });
-      h+='</div>';
-    }
+
+  h+='<div class="sec"><span class="sec-t">M\u00c9TRICAS DE TIENDA</span>'
+    +'<span class="sec-r">'+(EST.asesores.length||0)+' asesores</span></div><div class="mets">';
+
+  METRICAS.forEach(function(m,i){
+    var p=a[m.k]||0, u=EST.unidades[m.k]||0, c=EST.cuotas[m.k]||0;
+    var fila=r.detalle[i]||{};
+    var sig=siguienteGer(p), fl=sig?faltan(u,c,sig.meta):null;
+    var cont = !c ? '<span class="met-c">Sin cuota capturada</span>'
+      : '<span class="met-c'+(p<80?' bad':(p<100?' warn':''))+'">'+u+' de '+Math.round(c)
+        +(fl!==null&&fl>0?' \u00b7 falta'+(fl===1?'':'n')+' <b>'+fl+'</b> '+sig.txt:'')+'</span>';
+    var extra = fila.puntos>0 ? '<span class="met-x on">'+pts(fila.puntos)+' pts</span>'
+              : (p<80 ? '<span class="met-x bad">no paga</span>'
+                      : '<span class="met-x off">'+fmx(fila.semanal||0)+'</span>');
+    h+='<button class="met '+claseMet(p)+'" onclick="verMetrica(\''+m.k+'\','+i+')">'
+      +'<span class="met-row"><span style="flex:1;min-width:0">'
+      +'<span class="met-n">'+m.n+'</span><br>'+cont+'</span>'
+      +'<span><span class="met-p">'+Math.round(p)+'%</span>'+extra+'</span>'
+      +'<span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></span></button>';
+  });
+  h+='</div>';
+
+  h+='<div class="note">Las cantidades son una simulaci\u00f3n informativa y no representan el cobro real.</div>';
+  return h;
+}
+
+function htmlMias(){
+  var r=EST.resMias;
+  var h='<div class="hero"><div class="hero-top">'
+    +'<span class="hero-l">TUS VENTAS ESTA SEMANA</span>'
+    +'<span class="pill verde">Sin piso</span></div>'
+    +'<div class="hero-v">'+fmx(r.pagoSemanal)+'</div>'
+    +'<div class="hero-s">'+fmx(r.comisionBase)+' base \u00b7 '+fmx(r.bonoValor)+' bono</div></div>';
+
+  h+='<div class="aviso-info">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>'
+    +'<span>Tus ventas suman al alcance de la tienda y no se asignan a ning\u00fan asesor. '
+    +'Como gerente no necesitas el piso de 2 ventas.</span></div>';
+
+  var porTipo={};
+  r.detalle.forEach(function(d){
+    if(d.base<=0) return;
+    var k=(d.venta.plan||d.venta.tipo)+' \u00b7 '+d.metrica;
+    porTipo[k]=porTipo[k]||{u:0,b:0,bono:0};
+    porTipo[k].u+=d.unidades; porTipo[k].b+=d.base; porTipo[k].bono+=d.bono;
+  });
+  var claves=Object.keys(porTipo);
+  if(claves.length){
+    h+='<div class="sec"><span class="sec-t">LO QUE VENDISTE</span></div><div class="lista">';
+    claves.forEach(function(k){
+      var v=porTipo[k];
+      h+='<div class="li"><span class="li-n">'+v.u+' \u00d7 '+k.split(' \u00b7 ')[0]+'</span>'
+        +'<span class="li-v">'+fmx(v.b+v.bono)+'</span></div>';
+    });
     h+='</div>';
-  });
-  el.innerHTML=h;
-}
-
-function renderAsesores(){
-  const A={po:alc(TIENDA.real.po,TIENDA.cuota.po),re:alc(TIENDA.real.re,TIENDA.cuota.re),ac:alc(TIENDA.real.ac,TIENDA.cuota.ac),pr:alc(TIENDA.real.pr,TIENDA.cuota.pr),se:alc(TIENDA.real.se,TIENDA.cuota.se)};
-  const koPo=A.po!=null&&A.po>=0.80;
-  let tot=0;
-  document.getElementById('aseWrap').innerHTML=ASESORES.map((a,i)=>{
-    const ALC={pospago:A.po,renov:A.re,acces:A.ac,seguro:A.se,prepago:A.pr};
-    a.comLib=Math.round(comisionAsesor(a.lineas||[],ALC,false).pay);
-    tot+=a.comLib;
-    const low=a.po<2, full=(a.po+a.re)>=6;
-    const flag=low?'<span class="aflag low">Faltan ventas</span>':(!koPo?'<span class="aflag low">Tienda &lt;80%</span>':(full?'<span class="aflag full">Al 100%</span>':''));
-    return `<button class="abtn" onclick="openAsesor(${i})"><span class="aava ${low?'dim':''}">${a.ini}</span><span class="ameta"><span class="an">${a.n}</span><span class="asub">${a.po} pospago · ${a.re} renov · ${a.ac} acc</span></span><span class="aright"><span class="acom ${a.comLib<=0?'z':''}">$${fmt(a.comLib)}</span>${flag}</span></button>`;
-  }).join('');
-  document.getElementById('teamTot').textContent='$'+fmt(tot);
-}
-
-/* ---- cuota ---- */
-function openCuota(){
-  document.getElementById('cuAva').textContent=TIENDA.ini;
-  document.getElementById('cuName').textContent=TIENDA.n;
-  document.getElementById('metWrap').innerHTML=MET.map(m=>`<div class="metrow"><div class="mtop"><span class="mlab"><span class="me">${m.e}</span>${m.label}</span><span class="qbox"><label>cuota/sem</label><input type="number" inputmode="numeric" data-k="${m.k}" value="${TIENDA.cuotaMensual?(TIENDA.cuotaMensual[m.k]||''):''}" placeholder="0" oninput="recalcRow(this)"></span></div><div class="mbot" data-row="${m.k}"></div></div>`).join('');
-  MET.forEach(m=>fillRow(m.k));
-  document.getElementById('scrim').classList.add('on');document.getElementById('sheetCuota').classList.add('on');document.getElementById('sheetCuota').scrollTop=0;
-}
-function fillRow(k){
-  const real=TIENDA.real[k],inp=document.querySelector('.qbox input[data-k="'+k+'"]'),cm=parseFloat(inp.value)||0,wt=cm;
-  const a=alc(real,wt),c=cls(a),p=a==null?0:Math.round(a*100);
-  document.querySelector('.mbot[data-row="'+k+'"]').innerHTML=`<span class="mreal">sem ${real}/${wt||0}</span><span class="mbar"><span class="mf ${c}" style="width:${p}%"></span></span><span class="mpct ${c}">${a==null?'sin cuota':p+'%'}</span>`;
-}
-function recalcRow(inp){fillRow(inp.dataset.k);}
-function guardarCuota(){
-  const c={};document.querySelectorAll('#metWrap .qbox input').forEach(inp=>c[inp.dataset.k]=parseFloat(inp.value)||0);
-  TIENDA.cuotaMensual=c;TIENDA.cuota=c;closeSheet();renderStore();renderBono();
-  if(window.TG_DASH&&TIENDA.id){const s=getSes();window.TG_DASH.saveCuota(TIENDA.id,periodoActivo(),c,s?s.attuid:'').catch(e=>console.error('saveCuota',e));}
-  const tt=document.getElementById('toast');tt.style.opacity='1';tt.style.transform='translate(-50%,0)';setTimeout(()=>{tt.style.opacity='0';tt.style.transform='translate(-50%,20px)';},1900);
-}
-
-/* ---- detalle asesor ---- */
-const vrow=(ic,t,s,com)=>`<div class="vrow"><span class="vic">${ic}</span><span class="vmeta"><span class="vt">${t}</span><span class="vs">${s}</span></span><span class="vcom">$${fmt(com)}</span></div>`;
-function renderVentasAsesor(a){
-  let h='';
-  (a.lineas||[]).forEach(function(v){
-    var ic=v.k==='po'?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>':v.k==='re'?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>':v.k==='ac'?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>':v.k==='se'?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>':'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.2v9.6M14.6 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.6 0-2.7.9-2.7 2.1s1.1 1.8 2.7 2.1 2.7.9 2.7 2.1-1.1 2.1-2.7 2.1c-1.1 0-2.1-.5-2.6-1.3"/></svg>';
-    var t=v.title||((v.k==='po'||v.k==='re')?('AT&T '+(v.plan||'')).trim():(v.tipo||'Venta'));
-    var s=v.sub||v.modelo||'';
-    h+=vrow(ic,t,s,v.com||0);
-  });
-  document.getElementById('aVentas').innerHTML=h||'<div class="vempty">Sin ventas esta semana.</div>';
-}
-function openAsesor(i){
-  const a=ASESORES[i];renderVentasAsesor(a);
-  document.getElementById('aAva').textContent=a.ini;
-  document.getElementById('aName').textContent=a.n;
-  document.getElementById('aId').textContent='ATTUID '+a.id;
-  document.getElementById('aCom').textContent=fmt(a.comLib!=null?a.comLib:0);
-  const stats=[['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>','Pospago',a.po],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>','Renovaciones',a.re],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>','Accesorios',a.ac],['<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>','Seguros',a.se]];
-  document.getElementById('aStats').innerHTML=stats.map(([e,k,v])=>`<div class="dstat"><div class="dk"><span>${e}</span>${k}</div><div class="dv">${v}</div></div>`).join('');
-  const low=a.po<2, full=(a.po+a.re)>=6, f=[];
-  f.push(low?{k:'no',e:'!',t:`Necesita 2 ventas de pospago para acceder a comisión. Lleva ${a.po}.`}:{k:'ok',e:'✓',t:'Cumple el mínimo de 2 ventas de pospago.'});
-  f.push(full?{k:'ok',e:'✓',t:'6+ ventas: ya no le baja la comisión por alcance (la tienda igual debe llegar al 80%).'}:{k:'no',e:'•',t:`Lleva ${a.po+a.re}/6 ventas para cobrar al 100% sin tope de alcance.`});
-  if(a.com>(a.comLib!=null?a.comLib:0))f.push({k:'no',e:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>',t:'Genera $'+fmt(a.com)+' en total; se libera cuando la tienda llegue al 80% de pospago y tenga 2+ pospago.'});
-  document.getElementById('aFlags').innerHTML=f.map(x=>`<div class="dfl ${x.k}"><span class="e">${x.e}</span><span>${x.t}</span></div>`).join('');
-  document.getElementById('scrim').classList.add('on');document.getElementById('sheetAse').classList.add('on');document.getElementById('sheetAse').scrollTop=0;
-}
-
-function closeSheet(){document.getElementById('scrim').classList.remove('on');document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('on'));}
-
-/* [v1.11.60] MODO ESCRITORIO — mismo patrón que el tema: atributo en <html>,
-   persistencia en localStorage y switch sincronizado en el drawer. Solo layout. */
-function toggleDesktop(){
-  const on=document.documentElement.getAttribute('data-desktop')==='1';
-  if(on){document.documentElement.removeAttribute('data-desktop');}
-  else{document.documentElement.setAttribute('data-desktop','1');}
-  if(typeof pmdSyncDesktop==='function')pmdSyncDesktop();
-  try{localStorage.setItem('desktopMode',on?'0':'1');}catch(e){}
-}
-window.pmdSyncDesktop=function(){var sw=document.getElementById('pmd-desktop-sw');if(!sw)return;sw.classList.toggle('on',document.documentElement.getAttribute('data-desktop')==='1');};
-(function initDesktop(){
-  let saved='0';
-  try{saved=localStorage.getItem('desktopMode')||'0';}catch(e){}
-  if(saved==='1')document.documentElement.setAttribute('data-desktop','1');
-})();
-
-function toggleTheme(){const el=document.documentElement;const isLight=el.getAttribute('data-theme')==='light';el.setAttribute('data-theme',isLight?'dark':'light');var _tb=document.getElementById('themeBtn');if(_tb)_tb.innerHTML=isLight?'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.5 4.5l1.8 1.8M17.7 17.7l1.8 1.8M19.5 4.5l-1.8 1.8M6.3 17.7l-1.8 1.8"/></svg>':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';if(typeof pmdSyncTheme==='function')pmdSyncTheme();}
-function _titulo(s){return String(s||'').toLowerCase().split(/\s+/).map(function(w){return w?w.charAt(0).toUpperCase()+w.slice(1):w;}).join(' ').trim();}
-let _refreshing=false;
-async function refreshDash(){if(_refreshing)return;_refreshing=true;var b=document.getElementById('refreshBtn');if(b)b.classList.add('spin');try{await hidratarFirebase();}catch(e){console.error('refresh',e);}if(b)b.classList.remove('spin');_refreshing=false;}
-function irInicio(){if(history.length>1){history.back();}else{location.href='index.html';}}
-/* ── Firebase: tienda de la sesión + cuota mensual + ventas de la semana ── */
-const STORE_NAME={"PRM TDA PUERTA BAJIO":"Puerta Bajío","PRM TDA PLAZA ROSSINI":"Plaza Rossini","PRM TDA MARIANO ESCOBEDO":"Mariano Escobedo","PRM TDA LEON CENTRO":"León Centro","PRM TDA PLAZA ARGANIA":"Plaza Argania","PRM TDA LAGOS DE MORENO":"Lagos de Moreno","PRM TDA LEON FLAGSHIP":"León Flagship","PRM TDA PORTAL LAGOS DE MORENO":"Portal Lagos de Moreno","PRM TDA LEON ALTACIA":"León Altacia","PRM TDA PLAZA MANDARINAS":"Plaza Mandarinas","PRM TDA PASEO DEL MORAL":"Paseo del Moral"};
-function getSes(){try{return JSON.parse(localStorage.getItem('primemx_sesion_v1')||'null');}catch(e){return null;}}
-function mesActual(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
-function semanasDelMes(){try{const d=new Date(),y=d.getFullYear(),mo=d.getMonth(),last=new Date(y,mo+1,0).getDate(),st=new Set();for(let dd=1;dd<=last;dd++)st.add(isoWeek(new Date(y,mo,dd)));return st.size||4;}catch(e){return 4;}}
-function semanalDe(cm){const w=semanasDelMes(),o={po:0,re:0,ac:0,se:0,pr:0};if(cm)['po','re','ac','se','pr'].forEach(k=>{o[k]=Math.round((cm[k]||0)/w);});return o;}
-let SEM_SEL=null,SEM_SEL_Y=null;function semActiva(){return SEM_SEL||String(isoWeek(new Date()));}function periodoActivo(){const y=SEM_SEL_Y||isoYear(new Date());return y+'-W'+String(semActiva()).padStart(2,'0');}
-function nombreTienda(id){if(STORE_NAME[id])return STORE_NAME[id];return String(id||'').replace(/^PRM TDA /,'').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase())||'Tienda';}
-function iniDe(n){return (String(n||'').split(/\s+/).map(w=>w[0]||'').join('').slice(0,2)||'?').toUpperCase();}
-async function hidratarFirebase(){
-  const ses=getSes();
-  if(ses){
-    if(ses.tienda){TIENDA.id=ses.tienda;TIENDA.n=nombreTienda(ses.tienda);TIENDA.ini=iniDe(TIENDA.n);}
-    const elN=document.querySelector('.idname'),elR=document.querySelector('.idrole'),elA=document.querySelector('.idav');
-    if(elN&&ses.name)elN.textContent=_titulo(ses.name);
-    if(elR)elR.textContent='Gerente · '+TIENDA.n;
-    if(elA&&ses.name)elA.textContent=iniDe(ses.name);
+  } else {
+    h+='<div class="empty">Todav\u00eda no registras ventas esta semana.<br><br>'
+      +'<button class="btn-mini" onclick="abrirCaptura()">Registrar una venta</button></div>';
   }
-  if(!window.TG_DASH){renderStore();renderBono();renderGaps();renderAsesores();return;}
-  try{
-    const cm=await window.TG_DASH.loadCuota(TIENDA.id,periodoActivo());
-    if(cm){TIENDA.cuotaMensual=cm;TIENDA.cuota=cm;}
-    const v=await window.TG_DASH.loadVentasTienda(TIENDA.id,periodoActivo());
-    TIENDA.real={po:v.po,re:v.re,ac:v.ac,se:v.se,pr:v.pr};
-    TIENDA.ventasPo=v.ventasPo||{};TIENDA.ventasRe=v.ventasRe||{};
-    TIENDA.opsNuevo=(v.nuevos||0)+(v.re||0);TIENDA.accAlpha=v.acAlpha||0;TIENDA.accTot=v.ac||0;
-    TIENDA.mix=(v.mixDen||0)>0?Math.round((v.mixNum/v.mixDen)*100):0;MIX_TIENDA=TIENDA.mix;
-    const nombres=await window.TG_DASH.asesoresDeTienda(TIENDA.id),pa=v.porAsesor||{};
-    const ids=new Set([...Object.keys(nombres),...Object.keys(pa)]);if(ses&&ses.attuid)ids.delete(ses.attuid);
-    ASESORES=[...ids].map(aid=>{const c=pa[aid]||{po:0,re:0,ac:0,se:0,pr:0,com:0},nm=_titulo(nombres[aid]||aid);return {id:aid,n:nm,ini:iniDe(nm),po:c.po,re:c.re,ac:c.ac,se:c.se,pr:c.pr,com:Math.round(c.com),lineas:c.lineas||[]};}).sort((a,b)=>b.com-a.com||b.po-a.po);
-  }catch(e){console.error('hidratarFirebase',e);}
-  renderStore();renderBono();renderGaps();renderAsesores();
+  h+='<div class="note">Las cantidades son una simulaci\u00f3n informativa y no representan el cobro real.</div>';
+  return h;
 }
-window.hidratarFirebase=hidratarFirebase;
-function isoWeek(d){d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-day);const ys=new Date(Date.UTC(d.getUTCFullYear(),0,1));return Math.ceil((((d-ys)/86400000)+1)/7);}
-function isoYear(d){d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-day);return d.getUTCFullYear();}
-function pintarSemanas(){const wrap=document.getElementById('weeks');if(!wrap)return;const inicio=new Date(2026,5,15);const hoy=new Date();const lunesHoy=new Date(hoy);lunesHoy.setDate(lunesHoy.getDate()-((lunesHoy.getDay()||7)-1));lunesHoy.setHours(0,0,0,0);const sel=String(semActiva());let cur=new Date(inicio);if(cur>lunesHoy)cur=new Date(lunesHoy);let h='';while(cur<=lunesHoy){const w=isoWeek(cur);h+=`<button class="wk${String(w)===sel?' on':''}" data-w="${w}" data-y="${isoYear(cur)}"><small>Sem</small>${w}</button>`;cur.setDate(cur.getDate()+7);}wrap.innerHTML=h;const cs=document.getElementById('cuSub');if(cs)cs.textContent='Cuota · semana '+sel;}
-document.getElementById('weeks').addEventListener('click',e=>{const b=e.target.closest('.wk');if(!b)return;SEM_SEL=b.dataset.w;SEM_SEL_Y=b.dataset.y||null;[...e.currentTarget.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');document.getElementById('cuSub').textContent='Cuota · semana '+b.dataset.w;if(typeof hidratarFirebase==='function')hidratarFirebase();});
 
-pintarSemanas();renderStore();renderAsesores();renderBono();
+function verTab(t){ EST.tab=t; pintar(); }
+
+function verMetrica(k,i){
+  var m=null; METRICAS.forEach(function(x){ if(x.k===k) m=x; });
+  var p=EST.alcances[k]||0, u=EST.unidades[k]||0, c=EST.cuotas[k]||0;
+  var fila=EST.res.detalle[i]||{};
+  var h='<div class="det-hero"><div style="flex:1">'
+    +'<div class="hero-l">ALCANCE DE TIENDA</div>'
+    +'<div style="font-size:32px;font-weight:800;letter-spacing:-.03em;line-height:1.1">'+Math.round(p)+'%</div></div>'
+    +'<div style="text-align:right"><div style="color:var(--label3);font-size:10px">'+u+' de '+Math.round(c||0)+'</div>'
+    +'<div style="color:var(--mint);font-size:12px;font-weight:700">'+fmx(fila.semanal||0)+'</div></div></div>';
+
+  var pasos=[{p:80,l:'Comisi\u00f3n base 35%'},{p:100,l:'Acelerador +3%'},{p:110,l:'Acelerador +5%'}];
+  var idx=-1; pasos.forEach(function(s,j){ if(p>=s.p) idx=j; });
+  h+='<div class="sec-t" style="margin:16px 2px 9px">TU ESCALERA</div><div class="esc">';
+  pasos.forEach(function(s,j){
+    var cls = j<idx?'done':(j===idx?'now':(j===idx+1?'next':''));
+    var val=''; if(j>idx && c>0){ var f=faltan(u,c,s.p); if(f>0) val='faltan '+f; }
+    h+='<div class="paso '+cls+'"><span class="paso-p">'+s.p+'%</span>'
+      +'<span class="paso-l">'+s.l+'</span><span class="paso-v">'+val+'</span></div>';
+  });
+  h+='</div>';
+  if(fila.puntos>0){
+    h+='<div class="tip verde"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg>'
+      +'<span>Esta m\u00e9trica aporta <b>'+pts(fila.puntos)+' puntos</b> a tu monedero</span></div>';
+  }
+  if(fila.nota){
+    h+='<div class="tip amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span>'+fila.nota+'</span></div>';
+  }
+  document.getElementById('sheet-t').textContent=m?m.n:'M\u00e9trica';
+  document.getElementById('sheet-b').innerHTML=h;
+  document.getElementById('sheet').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function abrirMonedero(){
+  var r=EST.res;
+  var h='<div style="color:var(--label2);font-size:13px;line-height:1.6">'
+    +'Tus puntos se juntan semana a semana y se pagan completos al cierre del mes.</div>'
+    +'<div class="lista" style="margin-top:14px">'
+    +'<div class="li"><span class="li-n">Acelerador de m\u00e9tricas</span><span class="li-v">'+pts(r.puntosAcelerador)+' pts</span></div>'
+    +'<div class="li"><span class="li-n">Incentivos de marca</span><span class="li-v">'+pts(r.puntosMarca)+' pts</span></div>'
+    +'<div class="li"><span class="li-n"><b>Esta semana</b></span><span class="li-v"><b>'+pts(r.puntosTotales)+' pts</b></span></div>'
+    +'</div>';
+  document.getElementById('sheet-t').textContent='Monedero \u00b7 '+mesNombre();
+  document.getElementById('sheet-b').innerHTML=h;
+  document.getElementById('sheet').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function cerrarSheet(){
+  document.getElementById('sheet').classList.remove('open');
+  document.body.style.overflow='';
+}
+function abrirCaptura(){ location.href='comisiones-captura.html'; }
+
+window.addEventListener('popstate', function(){
+  var s=document.getElementById('sheet');
+  if(s && s.classList.contains('open')){ cerrarSheet(); history.pushState(null,'',location.href); }
+});
+history.pushState(null,'',location.href);
+
+if(!ASESOR){
+  document.getElementById('cuerpo').innerHTML='<div class="empty">'
+    +'No encontramos tu sesi\u00f3n.<br><br><span style="font-size:12px">'
+    +'Entra desde TechGuide en vez de abrir esta p\u00e1gina directo.</span><br><br>'
+    +'<button class="btn-mini" onclick="location.href=\'index.html\'">Ir a TechGuide</button></div>';
+} else {
+  recalcular();
+}
+</script>
+
+<script>
+window.bootGerente = async function(){
+  if(!ASESOR || !window.TG_FB) return;
+  var tienda = ASESOR.tienda || '';
+  var attuid = ASESOR.attuid || ASESOR.id;
+  var hoy = new Date();
+  var periodo = periodoDe(hoy);     // 2026-W32 — cuota y alcance son SEMANALES
+  var mes = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0');
+  EST.tienda=tienda; EST.mes=mes; EST.periodo=periodo;
+
+  function mapear(v){
+    var t = (v.tipo==='pospago'||v.tipo==='migra') ? 'equipo'
+          : v.tipo==='renov' ? 'renovacion'
+          : v.tipo==='acces' ? 'accesorio' : v.tipo;
+    var met = t==='equipo' ? 'equipo' : t==='renovacion' ? 'renovacion'
+            : (t==='accesorio'||t==='addon') ? 'accesorios'
+            : t==='seguro' ? 'seguros' : t==='prepago' ? 'prepago' : t;
+    return { tipo:t, metrica:met, plan:v.plan, unidades:1, com:v.com,
+             valor:v.valor, recarga:v.recarga, alphacomm:v.alphacomm,
+             precioEquipo:v.precioEquipo, _attuid:v.attuid };
+  }
+  try{
+    var t = await TG_FB.loadTienda(tienda, periodo);
+    EST.asesores = Object.keys(t.asesores);
+    var todas = t.ventas.map(mapear);
+
+    // Unidades y base por métrica: TODA la tienda (incluye lo del gerente).
+    var uni={}, base={};
+    todas.forEach(function(v){
+      uni[v.metrica]=(uni[v.metrica]||0)+1;
+      if(typeof comisionUnitaria2026==='function'){
+        base[v.metrica]=(base[v.metrica]||0)+comisionUnitaria2026(v);
+      }
+    });
+    EST.unidades=uni; EST.baseTienda=base;
+
+    // Las suyas, para la pestaña "Mis ventas".
+    EST.misVentas = todas.filter(function(v){ return v._attuid===attuid; });
+
+    var c = await TG_FB.loadCuotas(tienda, periodo);
+    if(c){
+      var m=c.metricas||{};
+      ['equipo','servicio','renovacion','accesorios','seguros','prepago'].forEach(function(k){
+        if(m[k] && m[k].valor!==undefined) EST.cuotas[k]=Number(m[k].valor);
+      });
+    }
+    /* [ago-2026] El ARPU se calcula de las ventas reales de la tienda, no se
+       captura. Los mínimos son fijos: $700 con equipo, $400 solo servicio. */
+    if(typeof calcularARPU2026==='function'){
+      var ar=calcularARPU2026(todas);
+      if(ar.equipo!==null) EST.arpu.equipo=ar.equipo;
+      if(ar.servicio!==null) EST.arpu.servicio=ar.servicio;
+    }
+  }catch(e){ console.error('bootGerente', e); }
+  recalcular();
+};
 </script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getFirestore, collection, doc, getDoc, setDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-const cfg={apiKey:"AIzaSyC9qhK78TKkLUu_gcN3WRwyKV8-mTk1Lsc",authDomain:"techguide-primemx.firebaseapp.com",projectId:"techguide-primemx",storageBucket:"techguide-primemx.firebasestorage.app",messagingSenderId:"53436933819",appId:"1:53436933819:web:fef1e0299e41c136c5ab9e"};
+import { getFirestore, collection, doc, getDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+const cfg={apiKey:"AIzaSyC9qhK78TKkLUu_gcN3WRwyKV8-mTk1Lsc",authDomain:"techguide-primemx.firebaseapp.com",projectId:"techguide-primemx",storageBucket:"techguide-primemx.firebasestorage.app"};
 const db=getFirestore(initializeApp(cfg));
-window.TG_DASH={
-  async loadCuota(tienda,mes){try{const s=await getDoc(doc(db,'comisiones_cuotas',tienda+'__'+mes));return (s.exists()&&s.data().cuota)?s.data().cuota:null;}catch(e){console.error('loadCuota',e);return null;}},
-  async saveCuota(tienda,mes,cuota,by){await setDoc(doc(db,'comisiones_cuotas',tienda+'__'+mes),{tienda,mes,cuota,by:by||'',ts:serverTimestamp()},{merge:true});},
-  async loadVentasTienda(tienda,periodo){const r={po:0,re:0,ac:0,acAlpha:0,se:0,pr:0,ventasPo:{},ventasRe:{},nuevos:0,mixNum:0,mixDen:0,porAsesor:{}};try{const snap=await getDocs(query(collection(db,'comisiones_ventas'),where('tienda','==',tienda)));const MM={pospago:'po',migra:'po',renov:'re',seguro:'se',addon:'se',acces:'ac',prepago:'pr'};snap.forEach(d=>{const o=d.data();if(!o||o.periodo!==periodo)return;const k=MM[o.tipo];if(!k)return;const esAddon=(o.tipo==='addon');if(!esAddon)r[k]++;if(k==='ac'&&o.sub&&o.sub.indexOf('ALPHACOMM')>-1)r.acAlpha++;if(k==='po'){if(o.plan)r.ventasPo[o.plan]=(r.ventasPo[o.plan]||0)+1;/* r.nuevos = TODA venta con equipo nuevo, sin importar familia. Alimenta opsNuevo y por tanto el attach rate de accesorios, que el PDF (GT pag.7) define como 'Accesorios / OPS equipo nuevo = Pospago con equipo nuevo + Renovaciones', sin excluir familias. */if(o.tag==='nuevo')r.nuevos++;/* [v1.11.67] El MIX es otra cuenta: PDF jul26 dice que solo Premium y Lite se consideran para mix y ARPU. A Negocios suma al avance (r.po) pero no al mix, con equipo o sin el. */if(cuentaParaArpuMix(o.plan)){r.mixDen++;if(o.tag==='nuevo')r.mixNum++;}}if(k==='re'&&o.plan)r.ventasRe[o.plan]=(r.ventasRe[o.plan]||0)+1;const aid=o.attuid||'?';if(!r.porAsesor[aid])r.porAsesor[aid]={po:0,re:0,ac:0,se:0,pr:0,com:0,lineas:[]};if(!esAddon)r.porAsesor[aid][k]++;r.porAsesor[aid].com+=(o.com||0);r.porAsesor[aid].lineas.push({k:k,tipo:o.tipo,title:o.title||'',sub:o.sub||'',plan:o.plan||'',modelo:o.modelo||'',com:o.com||0,tag:o.tag||'',pos:!!o.pos,line:!!o.line,seg:!!o.seg});});}catch(e){console.error('loadVentasTienda',e);}return r;},
-  async asesoresDeTienda(tienda){const out={};try{const snap=await getDocs(query(collection(db,'empleados'),where('tienda','==',tienda)));snap.forEach(d=>{const o=d.data();if(o&&String(o.rol||'').toLowerCase()==='asesor')out[d.id]=o.nombre||d.id;});}catch(e){console.error('asesoresDeTienda',e);}return out;}
+const COL='comisiones_ventas';
+
+window.TG_FB={
+  async loadCuotas(tienda, mes){
+    try{
+      const s=await getDoc(doc(db,'comisiones_cuotas',tienda+'__'+mes));
+      if(!s.exists()) return null;
+      const d=s.data();
+      if(!d.metricas && typeof d.cuota==='number'){
+        return { metricas:{equipo:{valor:d.cuota}}, arpu:{} };
+      }
+      return { metricas:d.metricas||{}, arpu:d.arpu||{} };
+    }catch(e){ console.error('loadCuotas',e); return null; }
+  },
+  /* Ventas de TODA la tienda: alimentan el alcance y la base del 35%. */
+  async loadTienda(tienda, periodo){
+    const out={ ventas:[], asesores:{} };
+    try{
+      const snap=await getDocs(query(collection(db,COL),where('tienda','==',tienda)));
+      snap.forEach(function(d){
+        const o=d.data();
+        if(!o || o.periodo!==periodo) return;
+        out.ventas.push(o);
+        if(o.attuid) out.asesores[o.attuid]=1;
+      });
+    }catch(e){ console.error('loadTienda',e); }
+    return out;
+  }
 };
-if(window.hidratarFirebase)window.hidratarFirebase();
+
+if(window.bootGerente) window.bootGerente();
 </script>
-<link rel="stylesheet" href="comisiones-ui.css">
 <div class="pmd-overlay" id="pmd-overlay" onclick="pmdClose()"></div>
 <aside class="pmd-drawer" id="pmd-drawer" aria-label="Menú de navegación">
   <button class="pmd-head" onclick="pmdGo('perfil')" aria-label="Editar perfil">
@@ -703,6 +615,7 @@ if(window.hidratarFirebase)window.hidratarFirebase();
     <button class="pmd-item" onclick="pmdGo('momento')"><svg viewBox="0 0 24 24"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>Equipos del momento</button>
     <button class="pmd-item" onclick="pmdGo('topcomm')"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>Top comisiones</button>
     <button class="pmd-item" style="background:var(--surface2)" onclick="pmdGo('comisiones')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.2v9.6M14.6 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.6 0-2.7.9-2.7 2.1s1.1 1.8 2.7 2.1 2.7.9 2.7 2.1-1.1 2.1-2.7 2.1c-1.1 0-2.1-.5-2.6-1.3"/></svg><span style="flex:1">Comisiones</span><span style="width:6px;height:6px;border-radius:50%;background:var(--att-blue);flex-shrink:0"></span></button>
+    <button class="pmd-item" id="pmd-cuotas" style="display:none" onclick="pmdGo('cuotas')"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Cuotas y ARPU</button>
     <button class="pmd-item" onclick="pmdGo('dash')"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 5-7"/></svg>Actividad</button>
     <button class="pmd-item" onclick="pmdGo('calc')"><svg viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M8 6.5h8M8 11h2M8 15h2M14 11h2M14 15h2M11 11h2M11 15h2"/></svg>Calculadora</button>
     <button class="pmd-item" onclick="pmdGo('diag')"><svg viewBox="0 0 24 24"><path d="M3.5 13a8.5 8.5 0 0 1 17 0"/><path d="M12 13l4-3.5"/><circle cx="12" cy="13" r="1.4" fill="currentColor" stroke="none"/></svg>Diagnóstico</button>
@@ -720,8 +633,17 @@ if(window.hidratarFirebase)window.hidratarFirebase();
 (function(){
   var d=document.getElementById('pmd-drawer'), ov=document.getElementById('pmd-overlay');
   if(!d||!ov) return;
+  function pmdCuotasVisible(){
+    /* La entrada de cuotas solo existe para gerente en adelante. */
+    try{
+      var s=JSON.parse(localStorage.getItem('primemx_sesion_v1')||'null');
+      var J={gerente:1,regional:2,director:3,director_nacional:4};
+      var el=document.getElementById('pmd-cuotas');
+      if(el && s && J[String(s.rol||'').toLowerCase()]) el.style.display='';
+    }catch(e){}
+  }
   function pmdSes(){try{return JSON.parse(localStorage.getItem('primemx_sesion_v1')||'null');}catch(e){return null;}}
-  window.pmdOpen=function(){
+  window.pmdOpen=function(){ pmdCuotasVisible();
     try{
       var s=pmdSes();
       if(s&&s.attuid){
@@ -747,6 +669,7 @@ if(window.hidratarFirebase)window.hidratarFirebase();
       case 'momento': go('index.html#momento'); break;
       case 'topcomm': go('index.html#topcomm'); break;
       case 'comisiones': pmdClose(); break;
+      case 'cuotas': go('comisiones-cuotas.html'); break;
       case 'dash':    go('index.html#actividad'); break;
       case 'calc':    go('index.html#calc'); break;
       case 'diag':    go('index.html#diag'); break;
@@ -763,5 +686,9 @@ if(window.hidratarFirebase)window.hidratarFirebase();
   d.addEventListener('touchend',function(e){ if(sx===null)return; var dx=e.changedTouches[0].clientX-sx; d.style.transform=''; if(dx<-70)pmdClose(); sx=null; });
 })();
 </script>
+</body>
+</html>
+
+</div>
 </body>
 </html>

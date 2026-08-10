@@ -11,10 +11,10 @@
      otro script, porque catalog.js/vendors.js la usan para el cache-busting y
      el registro del SW la compara. Si HTML y SW no coinciden → recarga forzada.
      Al empacar cada versión, este número se actualiza igual que el cache del SW. -->
-<script>window.BUILD_ID = '1788500024';
+<script>window.BUILD_ID = '1788500025';
 // [v1.11.61] APP_VERSION vive aquí desde que el bloque principal salió a app.js.
 // El ritual de release NO cambia: 2 constantes aquí + 2 en sw.js.
-const APP_VERSION = 'v1.11.107';</script>
+const APP_VERSION = 'v1.12.0';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -4869,7 +4869,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
     </button>
 
     <!-- COMISIONES — ACTIVO. Para ocultar de nuevo: agregar ;display:none al style del botón de abajo. -->
-    <button class="hv2-cta hv2-rise" onclick="abrirComisiones()" style="--d:0.3s;margin-top:14px;display:none">
+    <button class="hv2-cta hv2-rise" onclick="abrirComisiones()" style="--d:0.3s;margin-top:14px">
       <span class="hv2-cta-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.2v9.6M14.6 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.6 0-2.7.9-2.7 2.1s1.1 1.8 2.7 2.1 2.7.9 2.7 2.1-1.1 2.1-2.7 2.1c-1.1 0-2.1-.5-2.6-1.3"/></svg></span>
       <span class="hv2-cta-text">
         <span class="hv2-cta-title">Comisiones</span>
@@ -4979,7 +4979,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
     <!-- [v1.11.98] COMISIONES OCULTO: el esquema cambió y los tableros aún calculan
          con el de julio. Para reactivar: quitar ;display:none de aquí, del CTA del
          home (buscar "COMISIONES — ACTIVO") y poner COMISIONES_OFF=false en app.js. -->
-    <button class="pmd-item" onclick="pmdGo('comisiones')" style="display:none"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.2v9.6M14.6 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.6 0-2.7.9-2.7 2.1s1.1 1.8 2.7 2.1 2.7.9 2.7 2.1-1.1 2.1-2.7 2.1c-1.1 0-2.1-.5-2.6-1.3"/></svg>Comisiones</button>
+    <button class="pmd-item" onclick="pmdGo('comisiones')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.2v9.6M14.6 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.6 0-2.7.9-2.7 2.1s1.1 1.8 2.7 2.1 2.7.9 2.7 2.1-1.1 2.1-2.7 2.1c-1.1 0-2.1-.5-2.6-1.3"/></svg>Comisiones</button>
     <button class="pmd-item" id="dash-home-card" style="display:none" onclick="pmdGo('dash')"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 5-7"/></svg><span id="dash-card-title">Actividad</span></button>
     <div class="pmd-group">Herramientas</div>
     <button class="pmd-item" onclick="pmdGo('calc')"><svg viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M8 6.5h8M8 11h2M8 15h2M14 11h2M14 15h2M11 11h2M11 15h2"/></svg>Calculadora</button>
