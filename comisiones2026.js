@@ -149,15 +149,19 @@ function comisionUnitaria2026(v){
       return t ? t.com : 0;
     }
     case 'accesorio':
-      return Math.round(v.valor * (v.alphacomm ? TASA_2026.accesorioAlphacomm
-                                               : TASA_2026.accesorioOtras));
+    case 'acces':
+      return Math.round((v.valor||0) * (v.alphacomm ? TASA_2026.accesorioAlphacomm
+                                                    : TASA_2026.accesorioOtras));
     case 'prepago':
-      return v.recarga < TASA_2026.recargaMinima ? 0
+      return (!v.recarga || v.recarga < TASA_2026.recargaMinima) ? 0
         : Math.round(v.recarga * TASA_2026.prepago);
     case 'addon':
-      return Math.round(v.valor * TASA_2026.addon);
+    case 'control':      // Control comisiona como add-on sobre su precio fijo
+      return Math.round((v.valor||0) * TASA_2026.addon);
     default:
-      return 0;
+      /* Si el tipo no se reconoce pero el documento ya trae su comisión
+         calculada, se respeta: más vale un dato viejo que un cero. */
+      return (typeof v.com==='number' && isFinite(v.com)) ? v.com : 0;
   }
 }
 
@@ -392,12 +396,23 @@ function resolverCuota2026(registros){
    Regla del PDF: el ARPU con equipo se calcula solo con planes PREMIUM;
    el de solo servicio con PREMIUM y LITE.
 */
-var RENTA_2026 = {
+/* [v1.12.6] La renta para ARPU NO es la de catálogo. Titanio corre con $799
+   aunque su comisión pague como Black — regla de negocio ya documentada en
+   incentivos.js (window.PLAN_ARPU), que es la fuente única. Esta tabla es
+   solo el respaldo si incentivos.js no cargó. */
+var RENTA_ARPU_FALLBACK = {
   'Azul 1':330,'Azul 2':435,'Azul 3':550,'Plata':650,'Oro':725,
-  'Black':825,'Platino':1035,'Diamante':1300,'Titanio':1499,
+  'Black':825,'Platino':1035,'Diamante':1300,
+  'Titanio':799,'Titanio Trade In':799,
   'Lite':299,'Lite 1':349,'Lite 2':449,'Lite 3':549,'Lite 4':669,
   'Lite 5':999,'Ilimitado':1499
 };
+function rentaArpu2026(plan){
+  if(typeof window!=='undefined' && window.PLAN_ARPU && window.PLAN_ARPU[plan]!==undefined)
+    return window.PLAN_ARPU[plan];
+  return RENTA_ARPU_FALLBACK[plan];
+}
+var RENTA_2026 = RENTA_ARPU_FALLBACK;
 var ES_LITE_2026 = {'Lite':1,'Lite 1':1,'Lite 2':1,'Lite 3':1,'Lite 4':1,'Lite 5':1,'Ilimitado':1};
 
 function calcularARPU2026(ventas){
@@ -405,7 +420,7 @@ function calcularARPU2026(ventas){
   for(var i=0;i<ventas.length;i++){
     var v=ventas[i];
     var u=v.unidades||1;
-    var r=RENTA_2026[v.plan];
+    var r=rentaArpu2026(v.plan);
     if(!r) continue;
     if(v.tipo==='equipo' || v.tipo==='pospago' || v.tipo==='renovacion'){
       if(ES_LITE_2026[v.plan]) continue;      // con equipo: solo PREMIUM
@@ -419,6 +434,49 @@ function calcularARPU2026(ventas){
     servicio: svN ? Math.round(svSum/svN) : null,
     lineasEquipo: eqN, lineasServicio: svN
   };
+}
+
+
+/* ── LECTURA DE VENTAS ──────────────────────────────────────────────────── */
+/*
+   [v1.12.6] Fuente única para interpretar un documento de comisiones_ventas.
+   Existen dos generaciones de registros:
+     · nuevos  → traen `metrica` ('equipo','servicio','renovacion',...)
+     · viejos  → solo traen `tipo` ('pospago','renov','acces',...)
+   Sin esto, cada tablero deducía la métrica por su cuenta y 'servicio'
+   terminaba contándose como 'equipo'.
+*/
+var TIPO_A_METRICA_2026 = {
+  equipo:'equipo', pospago:'equipo', migra:'equipo',
+  renovacion:'renovacion', renov:'renovacion',
+  servicio:'servicio',
+  accesorio:'accesorios', acces:'accesorios', addon:'accesorios', control:'accesorios',
+  seguro:'seguros', prepago:'prepago'
+};
+
+function metricaDeVenta2026(v){
+  if(!v) return null;
+  if(v.metrica) return v.metrica;                 // registro nuevo
+  var t=String(v.tipo||'').toLowerCase();
+  /* Un pospago sin tag 'nuevo' es equipo propio: va a servicio. */
+  if((t==='pospago') && !v.tag) return 'servicio';
+  return TIPO_A_METRICA_2026[t] || null;
+}
+
+/* Documento de Firestore -> forma que entiende el motor. */
+function ventaNormalizada2026(v){
+  var met=metricaDeVenta2026(v);
+  var tipo = v.tipo2026 || (
+    met==='equipo' ? 'equipo' :
+    met==='renovacion' ? 'renovacion' :
+    met==='servicio' ? 'servicio' :
+    met==='seguros' ? 'seguro' :
+    met==='prepago' ? 'prepago' :
+    met==='accesorios' ? (v.tipo==='addon'?'addon':'accesorio') : v.tipo);
+  return { tipo:tipo, metrica:met, plan:v.plan||null, unidades:1,
+           com:v.com, valor:v.valor, recarga:v.recarga, alphacomm:v.alphacomm,
+           precioEquipo:v.precioEquipo, mesesVigencia:v.mesesVigencia,
+           bono:v.bono, attuid:v.attuid, tag:v.tag };
 }
 
 if(typeof window !== 'undefined'){
@@ -437,6 +495,9 @@ if(typeof window !== 'undefined'){
   window.pisoCumplido2026 = pisoCumplido2026;
   window.ARPU_MIN_2026 = ARPU_MIN_2026;
   window.RENTA_2026 = RENTA_2026;
+  window.rentaArpu2026 = rentaArpu2026;
+  window.metricaDeVenta2026 = metricaDeVenta2026;
+  window.ventaNormalizada2026 = ventaNormalizada2026;
   window.calcularARPU2026 = calcularARPU2026;
   window.seguroPorPrecio2026 = seguroPorPrecio2026;
   window.aceleradorPct2026 = aceleradorPct2026;

@@ -39,6 +39,13 @@ body{margin:0;padding:0;background:var(--bg);color:var(--label);
 .sec-t{color:var(--label3);font-size:10px;letter-spacing:.7px;margin:16px 2px 9px}
 .sec-t:first-child{margin-top:2px}
 
+.weeks{display:flex;gap:7px;padding:2px 2px 10px;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none}
+.weeks::-webkit-scrollbar{display:none}
+.wk{flex:0 0 auto;border:none;cursor:pointer;font-family:inherit;background:var(--surface);
+  color:var(--label3);border-radius:999px;padding:8px 15px;font-size:13px;font-weight:600}
+.wk small{display:block;font-size:9px;font-weight:600;opacity:.7;letter-spacing:.4px;text-transform:uppercase}
+.wk.on{background:var(--blue);color:#fff}
 .tipos{display:grid;grid-template-columns:1fr 1fr;gap:7px}
 .ty{background:var(--surface);border:1px solid transparent;border-radius:var(--r-md);
   padding:11px 12px;text-align:left;font-family:inherit;cursor:pointer;display:block}
@@ -76,6 +83,18 @@ body{margin:0;padding:0;background:var(--bg);color:var(--label);
 .dev-c{display:block;color:var(--label3);font-size:10px;margin-top:1px}
 .dev-x{color:var(--label3);font-size:15px;flex-shrink:0}
 
+.polizas{display:flex;flex-direction:column;gap:6px}
+.pol{background:var(--surface);border:1px solid transparent;border-radius:var(--r-md);
+  padding:11px 13px;display:flex;align-items:center;gap:12px;font-family:inherit;
+  text-align:left;cursor:pointer;width:100%}
+.pol.on{background:var(--surface2);border-color:rgba(0,168,224,.45)}
+.pol:active{opacity:.75}
+.pol-p{color:var(--label);font-size:16px;font-weight:800;letter-spacing:-.02em;
+  flex-shrink:0;width:78px}
+.pol.on .pol-p{color:var(--cyan)}
+.pol-p small{font-size:9.5px;font-weight:600;color:var(--label3);letter-spacing:0}
+.pol-r{flex:1;min-width:0;color:var(--label3);font-size:10.5px}
+.pol-c{color:var(--mint);font-size:13px;font-weight:800;flex-shrink:0}
 .num{width:100%;background:var(--surface);border:1px solid var(--sep);border-radius:11px;
   color:var(--label);font-size:18px;font-weight:700;font-family:inherit;padding:11px 13px;
   -moz-appearance:textfield}
@@ -198,9 +217,10 @@ var TIPOS=[
 var PREMIUM=['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Diamante','Titanio'];
 var LITE=['Lite','Lite 1','Lite 2','Lite 3','Lite 4','Lite 5','Ilimitado'];
 
+var SEMANA_INICIO = 32;
 var F={ tipo:null, familia:'Premium', plan:null, devId:null, devNombre:'',
         precioEquipo:0, valor:'', recarga:'', alphacomm:true, meses:'',
-        busca:'', guardando:false };
+        busca:'', guardando:false, periodo:null, seguroTramo:null };
 
 function isoWeek(d){
   d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
@@ -240,6 +260,10 @@ function comisionActual(){
   /* Control comisiona como add-on sobre su precio fijo de $50. */
   var esCtrl = F.tipo==='control';
   var precioCtrl = (typeof CONTROL_PRICE!=='undefined') ? CONTROL_PRICE : 50;
+  if(F.tipo==='seguro' && F.seguroTramo!==null && typeof SEGURO_2026!=='undefined'){
+    var trm=SEGURO_2026[F.seguroTramo];
+    return { base: trm ? trm.com : 0, bono:0 };
+  }
   var v={ tipo: esCtrl ? 'addon' : F.tipo,
           plan: F.plan, unidades:1,
           valor: esCtrl ? precioCtrl : (Number(F.valor)||0),
@@ -258,11 +282,27 @@ function comisionActual(){
   return { base:base, bono:bono };
 }
 
+/* [v1.12.4] La venta se registra en la semana que el asesor elija, no
+   forzosamente la actual: el lunes hay que capturar lo del sábado. */
+function semanasChips(){
+  var h=new Date(), o='';
+  var actual=isoWeek(h), anio=isoYear(h);
+  var hasta=Math.max(actual, SEMANA_INICIO);
+  for(var w=SEMANA_INICIO; w<=hasta; w++){
+    var v=anio+'-W'+String(w).padStart(2,'0');
+    o+='<button class="wk'+(v===F.periodo?' on':'')+'" onclick="setSemana(\''+v+'\')">'
+      +'<small>Sem</small>'+w+'</button>';
+  }
+  return o;
+}
+function setSemana(v){ F.periodo=v; pintar(); refrescarDependientes(); }
+
 function pintar(){
   var h='';
   var t=tipoDe(F.tipo);
 
-  h+='<div class="sec-t">¿QUÉ VENDISTE?</div><div class="tipos">';
+  h+='<div class="weeks">'+semanasChips()+'</div>';
+  h+='<div class="sec-t" style="margin-top:2px">¿QUÉ VENDISTE?</div><div class="tipos">';
   TIPOS.forEach(function(x){
     h+='<button class="ty'+(F.tipo===x.k?' on':'')+'" onclick="setTipo(\''+x.k+'\')">'
       +'<span class="ty-n">'+x.n+'</span><span class="ty-s">'+x.s+'</span></button>';
@@ -305,6 +345,7 @@ function pintar(){
     }
   }
 
+  h+=htmlCampos();
   h+='<div id="depende">'+htmlDependiente()+'</div>';
 
   document.getElementById('cuerpo').innerHTML=h;
@@ -332,53 +373,69 @@ function htmlResultados(){
   return h;
 }
 
-/* Todo lo que depende de lo que se teclea: campos numéricos, alertas y resumen. */
-function htmlDependiente(){
+/* [v1.12.4] LOS INPUTS NO VIVEN AQUÍ. Antes estaban dentro del contenedor
+   que se refresca en cada tecla, así que el campo se destruía a media
+   escritura y el teclado se cerraba. Ahora los inputs son estáticos y solo
+   se repintan las alertas y el resumen. */
+function htmlCampos(){
   var t=tipoDe(F.tipo);
   if(!t) return '';
   var h='';
-
   if(t.reno){
     h+='<div class="sec-t">ANTIG\u00dcEDAD DE LA L\u00cdNEA</div>'
-      +'<input class="num" type="number" min="0" inputmode="numeric" placeholder="Meses" '
-      +'value="'+F.meses+'" oninput="setCampo(\'meses\',this.value)">';
-    if(F.meses!==''){
-      var m=Number(F.meses);
-      if(m<=6) h+='<div class="alerta red">Renovaci\u00f3n anticipada de 6 meses o menos: no paga comisi\u00f3n ni cuenta para alcance.</div>';
-      else if(m<=12) h+='<div class="alerta amber">Renovaci\u00f3n anticipada: paga el 50% de la comisi\u00f3n.</div>';
-    }
+      +'<input class="num" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="Meses" '
+      +'id="f-meses" value="'+F.meses+'" oninput="setCampo(\'meses\',this.value)">';
   }
   if(t.seg){
-    h+='<div class="sec-t">PRECIO DEL EQUIPO ASEGURADO</div>'
-      +'<input class="num" type="number" min="0" inputmode="numeric" placeholder="$" '
-      +'value="'+(F.precioEquipo||'')+'" oninput="setCampo(\'precioEquipo\',this.value)">';
-    if(F.precioEquipo && typeof seguroPorPrecio2026==='function'){
-      var tr=seguroPorPrecio2026(Number(F.precioEquipo));
-      h+='<div class="nota-inline">'+(tr?('P\u00f3liza de '+fmx(tr.precio)+' al mes'):'Fuera de los rangos de seguro')+'</div>';
-    }
+    /* [v1.12.3] Antes se tecleaba el precio del equipo. El asesor no siempre
+       lo trae a la mano cuando el seguro va suelto, pero SÍ sabe qué póliza
+       vendió. Ahora elige el costo mensual y el rango se deduce solo. */
+    h+='<div class="sec-t">\u00bfQU\u00c9 P\u00d3LIZA VENDISTE?</div><div class="polizas">';
+    var tramos = (typeof SEGURO_2026!=='undefined') ? SEGURO_2026 : [];
+    tramos.forEach(function(tr,i){
+      var sel = Number(F.seguroTramo)===i;
+      h+='<button class="pol'+(sel?' on':'')+'" onclick="setTramo('+i+')">'
+        +'<span class="pol-p">'+fmx(tr.precio)+'<small>/mes</small></span>'
+        +'<span class="pol-r">Equipos de '+fmx(tr.min)+' a '+fmx(tr.max)+'</span>'
+        +'<span class="pol-c">'+fmx(tr.com)+'</span></button>';
+    });
+    h+='</div>';
   }
   if(t.acc||t.add){
     h+='<div class="sec-t">VALOR</div>'
-      +'<input class="num" type="number" min="0" inputmode="numeric" placeholder="$" '
-      +'value="'+F.valor+'" oninput="setCampo(\'valor\',this.value)">';
+      +'<input class="num" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="$" '
+      +'id="f-valor" value="'+F.valor+'" oninput="setCampo(\'valor\',this.value)">';
     if(t.acc){
       h+='<div class="segm" style="margin-top:9px">'
-        +'<button class="sg'+(F.alphacomm?' on':'')+'" onclick="setMarca(true)">ALPHACOMM \u00b7 10%</button>'
-        +'<button class="sg'+(!F.alphacomm?' on':'')+'" onclick="setMarca(false)">Otra marca \u00b7 2%</button>'
+        +'<button class="sg'+(F.alphacomm?' on':'')+'" id="mk-a" onclick="setMarca(true)">ALPHACOMM \u00b7 10%</button>'
+        +'<button class="sg'+(!F.alphacomm?' on':'')+'" id="mk-b" onclick="setMarca(false)">Otra marca \u00b7 2%</button>'
         +'</div>';
     }
   }
   if(t.pre){
     h+='<div class="sec-t">MONTO DE LA RECARGA</div>'
-      +'<input class="num" type="number" min="0" inputmode="numeric" placeholder="$" '
-      +'value="'+F.recarga+'" oninput="setCampo(\'recarga\',this.value)">';
-    if(F.recarga!=='' && Number(F.recarga)<150){
-      h+='<div class="alerta red">La recarga m\u00ednima para comisionar es $150.</div>';
-    }
+      +'<input class="num" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="$" '
+      +'id="f-recarga" value="'+F.recarga+'" oninput="setCampo(\'recarga\',this.value)">';
   }
   if(t.ctrl){
-    h+='<div class="nota-inline">Control tiene precio fijo de '
+    h+='<div class="nota-inline" style="margin-top:14px">Control tiene precio fijo de '
       +fmx(typeof CONTROL_PRICE!=='undefined'?CONTROL_PRICE:50)+' al mes.</div>';
+  }
+  return h;
+}
+
+/* Solo esto se repinta al teclear: nunca toca los inputs. */
+function htmlDependiente(){
+  var t=tipoDe(F.tipo);
+  if(!t) return '';
+  var h='';
+  if(t.reno && F.meses!==''){
+    var m=Number(F.meses);
+    if(m<=6) h+='<div class="alerta red">Renovaci\u00f3n anticipada de 6 meses o menos: no paga comisi\u00f3n ni cuenta para alcance.</div>';
+    else if(m<=12) h+='<div class="alerta amber">Renovaci\u00f3n anticipada: paga el 50% de la comisi\u00f3n.</div>';
+  }
+  if(t.pre && F.recarga!=='' && Number(F.recarga)<150){
+    h+='<div class="alerta red">La recarga m\u00ednima para comisionar es $150.</div>';
   }
   if(listo()){
     var c=comisionActual();
@@ -396,7 +453,7 @@ function listo(){
   if(!t) return false;
   if(t.ctrl) return true;   // Control no pide datos: precio fijo
   if(t.plan && !F.plan) return false;
-  if(t.seg && !F.precioEquipo) return false;
+  if(t.seg && F.seguroTramo===null) return false;
   if((t.acc||t.add) && !F.valor) return false;
   if(t.pre && !F.recarga) return false;
   return true;
@@ -404,7 +461,7 @@ function listo(){
 
 function setTipo(k){
   F.tipo=k; F.plan=null; F.devId=null; F.devNombre=''; F.busca='';
-  F.valor=''; F.recarga=''; F.meses=''; F.precioEquipo=0;
+  F.valor=''; F.recarga=''; F.meses=''; F.precioEquipo=0; F.seguroTramo=null;
   F.familia='Premium';
   document.getElementById('nav-t').textContent=tipoDe(k).n;
   pintar();
@@ -427,6 +484,16 @@ function limpiarDev(){
   pintar(); refrescarDependientes();
 }
 function setMarca(a){ F.alphacomm=a; pintar(); }
+
+/* Al elegir la póliza se fija el tramo; el precio del equipo se toma del
+   piso del rango solo para dejar rastro en el registro. */
+function setTramo(i){
+  F.seguroTramo=i;
+  var tr=(typeof SEGURO_2026!=='undefined')?SEGURO_2026[i]:null;
+  F.precioEquipo = tr ? tr.min : 0;
+  F.seguroCom = tr ? tr.com : 0;
+  pintar(); refrescarDependientes();
+}
 
 /* [v1.12.3] Antes esto llamaba a pintar() en cada tecla: el input se destruía
    y el cursor se perdía a media palabra. Ahora solo se refrescan las zonas
@@ -471,8 +538,20 @@ async function guardar(){
     var t=tipoDe(F.tipo);
     /* Mismos campos que ya usa el tablero: tipo, com, title, sub, plan,
        modelo, fecha. Se agregan los que el motor 2026 necesita. */
+    /* [v1.12.5] LA VENTA SE GUARDA CON EL NOMBRE VIEJO EN `tipo` y el nuevo en
+       `metrica`. Razón: loadVentasTienda de TG_DASH hace MM[o.tipo] y si no
+       reconoce el valor DESCARTA la venta sin avisar — por eso lo capturado
+       no aparecía en ningún tablero. Así lo leen los dos mundos. */
+    var LEGACY={ equipo:'pospago', renovacion:'renov', servicio:'pospago',
+                 accesorio:'acces', addon:'addon', control:'addon',
+                 seguro:'seguro', prepago:'prepago' };
+    var METRICA={ equipo:'equipo', renovacion:'renovacion', servicio:'servicio',
+                  accesorio:'accesorios', addon:'accesorios', control:'accesorios',
+                  seguro:'seguros', prepago:'prepago' };
     var v={
-      tipo: F.tipo,
+      tipo: LEGACY[F.tipo] || F.tipo,
+      metrica: METRICA[F.tipo] || F.tipo,
+      tipo2026: F.tipo,
       com: c.base,
       title: t.n + (F.plan?(' · '+F.plan):''),
       sub: F.devNombre || '',
@@ -480,9 +559,15 @@ async function guardar(){
       modelo: F.devId || null,
       fecha: new Date().toISOString().slice(0,10)
     };
+    /* `tag:'nuevo'` es lo que el motor viejo usa para saber que hubo equipo.
+       Servicio no lo lleva: así el mando no lo cuenta como venta con equipo. */
+    if(F.tipo==='equipo' || F.tipo==='renovacion') v.tag='nuevo';
+    if(F.tipo==='seguro' && F.seguroTramo!==null && typeof SEGURO_2026!=='undefined'){
+      var trs=SEGURO_2026[F.seguroTramo];
+      if(trs){ v.seguroPrecio=trs.precio; v.title='Seguro '+fmx(trs.precio); }
+    }
     if(F.precioEquipo) v.precioEquipo=Number(F.precioEquipo);
     if(F.tipo==='control'){
-      v.tipo='addon';
       v.valor=(typeof CONTROL_PRICE!=='undefined'?CONTROL_PRICE:50);
       v.title='Control';
     } else if(F.valor!==''){ v.valor=Number(F.valor); }
@@ -493,12 +578,14 @@ async function guardar(){
 
     await TG_FB.addVenta(v,
       (ASESOR.attuid||ASESOR.id),
-      periodoDe(new Date()),
+      F.periodo || periodoDe(new Date()),
       (ASESOR.tienda||ASESOR.sucursal||''));
 
-    e.textContent='Venta registrada · '+fmx(c.base+c.bono); e.className='estado ok';
+    e.textContent='Registrada en la semana '+String(F.periodo).split('-W')[1]
+      +' · '+fmx(c.base+c.bono);
+    e.className='estado ok';
     F.tipo=null; F.plan=null; F.devId=null; F.devNombre='';
-    F.valor=''; F.recarga=''; F.meses=''; F.precioEquipo=0;
+    F.valor=''; F.recarga=''; F.meses=''; F.precioEquipo=0; F.seguroTramo=null;
     document.getElementById('nav-t').textContent='Registrar venta';
   }catch(err){
     console.error('guardar', err);
@@ -512,7 +599,8 @@ if(!ASESOR){
     +'No encontramos tu sesión.<br><br><span style="font-size:12px">'
     +'Entra desde TechGuide en vez de abrir esta página directo.</span></div>';
 } else {
-  document.getElementById('wk-chip').textContent='Sem '+isoWeek(new Date());
+  F.periodo = periodoDe(new Date());
+  document.getElementById('wk-chip').style.display='none';
   pintar();
 }
 </script>
@@ -523,7 +611,7 @@ const cfg={apiKey:"AIzaSyC9qhK78TKkLUu_gcN3WRwyKV8-mTk1Lsc",authDomain:"techguid
 const db=getFirestore(initializeApp(cfg));
 const COL='comisiones_ventas';
 /* Mismos campos que el tablero anterior + los del esquema 2026. */
-const FIELDS=['tipo','com','title','sub','tag','fecha','line','pos','modelo','plan',
+const FIELDS=['tipo','metrica','tipo2026','com','title','sub','tag','fecha','line','pos','modelo','plan',
               'precioEquipo','valor','recarga','alphacomm','mesesVigencia','bono'];
 window.TG_FB={
   async addVenta(v,attuid,periodo,tienda){

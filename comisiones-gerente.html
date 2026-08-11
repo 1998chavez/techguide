@@ -91,7 +91,13 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:var(--su
 .met-c b{color:var(--label);font-weight:700}
 .met-c.warn{color:var(--amber)}
 .met-c.bad{color:var(--red-soft)}
-.met-p{font-size:18px;font-weight:800;letter-spacing:-.02em;text-align:right}
+.met-p{font-size:19px;font-weight:800;letter-spacing:-.02em;text-align:right;
+  color:var(--label)}
+/* El porcentaje toma el color de su estado: en rojo se leía como texto
+   apagado sobre fondo oscuro y no se distinguía. */
+.met.r .met-p{color:var(--red-soft)}
+.met.a .met-p{color:var(--amber)}
+.met.g .met-p{color:var(--label)}
 .met-x{font-size:9.5px;text-align:right;margin-top:1px}
 .met-x.on{color:var(--mint)}
 .met-x.off{color:var(--label3)}
@@ -399,8 +405,68 @@ function htmlTienda(){
   });
   h+='</div>';
 
+  /* [v1.12.4] Los asesores: cuánto vende y cuánto cobra cada uno. Faltaba
+     por completo y es lo que el gerente revisa a diario. */
+  if(EST.asesoresDet && EST.asesoresDet.length){
+    var ordA=EST.asesoresDet.slice().sort(function(a,b){ return b.com-a.com; });
+    h+='<div class="sec"><span class="sec-t">MI EQUIPO</span>'
+      +'<span class="sec-r">'+ordA.length+' asesores</span></div><div class="ases">';
+    ordA.forEach(function(a){
+      var piso = (a.eq>=2) || (a.eq>=1 && a.re>=1);
+      h+='<button class="ase" onclick="verAsesor(\''+a.attuid+'\')">'
+        +'<span class="gte">'+ini(a.nombre||a.attuid)+'</span>'
+        +'<span style="flex:1;min-width:0"><span class="ase-n">'+(a.nombre||a.attuid)+'</span>'
+        +'<span class="ase-d'+(piso?'':' bad')+'">'
+        +(piso ? a.eq+' equipo \u00b7 '+a.re+' reno \u00b7 '+a.ac+' acc'
+               : 'Piso sin cubrir \u00b7 no cobra nada')+'</span></span>'
+        +'<span class="ase-v'+(piso?'':' off')+'">'+fmx(piso?a.com:0)+'</span>'
+        +'<span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>';
+    });
+    h+='</div>';
+  } else {
+    h+='<div class="sec"><span class="sec-t">MI EQUIPO</span></div>'
+      +'<div class="vacio-box">Nadie ha registrado ventas esta semana.</div>';
+  }
+
   h+='<div class="note">Las cantidades son una simulaci\u00f3n informativa y no representan el cobro real.</div>';
   return h;
+}
+
+function ini(nombre){
+  var p=String(nombre||'').trim().split(/\s+/);
+  return ((p[0]||'')[0]||'')+((p[1]||'')[0]||'');
+}
+
+/* Detalle de un asesor: sus ventas y por qué cobra lo que cobra. */
+function verAsesor(id){
+  var a=null; (EST.asesoresDet||[]).forEach(function(x){ if(x.attuid===id) a=x; });
+  if(!a) return;
+  var piso=(a.eq>=2)||(a.eq>=1&&a.re>=1);
+  var h='<div class="det-hero"><div style="flex:1">'
+    +'<div class="hero-l">COBRA ESTA SEMANA</div>'
+    +'<div style="font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.1">'
+    +fmx(piso?a.com:0)+'</div></div></div>';
+
+  h+='<div class="'+(piso?'tip verde':'tip red')+'" style="margin-top:12px">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+    +(piso?'<path d="M20 6L9 17l-5-5"/>':'<path d="M12 9v4M12 17h.01M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>')
+    +'</svg><span>'+(piso
+      ? 'Piso semanal cubierto: '+a.eq+' equipo y '+a.re+' renovaci\u00f3n.'
+      : 'Sin el piso de 2 ventas con equipo no cobra <b>nada</b>. Lleva '+a.eq+' equipo y '+a.re+' reno.')
+    +'</span></div>';
+
+  h+='<div class="sec-t" style="margin:16px 2px 9px">LO QUE VENDI\u00d3</div><div class="lista">';
+  [['Equipo',a.eq],['Renovaci\u00f3n',a.re],['Accesorios',a.ac],['Seguros',a.se],['Prepago',a.pr]]
+    .forEach(function(p){
+      h+='<div class="li"><span class="li-n">'+p[0]+'</span>'
+        +'<span class="li-v">'+p[1]+'</span></div>';
+    });
+  h+='</div>';
+
+  document.getElementById('sheet-t').textContent=a.nombre||a.attuid;
+  document.getElementById('sheet-b').innerHTML=h;
+  document.getElementById('sheet').classList.add('open');
+  document.body.style.overflow='hidden';
 }
 
 function htmlMias(){
@@ -523,15 +589,9 @@ window.bootGerente = async function(){
   EST.tienda=tienda; EST.mes=mes; EST.periodo=periodo;
 
   function mapear(v){
-    var t = (v.tipo==='pospago'||v.tipo==='migra') ? 'equipo'
-          : v.tipo==='renov' ? 'renovacion'
-          : v.tipo==='acces' ? 'accesorio' : v.tipo;
-    var met = t==='equipo' ? 'equipo' : t==='renovacion' ? 'renovacion'
-            : (t==='accesorio'||t==='addon') ? 'accesorios'
-            : t==='seguro' ? 'seguros' : t==='prepago' ? 'prepago' : t;
-    return { tipo:t, metrica:met, plan:v.plan, unidades:1, com:v.com,
-             valor:v.valor, recarga:v.recarga, alphacomm:v.alphacomm,
-             precioEquipo:v.precioEquipo, _attuid:v.attuid };
+    var n=ventaNormalizada2026(v);
+    n._attuid=v.attuid;
+    return n;
   }
   try{
     var t = await TG_FB.loadTienda(tienda, periodo);

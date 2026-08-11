@@ -93,7 +93,13 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:var(--su
 .met-c b{color:var(--label);font-weight:700}
 .met-c.warn{color:var(--amber)}
 .met-c.bad{color:var(--red-soft)}
-.met-p{font-size:18px;font-weight:800;letter-spacing:-.02em;text-align:right}
+.met-p{font-size:19px;font-weight:800;letter-spacing:-.02em;text-align:right;
+  color:var(--label)}
+/* El porcentaje toma el color de su estado: en rojo se leía como texto
+   apagado sobre fondo oscuro y no se distinguía. */
+.met.r .met-p{color:var(--red-soft)}
+.met.a .met-p{color:var(--amber)}
+.met.g .met-p{color:var(--label)}
 .met-x{font-size:9.5px;text-align:right;margin-top:1px}
 .met-x.on{color:var(--mint)}
 .met-x.off{color:var(--label3)}
@@ -591,19 +597,9 @@ window.bootComisiones = async function(){
   var mes = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0');
   try{
     var ventas = await TG_FB.loadVentas(attuid, periodo);
-    EST.ventas = ventas.map(function(v){
-      var t = (v.tipo==='pospago'||v.tipo==='migra') ? 'equipo'
-            : v.tipo==='renov' ? 'renovacion'
-            : v.tipo==='acces' ? 'accesorio' : v.tipo;
-      var met = t==='equipo' ? 'equipo'
-              : t==='renovacion' ? 'renovacion'
-              : (t==='accesorio'||t==='addon') ? 'accesorios'
-              : t==='seguro' ? 'seguros'
-              : t==='prepago' ? 'prepago' : t;
-      return { tipo:t, metrica:met, plan:v.plan, unidades:1, com:v.com,
-               valor:v.valor, recarga:v.recarga, alphacomm:v.alphacomm,
-               precioEquipo:v.precioEquipo };
-    });
+    /* [v1.12.6] Una sola fuente para interpretar el registro: distingue
+       servicio de equipo, que antes se contaban juntos. */
+    EST.ventas = ventas.map(ventaNormalizada2026);
     var alc = await TG_FB.loadAlcanceTienda(tienda, periodo);
     EST.unidades = { equipo:alc.pospago||0, servicio:alc.servicio||0,
                      renovacion:alc.renov||0, accesorios:alc.acces||0,

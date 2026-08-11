@@ -91,7 +91,13 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:var(--su
 .met-c b{color:var(--label);font-weight:700}
 .met-c.warn{color:var(--amber)}
 .met-c.bad{color:var(--red-soft)}
-.met-p{font-size:18px;font-weight:800;letter-spacing:-.02em;text-align:right}
+.met-p{font-size:19px;font-weight:800;letter-spacing:-.02em;text-align:right;
+  color:var(--label)}
+/* El porcentaje toma el color de su estado: en rojo se leía como texto
+   apagado sobre fondo oscuro y no se distinguía. */
+.met.r .met-p{color:var(--red-soft)}
+.met.a .met-p{color:var(--amber)}
+.met.g .met-p{color:var(--label)}
 .met-x{font-size:9.5px;text-align:right;margin-top:1px}
 .met-x.on{color:var(--mint)}
 .met-x.off{color:var(--label3)}
@@ -615,17 +621,10 @@ window.hidratarFirebase = async function(){
       var ids=Object.keys(Z.tiendas);
       var uni={}, base={}, cuotas={}, total=0, bono=0, pts=0;
       var detalle = await Promise.all(ids.map(async function(id){
-        var v = await TG_DASH.loadVentasTienda(id, periodo);
+        var docs = await ventasCrudas(id, periodo);
+        var ag = agregarTienda(docs);
         var cq = await cargarCuotas(id, periodo);
-        var tu={ equipo:v.po||0, servicio:0, renovacion:v.re||0,
-                 accesorios:v.ac||0, seguros:v.se||0, prepago:v.pr||0 };
-        var tb={ equipo:0, servicio:0, renovacion:0, accesorios:0, seguros:0, prepago:0 };
-        if(typeof COM_EQUIPO_2026!=='undefined'){
-          Object.keys(v.ventasPo||{}).forEach(function(p){ tb.equipo += (COM_EQUIPO_2026[p]||0)*v.ventasPo[p]; });
-          Object.keys(v.ventasRe||{}).forEach(function(p){ tb.renovacion += (COM_EQUIPO_2026[p]||0)*v.ventasRe[p]; });
-        }
-        var tt=0;
-        Object.keys(v.porAsesor||{}).forEach(function(a){ tt += (v.porAsesor[a].com||0); });
+        var tu=ag.unidades, tb=ag.base, tt=ag.total;
         if(typeof calcularGerente2026==='function'){
           var mets=['equipo','servicio','renovacion','accesorios','seguros','prepago'].map(function(m){
             var c=cq[m]||0;
@@ -662,6 +661,42 @@ function bonito(id){
   return String(id).replace(/^prm[-_]/i,'').replace(/[-_]+/g,' ')
     .replace(/\b\w/g, function(c){ return c.toUpperCase(); });
 }
+
+/* [v1.12.6] TG_DASH.loadVentasTienda agrega con las claves cortas de julio
+   (po/re/ac/se/pr) y descarta cualquier tipo que no reconozca — por eso las
+   ventas nuevas desaparecían. Este lector trae los documentos crudos y los
+   interpreta con el normalizador del motor. */
+async function ventasCrudas(tienda, periodo){
+  if(window.TG_VENTAS && TG_VENTAS.crudas) return await TG_VENTAS.crudas(tienda, periodo);
+  return [];
+}
+
+/* Agrega una tienda: unidades y base por métrica, total y detalle por asesor. */
+function agregarTienda(docs){
+  var uni={}, base={}, total=0, porAsesor={};
+  (docs||[]).forEach(function(d){
+    var v = (typeof ventaNormalizada2026==='function') ? ventaNormalizada2026(d) : null;
+    if(!v || !v.metrica) return;
+    uni[v.metrica]=(uni[v.metrica]||0)+1;
+    var c = (typeof comisionUnitaria2026==='function') ? comisionUnitaria2026(v) : (d.com||0);
+    if(!isFinite(c)) c = d.com||0;
+    base[v.metrica]=(base[v.metrica]||0)+c;
+    total+=c;
+    var a=d.attuid||'?';
+    if(!porAsesor[a]) porAsesor[a]={ attuid:a, com:0, eq:0, re:0, ac:0, se:0, pr:0, sv:0 };
+    var P=porAsesor[a];
+    P.com+=c;
+    if(v.metrica==='equipo') P.eq++;
+    else if(v.metrica==='renovacion') P.re++;
+    else if(v.metrica==='servicio') P.sv++;
+    else if(v.metrica==='accesorios') P.ac++;
+    else if(v.metrica==='seguros') P.se++;
+    else if(v.metrica==='prepago') P.pr++;
+  });
+  return { unidades:uni, base:base, total:total,
+           asesores:Object.keys(porAsesor).map(function(k){ return porAsesor[k]; }) };
+}
+
 </script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
@@ -678,6 +713,18 @@ window.TG_DASH={
   async gerentesPorRegion(region){const out={};try{const snap=await getDocs(query(collection(db,'empleados'),where('region','==',region)));snap.forEach(d=>{const o=d.data();if(o&&String(o.rol||'').toLowerCase()==='gerente'&&o.tienda)out[o.tienda]=o.nombre||'';});}catch(e){console.error('gerentes',e);}return out;},
   async gerentesPorTiendas(ids){const out={};try{ids=(ids||[]).filter(Boolean);for(let i=0;i<ids.length;i+=30){const chunk=ids.slice(i,i+30);const snap=await getDocs(query(collection(db,'empleados'),where('tienda','in',chunk)));snap.forEach(d=>{const o=d.data();if(o&&String(o.rol||'').toLowerCase()==='gerente'&&o.tienda)out[o.tienda]=o.nombre||'';});}}catch(e){console.error('gerentesPorTiendas',e);}return out;}
 };
+
+window.TG_VENTAS={
+  async crudas(tienda, periodo){
+    const out=[];
+    try{
+      const s=await getDocs(query(collection(db,'comisiones_ventas'),where('tienda','==',tienda)));
+      s.forEach(function(d){ const o=d.data(); if(o && o.periodo===periodo) out.push(o); });
+    }catch(e){ console.error('ventasCrudas',e); }
+    return out;
+  }
+};
+
 window.TG_FB={
   async cuotasDeTienda(tienda, periodo){
     try{
