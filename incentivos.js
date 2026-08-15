@@ -25,36 +25,31 @@
 
 // ── Monto fijo por equipo ───────────────────────────────────────────────────
 window.EQUIP_INC = {
-  // Flyer Google (06 jul → 02 ago)
+  'Honor Magic 7 Pro': 300,
+  'Honor Magic 8 Lite 5G': 170,
+  'Honor Magic 8 Lite 5G + Jersey': 170,
+  'Honor X8D': 130,
+  'Moto Edge 70 Pro + Watch': 450,
+  'Moto Edge 70 Pro + Watch + Chamarra': 450,
+  'Moto G77': 195,
   'Pixel 10': 250,
   'Pixel 10 Pro': 400,
   'Pixel 10 Pro XL': 400,
-  // Flyer Honor (06 jul → 09 ago)
-  'Honor 400': 300,
-  'Honor 400 + Balón': 300,
-  'Honor X8D': 180,
-  'Honor Magic 8 Lite 5G': 160,
-  // Flyer Oppo (06 jul → 02 ago)
-  'Oppo Find X9 Pro': 310,
-  'Oppo Reno14 BDL Headphones': 190,
-  'Oppo Reno 14F': 155,
-  'Oppo A6k': 70,
-  'Oppo A5 Pro 5G': 45,
-  // Flyer Xiaomi (06 jul → 02 ago)
-  'Xiaomi 17T': 150,
   'Xiaomi 15T': 250,
+  'Xiaomi 17T': 220,
+  'Xiaomi 17T Pro': 220,
   'Redmi Note 15 Pro 5G': 210,
-  'Redmi Note 15': 120
+  'Redmi Note 15': 120,
+  'Oppo Find X9 Pro': 310,
+  'Oppo Reno 14F': 155,
+  'Oppo Reno 13 5G': 85,
+  'Oppo A6k': 85,
+  'Oppo A5 Pro 5G': 85
 };
-
 // ── Monto por plan (gana sobre EQUIP_INC cuando el flyer diferencia) ────────
 window.EQUIP_INC_BY_PLAN = {
-  // Flyer Honor 600 (13 jul → 23 ago): Black y superiores $680, acumulable.
-  'Honor 600': { 'Black': 680, 'Platino': 680, 'Diamante': 680 },
-  // Flyer Oppo Reno 16F (13 jul → 09 ago): Oro $200 / Black y superiores $500.
-  'Oppo Reno 16F': { 'Oro': 200, 'Black': 500, 'Platino': 500, 'Diamante': 500 }
+  'Honor 600': {"Black":680,"Platino":680,"Diamante":680}
 };
-
 // ── Unidades mínimas del mismo modelo para que el bono aplique ──────────────
 window.EQUIP_INC_MIN_UNITS = {
   'Oppo Reno 16F': 2   // "Aplica a partir de 2 ventas"
@@ -70,26 +65,28 @@ window.EQUIP_INC_MIN_UNITS = {
 // Las fechas de fin vienen de los flyers. Las de inicio de los flyers del 06-jul
 // son inferidas de la fecha del flyer, no de una vigencia impresa.
 window.EQUIP_INC_VIGENCY = {
-  'Pixel 10':                   { start: '2026-07-06', end: '2026-08-02' },
-  'Pixel 10 Pro':               { start: '2026-07-06', end: '2026-08-02' },
-  'Pixel 10 Pro XL':            { start: '2026-07-06', end: '2026-08-02' },
-  'Honor 400':                  { start: '2026-07-06', end: '2026-08-09' },
-  'Honor 400 + Balón':          { start: '2026-07-06', end: '2026-08-09' },
-  'Honor X8D':                  { start: '2026-07-06', end: '2026-08-09' },
-  'Honor Magic 8 Lite 5G':      { start: '2026-07-06', end: '2026-08-09' },
-  'Oppo Find X9 Pro':           { start: '2026-07-06', end: '2026-08-02' },
-  'Oppo Reno14 BDL Headphones': { start: '2026-07-06', end: '2026-08-02' },
-  'Oppo Reno 14F':              { start: '2026-07-06', end: '2026-08-02' },
-  'Oppo A6k':                   { start: '2026-07-06', end: '2026-08-02' },
-  'Oppo A5 Pro 5G':             { start: '2026-07-06', end: '2026-08-02' },
-  'Xiaomi 17T':                 { start: '2026-07-06', end: '2026-08-02' },
-  'Xiaomi 15T':                 { start: '2026-07-06', end: '2026-08-02' },
-  'Redmi Note 15 Pro 5G':       { start: '2026-07-06', end: '2026-08-02' },
-  'Redmi Note 15':              { start: '2026-07-06', end: '2026-08-02' },
-  'Honor 600':                  { start: '2026-07-13', end: '2026-08-23' },
-  'Oppo Reno 16F':              { start: '2026-07-13', end: '2026-08-09' }
+  'Honor Magic 7 Pro': {start:'2026-08-13', end:'2026-09-27'},
+  'Honor Magic 8 Lite 5G': {start:'2026-08-13', end:'2026-09-27'},
+  'Honor Magic 8 Lite 5G + Jersey': {start:'2026-08-13', end:'2026-09-27'},
+  'Honor X8D': {start:'2026-08-13', end:'2026-09-27'},
+  'Moto Edge 70 Pro + Watch': {start:'2026-08-03', end:'2026-08-30'},
+  'Moto Edge 70 Pro + Watch + Chamarra': {start:'2026-08-03', end:'2026-08-30'},
+  'Moto G77': {start:'2026-08-03', end:'2026-08-30'},
+  'Pixel 10': {start:'2026-08-03', end:'2026-08-30'},
+  'Pixel 10 Pro': {start:'2026-08-03', end:'2026-08-30'},
+  'Pixel 10 Pro XL': {start:'2026-08-03', end:'2026-08-30'},
+  'Xiaomi 15T': {start:'2026-08-03', end:'2026-08-30'},
+  'Xiaomi 17T': {start:'2026-08-03', end:'2026-08-30'},
+  'Xiaomi 17T Pro': {start:'2026-08-03', end:'2026-08-30'},
+  'Redmi Note 15 Pro 5G': {start:'2026-08-03', end:'2026-08-30'},
+  'Redmi Note 15': {start:'2026-08-03', end:'2026-08-30'},
+  'Oppo Find X9 Pro': {start:'2026-08-03', end:'2026-08-30'},
+  'Oppo Reno 14F': {start:'2026-08-03', end:'2026-08-30'},
+  'Oppo Reno 13 5G': {start:'2026-08-03', end:'2026-08-30'},
+  'Oppo A6k': {start:'2026-08-03', end:'2026-08-30'},
+  'Oppo A5 Pro 5G': {start:'2026-08-03', end:'2026-08-30'},
+  'Honor 600': {start:'2026-07-13', end:'2026-08-23'}
 };
-
 
 // ── [v1.11.64] RENTA MENSUAL POR PLAN — insumo del ARPU de los tableros ─────
 // POR QUÉ VIVE AQUÍ: estaba duplicada a mano en los 4 tableros que calculan ARPU
