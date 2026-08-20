@@ -11796,6 +11796,10 @@ if('serviceWorker' in navigator){
   function marcarActualizacionDisponible(reason){
     window._swUpdateDisponible = true;
     console.log('[SW] versión nueva lista, esperando momento seguro:', reason);
+    /* [v1.12.8] Antes esto solo se escribía en consola: el asesor nunca se
+       enteraba y seguía cotizando con precios viejos. Ahora se avisa en el
+       home. La barra NO recarga sola — eso tumbaría una cotización a medias. */
+    if(typeof mostrarAvisoActualizacion==='function') mostrarAvisoActualizacion();
   }
   
   // Preguntar al SW activo cuál es su BUILD_ID
@@ -11943,3 +11947,41 @@ document.addEventListener('visibilitychange', function(){
 });
 
 // install banner removed
+
+/* ── [v1.12.8] AVISO DE VERSIÓN NUEVA ─────────────────────────────────────
+   Aparece en el home cuando el service worker ya bajó una versión distinta a
+   la que corre. Se cierra con la ✕ y no vuelve en esa sesión, pero reaparece
+   al día siguiente si sigue sin actualizar. */
+function mostrarAvisoActualizacion(){
+  if(document.getElementById('upd-bar')) return;
+  try{ if(sessionStorage.getItem('_updOculto')==='1') return; }catch(e){}
+  var host=document.getElementById('s-home');
+  if(!host) return;
+  var d=document.createElement('div');
+  d.id='upd-bar';
+  d.className='upd-bar';
+  d.innerHTML='<span class="upd-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></span>'
+    +'<span class="upd-txt"><b>Hay precios nuevos</b><br>Actualiza para cotizar con los vigentes</span>'
+    +'<button class="upd-btn" onclick="aplicarActualizacion()">Actualizar</button>'
+    +'<button class="upd-x" onclick="ocultarAvisoActualizacion()" aria-label="Cerrar">&#10005;</button>';
+  host.insertBefore(d, host.firstChild);
+}
+
+function ocultarAvisoActualizacion(){
+  var d=document.getElementById('upd-bar');
+  if(d) d.remove();
+  try{ sessionStorage.setItem('_updOculto','1'); }catch(e){}
+}
+
+function aplicarActualizacion(){
+  var b=document.querySelector('.upd-btn');
+  if(b){ b.textContent='Actualizando…'; b.disabled=true; }
+  try{ sessionStorage.removeItem('_updOculto'); }catch(e){}
+  if(typeof hardRefresh==='function') hardRefresh();
+  else location.reload(true);
+}
+
+/* Si el asesor abre la app y ya había una versión pendiente, avisarle. */
+document.addEventListener('visibilitychange', function(){
+  if(!document.hidden && window._swUpdateDisponible) mostrarAvisoActualizacion();
+});

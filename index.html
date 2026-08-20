@@ -11,10 +11,10 @@
      otro script, porque catalog.js/vendors.js la usan para el cache-busting y
      el registro del SW la compara. Si HTML y SW no coinciden → recarga forzada.
      Al empacar cada versión, este número se actualiza igual que el cache del SW. -->
-<script>window.BUILD_ID = '1788500032';
+<script>window.BUILD_ID = '1788500033';
 // [v1.11.61] APP_VERSION vive aquí desde que el bloque principal salió a app.js.
 // El ritual de release NO cambia: 2 constantes aquí + 2 en sw.js.
-const APP_VERSION = 'v1.12.7';</script>
+const APP_VERSION = 'v1.12.8';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -4813,6 +4813,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 #s-calc .calc-result-promo{color:var(--hv2-accent) !important}
 #s-calc .calc-result-arrow{color:var(--hv2-ink3) !important}
 
+
+/* [v1.12.8] Aviso de versión nueva en el home. Ámbar, no rojo: no es un error,
+   es un recordatorio. Va arriba de todo para que no se pase por alto. */
+.upd-bar{display:flex;align-items:center;gap:11px;margin:0 0 14px;padding:12px 14px;
+  background:rgba(255,193,7,.11);border:1px solid rgba(255,193,7,.34);
+  border-radius:16px;animation:updIn .3s cubic-bezier(.32,.72,0,1)}
+@keyframes updIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.upd-ico{flex-shrink:0;color:#C8901A;display:flex}
+.upd-ico svg{width:20px;height:20px}
+.upd-txt{flex:1;min-width:0;font-size:11.5px;line-height:1.45;color:var(--label3)}
+.upd-txt b{display:block;color:#C8901A;font-size:13px;font-weight:700;margin-bottom:1px}
+.upd-btn{flex-shrink:0;background:#C8901A;color:#fff;border:none;border-radius:11px;
+  padding:9px 15px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer}
+.upd-btn:active{opacity:.8}
+.upd-btn:disabled{opacity:.55}
+.upd-x{flex-shrink:0;background:none;border:none;color:var(--label4);font-size:13px;
+  cursor:pointer;padding:4px;font-family:inherit;line-height:1}
+[data-theme="dark"] .upd-txt b,[data-theme="dark"] .upd-ico{color:#FFD60A}
+[data-theme="dark"] .upd-btn{background:#FFD60A;color:#1A1200}
 </style>
 <!-- [v1.9.22] vendors.js (html2canvas + jsPDF) se carga lazy via loadVendors() -->
 </head>
