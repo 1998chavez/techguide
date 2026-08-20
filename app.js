@@ -11960,8 +11960,8 @@ function mostrarAvisoActualizacion(){
   var d=document.createElement('div');
   d.id='upd-bar';
   d.className='upd-bar';
-  d.innerHTML='<span class="upd-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></span>'
-    +'<span class="upd-txt"><b>Hay precios nuevos</b><br>Actualiza para cotizar con los vigentes</span>'
+  d.innerHTML='<span class="upd-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></span>'
+    +'<span class="upd-txt">Actualizaci\u00f3n disponible</span>'
     +'<button class="upd-btn" onclick="aplicarActualizacion()">Actualizar</button>'
     +'<button class="upd-x" onclick="ocultarAvisoActualizacion()" aria-label="Cerrar">&#10005;</button>';
   host.insertBefore(d, host.firstChild);
@@ -11981,7 +11981,27 @@ function aplicarActualizacion(){
   else location.reload(true);
 }
 
-/* Si el asesor abre la app y ya había una versión pendiente, avisarle. */
+/* [v1.12.10] El service worker solo revisaba versión al arrancar: un asesor
+   con la app abierta toda la tarde nunca se enteraba. Ahora se pregunta cada
+   5 minutos y también al volver del segundo plano. */
+function buscarActualizacion(){
+  if(!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.getRegistration().then(function(reg){
+    if(reg) reg.update().catch(function(){});
+  }).catch(function(){});
+  if(typeof verificarVersionSW==='function') verificarVersionSW();
+}
+
 document.addEventListener('visibilitychange', function(){
-  if(!document.hidden && window._swUpdateDisponible) mostrarAvisoActualizacion();
+  if(document.hidden) return;
+  if(window._swUpdateDisponible) mostrarAvisoActualizacion();
+  else buscarActualizacion();
 });
+
+setInterval(function(){
+  if(document.hidden) return;          // sin gastar batería en segundo plano
+  if(window._swUpdateDisponible) mostrarAvisoActualizacion();
+  else buscarActualizacion();
+}, 5*60*1000);
+
+setTimeout(buscarActualizacion, 8000); // un primer sondeo al entrar
