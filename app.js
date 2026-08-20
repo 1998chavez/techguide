@@ -11955,8 +11955,9 @@ document.addEventListener('visibilitychange', function(){
 function mostrarAvisoActualizacion(){
   if(document.getElementById('upd-bar')) return;
   try{ if(sessionStorage.getItem('_updOculto')==='1') return; }catch(e){}
-  var host=document.getElementById('s-home');
-  if(!host) return;
+  /* [v1.12.12] La barra deja de vivir dentro del home y se monta en el body:
+     antes, un asesor que entraba directo a cotizar y pasaba ahí la tarde
+     nunca la veía, que es justo donde un precio viejo hace daño. */
   var d=document.createElement('div');
   d.id='upd-bar';
   d.className='upd-bar';
@@ -11964,12 +11965,14 @@ function mostrarAvisoActualizacion(){
     +'<span class="upd-txt">Actualizaci\u00f3n disponible</span>'
     +'<button class="upd-btn" onclick="aplicarActualizacion()">Actualizar</button>'
     +'<button class="upd-x" onclick="ocultarAvisoActualizacion()" aria-label="Cerrar">&#10005;</button>';
-  host.insertBefore(d, host.firstChild);
+  document.body.appendChild(d);
+  document.documentElement.classList.add('con-upd');
 }
 
 function ocultarAvisoActualizacion(){
   var d=document.getElementById('upd-bar');
   if(d) d.remove();
+  document.documentElement.classList.remove('con-upd');
   try{ sessionStorage.setItem('_updOculto','1'); }catch(e){}
 }
 

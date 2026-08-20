@@ -11,10 +11,10 @@
      otro script, porque catalog.js/vendors.js la usan para el cache-busting y
      el registro del SW la compara. Si HTML y SW no coinciden → recarga forzada.
      Al empacar cada versión, este número se actualiza igual que el cache del SW. -->
-<script>window.BUILD_ID = '1788500036';
+<script>window.BUILD_ID = '1788500037';
 // [v1.11.61] APP_VERSION vive aquí desde que el bloque principal salió a app.js.
 // El ritual de release NO cambia: 2 constantes aquí + 2 en sw.js.
-const APP_VERSION = 'v1.12.11';</script>
+const APP_VERSION = 'v1.12.12';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -4814,24 +4814,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 #s-calc .calc-result-arrow{color:var(--hv2-ink3) !important}
 
 
-/* [v1.12.10] Aviso de versión nueva. Una sola línea, con el azul AT&T que ya
-   usa el resto de la app — el ámbar anterior no existía en la paleta y la
-   tarjeta pesaba más que el contenido del home. */
-.upd-bar{display:flex;align-items:center;gap:10px;margin:0 0 12px;
-  padding:10px 12px;background:rgba(0,168,224,.08);
-  border:1px solid rgba(0,168,224,.22);border-radius:14px;
+/* [v1.12.12] Barra global: fija arriba de todo, visible en cualquier pantalla.
+   El body baja para que no tape el contenido. */
+.upd-bar{position:fixed;top:0;left:0;right:0;z-index:9500;
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));
+  background:rgba(230,246,253,.97);backdrop-filter:saturate(180%) blur(14px);
+  border-bottom:1px solid rgba(0,168,224,.26);
   animation:updIn .26s cubic-bezier(.32,.72,0,1)}
-@keyframes updIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+@keyframes updIn{from{transform:translateY(-100%)}to{transform:none}}
+html.con-upd body{padding-top:52px}
 .upd-ico{flex-shrink:0;color:var(--att-blue);display:flex}
 .upd-ico svg{width:17px;height:17px}
-.upd-txt{flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--label)}
+.upd-txt{flex:1;min-width:0;font-size:13px;font-weight:600;color:#0B3C55}
 .upd-btn{flex-shrink:0;background:var(--att-blue);color:#fff;border:none;
   border-radius:10px;padding:7px 14px;font-size:12.5px;font-weight:600;
   font-family:inherit;cursor:pointer}
 .upd-btn:active{opacity:.8}
 .upd-btn:disabled{opacity:.5}
-.upd-x{flex-shrink:0;background:none;border:none;color:var(--label3);font-size:14px;
-  cursor:pointer;padding:2px 4px;font-family:inherit;line-height:1}
+.upd-x{flex-shrink:0;background:none;border:none;color:#6B8A9C;font-size:14px;
+  cursor:pointer;padding:6px;margin-left:6px;font-family:inherit;line-height:1}
+[data-theme="dark"] .upd-bar{background:rgba(10,32,45,.97);border-bottom-color:rgba(0,168,224,.3)}
+[data-theme="dark"] .upd-txt{color:#CFE9F5}
+[data-theme="dark"] .upd-x{color:#7E97A6}
 </style>
 <!-- [v1.9.22] vendors.js (html2canvas + jsPDF) se carga lazy via loadVendors() -->
 </head>
