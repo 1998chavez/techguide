@@ -12028,13 +12028,18 @@ function urlMiCatalogo(){
   var tel = String(p.phone||'').replace(/\D/g,'');
   /* MX sin lada internacional: se antepone 52. */
   if(tel.length===10) tel = '52'+tel;
-  var base = location.href.split('#')[0].replace(/index\.html.*$/,'').replace(/\/$/,'');
+  /* [v1.13.3] Antes se recortaba la URL con expresiones regulares y el
+     cache-buster de la app (…/?v=1787432152834) se colaba en la base:
+     el enlace salía como "?v=123/catalogo.html?a=…" y GitHub Pages
+     devolvía el index. URL nativo se queda solo con la carpeta. */
+  var u = new URL(location.href);
+  var dir = u.pathname.replace(/[^/]*$/, '');      // deja la carpeta, quita el archivo
   var q = [];
   if(attuid)  q.push('a='+encodeURIComponent(attuid));
   if(p.name)  q.push('n='+encodeURIComponent(p.name));
   if(tel)     q.push('t='+tel);
   if(p.sucursal) q.push('s='+encodeURIComponent(p.sucursal));
-  return base + '/catalogo.html' + (q.length ? '?'+q.join('&') : '');
+  return u.origin + dir + 'catalogo.html' + (q.length ? '?'+q.join('&') : '');
 }
 
 function abrirMiCatalogo(){
