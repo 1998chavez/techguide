@@ -768,15 +768,24 @@ function refrescarSim(){
 
 /* ── Compartir: menú nativo, no WhatsApp forzado ──────────────────────── */
 
+/* [v1.15.4] Del lado del CLIENTE el destinatario ya está definido: es el
+   asesor que mandó el enlace. Abrir el selector nativo aquí solo agrega un
+   paso y desvía la conversación. Se va directo a su WhatsApp.
+   (Del lado del ASESOR sí se usa el selector, porque ahí no se sabe a quién
+   se le va a compartir el catálogo.) */
 function compartir(texto){
-  /* [v1.14] Antes se abría wa.me directo y el teléfono obligaba a WhatsApp
-     Business. navigator.share deja que el usuario elija su app. */
+  if(ASESOR.tel){
+    window.open('https://wa.me/'+ASESOR.tel+'?text='+encodeURIComponent(texto),
+                '_blank', 'noopener');
+    return;
+  }
+  /* Sin teléfono no hay a quién escribirle: cae al selector para que el
+     cliente al menos pueda copiar o mandarlo por donde quiera. */
   if(navigator.share){
     navigator.share({ text:texto }).catch(function(){});
     return;
   }
-  window.open('https://wa.me/'+(ASESOR.tel||'')+'?text='+encodeURIComponent(texto),
-              '_blank', 'noopener');
+  window.open('https://wa.me/?text='+encodeURIComponent(texto), '_blank', 'noopener');
 }
 
 function escribir(){
