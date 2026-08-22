@@ -9,7 +9,7 @@
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v1130-micatalogo-ago22';
+const CACHE_NAME = 'techguide-v1131-fix-catalogo-ago22';
 // [v1.11.103] Caché SEPARADO y ESTABLE para los pesados que NO cambian entre
 // versiones: vendors.js (999KB, html2canvas+jsPDF) y catalog-img.js (866KB,
 // las fotos del catálogo). Antes vivían en CACHE_NAME, así que CADA bump
@@ -21,7 +21,7 @@ const SCOPE = '/techguide/';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1788500040';
+const BUILD_ID = '1788500041';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la
@@ -266,6 +266,8 @@ self.addEventListener('fetch', function(event){
                      url.pathname === SCOPE ||
                      url.pathname === SCOPE + '';
 
+  var esCatalogo = /\/catalogo\.html$/i.test(url.pathname);
+
   if(isAppAsset){
     // [v1.11.56] Stale-while-revalidate: sirve caché al instante y revalida en
     // segundo plano. ANTES era network-first puro → cada apertura esperaba la
@@ -290,8 +292,17 @@ self.addEventListener('fetch', function(event){
           }
           return response;
         }).catch(function(){
+          /* [v1.13.1] El fallback a index.html mandaba el catálogo público a la
+             app de colaboradores: catalogo.html viaja con ?a=…&n=…&t=… y esa
+             URL exacta no está en caché, así que caía aquí. Ahora el catálogo
+             usa su propia copia sin query. */
+          if(esCatalogo) return caches.match(SCOPE + 'catalogo.html');
           return cached || caches.match(SCOPE + 'index.html');
         });
+        /* El catálogo ignora la query al buscar en caché: el enlace de cada
+           asesor es distinto pero el archivo es el mismo. */
+        if(esCatalogo) return cached || caches.match(SCOPE + 'catalogo.html') 
+          .then(function(c){ return c || fetchPromise; });
         return cached || fetchPromise;
       })
     );
