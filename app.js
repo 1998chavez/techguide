@@ -12117,9 +12117,24 @@ async function abrirMiCatalogo(){
   window.open('https://wa.me/?text='+encodeURIComponent(msg), '_blank', 'noopener');
 }
 
-/* Se prepara al cargar: así la primera vez que toque compartir ya está lista. */
+/* [v1.15.1] La tarjeta se sincroniza sola al abrir la app, no solo al
+   compartir: si el asesor ya repartió su enlace y luego cambia su foto o
+   teléfono, el catálogo lo refleja sin que tenga que volver a compartir.
+   Se hace una vez al día para no escribir en cada apertura. */
 if(typeof window!=='undefined' && typeof document!=='undefined'){
-  setTimeout(function(){ if(typeof prepararFotoPub==='function') prepararFotoPub(); }, 3000);
+  setTimeout(function(){
+    if(typeof prepararFotoPub==='function') prepararFotoPub();
+    setTimeout(function(){
+      try{
+        var hoy = new Date().toISOString().slice(0,10);
+        if(localStorage.getItem('_tarjetaPub') === hoy) return;
+        if(typeof guardarTarjetaPublica!=='function') return;
+        guardarTarjetaPublica().then(function(){
+          try{ localStorage.setItem('_tarjetaPub', hoy); }catch(e){}
+        });
+      }catch(e){}
+    }, 2500);   /* después de que la foto esté recomprimida */
+  }, 3000);
 }
 
 if(typeof window!=='undefined'){
