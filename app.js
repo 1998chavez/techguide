@@ -12039,7 +12039,43 @@ function urlMiCatalogo(){
   if(p.name)  q.push('n='+encodeURIComponent(p.name));
   if(tel)     q.push('t='+tel);
   if(p.sucursal) q.push('s='+encodeURIComponent(p.sucursal));
+  /* [v1.14.2] La foto del asesor vive en base64 solo en su teléfono. Se
+     recomprime a 96px para que quepa en la URL sin volverla impronunciable;
+     si aun así pesa, el catálogo cae a las iniciales. */
+  var f = fotoParaEnlace();
+  if(f) q.push('f='+encodeURIComponent(f));
   return u.origin + dir + 'catalogo.html' + (q.length ? '?'+q.join('&') : '');
+}
+
+/* Miniatura de 96px: una foto de perfil normal pesa 40-80 KB en base64, que
+   haría el enlace inservible. A 96px y calidad 0.6 baja a ~3 KB. */
+function fotoParaEnlace(){
+  try{
+    var p = getPerfilEfectivo();
+    if(!p.foto || p.foto.length < 40) return '';
+    if(window._fotoMini) return window._fotoMini;
+    /* La recompresión es asíncrona; si aún no está lista se manda sin foto y
+       queda lista para el siguiente enlace. */
+    prepararFotoMini(p.foto);
+    return '';
+  }catch(e){ return ''; }
+}
+
+function prepararFotoMini(b64){
+  try{
+    var im = new Image();
+    im.onload = function(){
+      var c = document.createElement('canvas');
+      c.width = c.height = 96;
+      var g = c.getContext('2d');
+      /* Recorte cuadrado centrado, como se ve en el avatar. */
+      var lado = Math.min(im.width, im.height);
+      g.drawImage(im, (im.width-lado)/2, (im.height-lado)/2, lado, lado, 0, 0, 96, 96);
+      var mini = c.toDataURL('image/jpeg', 0.6);
+      if(mini.length < 6000) window._fotoMini = mini;
+    };
+    im.src = b64;
+  }catch(e){}
 }
 
 function abrirMiCatalogo(){
