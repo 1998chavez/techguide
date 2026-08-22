@@ -15,6 +15,13 @@
 <!-- Sin defer: con defer las tarjetas se pintaban antes de que IMG existiera
      y salían sin foto. -->
 <script src="catalog.js"></script>
+<script>
+/* Se define ANTES de cargar catalog-img.js: ese archivo lo invoca al terminar
+   y si no existe todavía, el aviso se pierde y las fotos nunca se pintan. */
+window._onCatalogImgReady = function(){
+  if(typeof window.pintar === 'function') window.pintar();
+};
+</script>
 <script src="catalog-img.js"></script>
 
 <style>
@@ -240,7 +247,19 @@ input[type=range]{width:100%;margin:14px 0 6px;accent-color:var(--att)}
   background:rgba(16,24,40,.72);color:#fff;font-size:15px;cursor:pointer;line-height:1}
 .v3d-by{position:absolute;bottom:calc(16px + env(safe-area-inset-bottom));left:0;right:0;
   text-align:center;font-size:10.5px;color:var(--ink3)}
-.pie{text-align:center;font-size:10.5px;color:var(--ink3);padding:20px 28px 0;line-height:1.6}
+.pie{text-align:center;font-size:10.5px;color:var(--ink3);padding:20px 28px 0;line-height:1.7}
+.pie a{color:var(--ink2);text-decoration:underline}
+.legal{margin:28px 18px 0;padding:18px 0 8px;border-top:1px solid var(--line)}
+.legal-t{font-size:11px;font-weight:600;color:var(--ink2);letter-spacing:.3px;margin-bottom:10px}
+.legal-l{margin:0;padding:0 0 0 16px;list-style:disc}
+.legal-l li{font-size:10.5px;color:var(--ink3);line-height:1.65;margin-bottom:7px}
+.legal-l b{font-weight:600;color:var(--ink2)}
+.legal-l a{color:var(--att);text-decoration:none}
+.legal-p{font-size:10.5px;color:var(--ink3);line-height:1.6;margin-top:12px}
+.legal-links{display:flex;gap:8px;justify-content:center;margin-top:16px;
+  font-size:11px;flex-wrap:wrap}
+.legal-links a{color:var(--ink2);text-decoration:underline}
+.legal-links span{color:var(--ink4)}
 </style>
 </head>
 <body>
@@ -345,10 +364,15 @@ function gb(p){
   var g=null; (PLANS_DATA||[]).forEach(function(x){ if(x.name===p) g=x.gb; });
   return g;
 }
+/* [v1.15.2] Se lee de window.IMG en cada llamada, no de una referencia
+   capturada al cargar. catalog-img.js pesa ~1 MB y puede terminar DESPUÉS de
+   que este script corra: si se guardaba la referencia temprano, quedaba
+   undefined y ninguna tarjeta mostraba foto. */
 function img(id){
-  if(typeof IMG==='undefined') return null;
-  var v = IMG[id];
-  if(typeof v==='string' && v.length<40 && IMG[v]) v = IMG[v];
+  var T = (typeof window!=='undefined') ? window.IMG : null;
+  if(!T) return null;
+  var v = T[id];
+  if(typeof v==='string' && v.length<40 && T[v]) v = T[v];   // alias
   return (typeof v==='string' && v.length>60) ? v : null;
 }
 function tiene3D(id){
@@ -548,10 +572,41 @@ function pintar(){
     + 'Ver los '+todos.length+' equipos'
     + '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>';
 
+  h += pieLegal();
   document.getElementById('cuerpo').innerHTML=h;
 }
 
 function abrirCatalogo(){ EST.verCatalogo=true; pintar(); window.scrollTo(0,0); }
+
+/* ── Aviso legal ──────────────────────────────────────────────────────────
+   Esto es material comercial dirigido a consumidores: la PROFECO exige que el
+   precio anunciado sea el total a pagar y que las condiciones estén a la vista.
+   Por eso se dice aquí, no en letra chica del detalle. */
+function pieLegal(){
+  return '<div class="legal">'
+    + '<div class="legal-t">Información importante</div>'
+    + '<ul class="legal-l">'
+    + '<li>Los precios mostrados son <b>estimados</b> e incluyen la renta del plan '
+    + 'más el financiamiento del equipo. El monto final del pago inicial y de la '
+    + 'mensualidad se determina tras la evaluación crediticia.</li>'
+    + '<li>Precios y promociones <b>sujetos a vigencia</b> y a disponibilidad de '
+    + 'inventario. Consulta con tu asesor antes de contratar.</li>'
+    + '<li>La contratación está sujeta a aprobación crediticia y a la firma del '
+    + 'contrato de servicios de AT&amp;T México.</li>'
+    + '<li>Las imágenes de los equipos son ilustrativas. Colores y presentación '
+    + 'pueden variar según disponibilidad.</li>'
+    + '<li>Aplican términos y condiciones de AT&amp;T México. Consulta '
+    + '<a href="https://www.att.com.mx/legales.html" target="_blank" rel="noopener">'
+    + 'att.com.mx/legales</a>.</li>'
+    + '</ul>'
+    + '<div class="legal-p">Prime MX es distribuidor autorizado de AT&amp;T México. '
+    + 'Este catálogo es material informativo y no constituye una oferta vinculante.</div>'
+    + '<div class="legal-links">'
+    + '<a href="https://www.att.com.mx/aviso-de-privacidad.html" target="_blank" rel="noopener">Aviso de privacidad</a>'
+    + '<span>·</span>'
+    + '<a href="https://www.att.com.mx/legales.html" target="_blank" rel="noopener">Términos y condiciones</a>'
+    + '</div></div>';
+}
 
 function pintarAsesor(){
   var el = document.getElementById('asesor');
@@ -683,8 +738,12 @@ function pintarDetalle(){
     + 'Me interesa, contáctame</button>';
 
   /* Sin fecha: las vigencias cambian cada semana y una fecha envejece mal. */
-  h += '<div class="pie">Precios sujetos a vigencia · consulta con tu asesor<br>'
-    + 'Sujeto a aprobación crediticia</div>';
+  h += '<div class="pie">Precios estimados y sujetos a vigencia · consulta con tu asesor<br>'
+    + 'Sujeto a aprobación crediticia · Imagen ilustrativa<br>'
+    + '<a href="https://www.att.com.mx/legales.html" target="_blank" rel="noopener">'
+    + 'Términos y condiciones</a> · '
+    + '<a href="https://www.att.com.mx/aviso-de-privacidad.html" target="_blank" rel="noopener">'
+    + 'Aviso de privacidad</a></div>';
 
   document.getElementById('det-in').innerHTML = h;
 
@@ -822,9 +881,12 @@ function iniciar(){
   pintarPlanes(); pintarMarcas(); pintar(); cargarAsesor();
 }
 
-/* catalog-img.js avisa al terminar: repintar para que salgan las fotos. */
-window._onCatalogImgReady = function(){ if(typeof CAT!=='undefined') pintar(); };
+/* pintar() se expone para que _onCatalogImgReady (definido arriba, antes de
+   cargar las imágenes) pueda repintar cuando estén listas. */
+window.pintar = pintar;
 iniciar();
+/* Si las imágenes ya habían cargado antes que este script, repintar ahora. */
+if(window.IMG) pintar();
 </script>
 </body>
 </html>
