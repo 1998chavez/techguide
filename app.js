@@ -12008,3 +12008,52 @@ setInterval(function(){
 }, 5*60*1000);
 
 setTimeout(buscarActualizacion, 8000); // un primer sondeo al entrar
+
+
+/* ══ MI CATÁLOGO ══════════════════════════════════════════════════════════
+   [v1.13] Enlace público del asesor para compartir por WhatsApp. Cada quien
+   tiene el suyo: el catálogo es el mismo, cambia a quién contacta el cliente.
+
+   Los datos del asesor viajan EN EL ENLACE, no en una base: así funciona sin
+   backend y sin dar de alta nada cuando entra un asesor nuevo — su enlace
+   existe desde el primer día.
+
+   Los PRECIOS no viajan: catalogo.html los lee en vivo de catalog.js. Por eso
+   un enlace compartido hace tres semanas sigue mostrando lo vigente hoy.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+function urlMiCatalogo(){
+  var p = (typeof getPerfilEfectivo==='function') ? getPerfilEfectivo() : {};
+  var attuid = (asesorData && asesorData.attuid) || '';
+  var tel = String(p.phone||'').replace(/\D/g,'');
+  /* MX sin lada internacional: se antepone 52. */
+  if(tel.length===10) tel = '52'+tel;
+  var base = location.href.split('#')[0].replace(/index\.html.*$/,'').replace(/\/$/,'');
+  var q = [];
+  if(attuid)  q.push('a='+encodeURIComponent(attuid));
+  if(p.name)  q.push('n='+encodeURIComponent(p.name));
+  if(tel)     q.push('t='+tel);
+  if(p.sucursal) q.push('s='+encodeURIComponent(p.sucursal));
+  return base + '/catalogo.html' + (q.length ? '?'+q.join('&') : '');
+}
+
+function abrirMiCatalogo(){
+  var p = (typeof getPerfilEfectivo==='function') ? getPerfilEfectivo() : {};
+  var tel = String(p.phone||'').replace(/\D/g,'');
+  if(!tel){
+    /* Sin teléfono el enlace sirve, pero el cliente no sabría a quién escribir. */
+    if(typeof admToast==='function') admToast('Agrega tu teléfono en Perfil para que tus clientes puedan contactarte');
+    else alert('Agrega tu teléfono en Perfil para que tus clientes puedan contactarte');
+    if(typeof pmdGo==='function') setTimeout(function(){ pmdGo('perfil'); }, 900);
+    return;
+  }
+  var url = urlMiCatalogo();
+  var msg = 'Hola, te comparto el catálogo de equipos con plan AT&T. '
+          + 'Ahí puedes ver precios, simular tu pago mensual y escribirme cualquier duda.\n\n' + url;
+  window.open('https://wa.me/?text='+encodeURIComponent(msg), '_blank', 'noopener');
+}
+
+if(typeof window!=='undefined'){
+  window.urlMiCatalogo = urlMiCatalogo;
+  window.abrirMiCatalogo = abrirMiCatalogo;
+}

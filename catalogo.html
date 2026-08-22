@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="robots" content="noindex">
+<title>Catálogo · Prime MX</title>
+
+<!-- Los precios se leen EN VIVO del catálogo. Nunca se congelan en el enlace:
+     así, aunque el asesor comparta desde una versión vieja de la app, el
+     cliente siempre ve lo vigente. -->
+<script src="catalog.js"></script>
+<script src="catalog-img.js" defer></script>
+
+<style>
+:root{
+  --bg:#F7F8FA; --card:#FFFFFF; --soft:#F2F4F7;
+  --ink:#1D2939; --ink2:#667085; --ink3:#98A2B3; --ink4:#C4CAD3;
+  --line:#EDEFF2; --line2:#E4E7EC;
+  --att:#00A8E0; --att-soft:#F0FAFE;
+  --ok:#1A7F45; --ok-soft:#E8F8EE;
+  --wa:#25D366;
+  --r:14px; --r-lg:18px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Inter,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;font-size:15px;line-height:1.45}
+.wrap{max-width:520px;margin:0 auto;min-height:100vh;background:var(--bg)}
+
+/* ── Cabecera ─────────────────────────────────────────────────────────── */
+.top{background:var(--card);padding:15px 17px 0;
+  padding-top:calc(15px + env(safe-area-inset-top))}
+.top-row{display:flex;align-items:center;justify-content:space-between}
+.marca{font-size:13.5px;font-weight:700;letter-spacing:.4px}
+.marca i{color:var(--att);font-style:normal}
+.dist{font-size:10.5px;color:var(--ink2)}
+
+.buscar{background:var(--card);padding:14px 17px 15px}
+.buscar-in{background:var(--soft);border-radius:12px;padding:0 13px;
+  display:flex;align-items:center;gap:9px}
+.buscar-in svg{width:16px;height:16px;stroke:var(--ink4);flex-shrink:0}
+.buscar input{flex:1;background:none;border:none;outline:none;font-family:inherit;
+  font-size:15px;color:var(--ink);padding:12px 0}
+.buscar input::placeholder{color:var(--ink3)}
+.buscar-x{background:none;border:none;color:var(--ink3);font-size:15px;
+  padding:6px;cursor:pointer;font-family:inherit;display:none}
+.buscar-x.on{display:block}
+
+.marcas{background:var(--card);padding:0 0 13px 17px;border-bottom:1px solid var(--line);
+  display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.marcas::-webkit-scrollbar{display:none}
+.mk{flex:0 0 auto;background:var(--soft);color:var(--ink);border:none;
+  border-radius:20px;padding:8px 15px;font-size:12.5px;font-family:inherit;cursor:pointer}
+.mk.on{background:var(--ink);color:#fff;font-weight:600}
+.marcas::after{content:'';flex:0 0 10px}
+
+/* ── Secciones ────────────────────────────────────────────────────────── */
+.sec{padding:18px 17px 10px}
+.sec h2{font-size:18px;font-weight:700;letter-spacing:-.02em;margin:0}
+.sec p{font-size:12px;color:var(--ink2);margin:3px 0 0}
+.sec-mini{padding:16px 17px 9px;display:flex;align-items:baseline;justify-content:space-between}
+.sec-mini b{font-size:13px;font-weight:600}
+.sec-mini span{font-size:11.5px;color:var(--ink2)}
+
+/* ── Destacado ────────────────────────────────────────────────────────── */
+.hero-card{margin:0 17px 15px;background:var(--card);border:1.5px solid var(--att);
+  border-radius:var(--r-lg);padding:14px;display:flex;gap:14px;align-items:center;
+  position:relative;overflow:hidden;width:calc(100% - 34px);text-align:left;
+  font-family:inherit;cursor:pointer}
+.hero-tag{position:absolute;top:0;right:0;background:var(--att);color:#fff;
+  font-size:9px;font-weight:700;letter-spacing:.4px;padding:4px 11px;border-bottom-left-radius:10px}
+.hero-img{width:76px;height:94px;background:var(--soft);border-radius:11px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
+.hero-img img{width:100%;height:100%;object-fit:contain}
+.hero-b{flex:1;min-width:0;padding-top:5px}
+
+/* ── Rejilla ──────────────────────────────────────────────────────────── */
+.grid{padding:0 17px 18px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.eq{background:var(--card);border-radius:var(--r);padding:12px;border:none;
+  text-align:left;font-family:inherit;cursor:pointer;display:block;width:100%}
+.eq:active{opacity:.7}
+.eq-img{height:96px;background:var(--soft);border-radius:10px;margin-bottom:10px;
+  display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.eq-img img{max-width:80%;max-height:88%;object-fit:contain}
+.eq-img .ph{width:30px;height:30px;stroke:var(--ink4)}
+.marca-txt{font-size:8px;color:var(--ink4);letter-spacing:.8px;font-weight:600}
+.eq-n{font-size:12.5px;font-weight:600;line-height:1.3;margin-top:1px}
+.eq-s{font-size:9.5px;color:var(--ink2)}
+.eq-p{margin-top:8px;padding-top:8px;border-top:1px solid var(--soft)}
+.desde{font-size:9px;color:var(--ink2)}
+.mens{font-size:15px;font-weight:700;letter-spacing:-.02em}
+.mens small{font-size:9.5px;color:var(--ink2);font-weight:400}
+
+.badge{position:absolute;top:7px;right:7px;background:var(--ok-soft);color:var(--ok);
+  font-size:8.5px;font-weight:700;padding:2px 6px;border-radius:20px}
+.badge3d{position:absolute;top:7px;left:7px;background:var(--ink);color:#fff;
+  font-size:8.5px;font-weight:600;padding:2px 7px;border-radius:20px;
+  display:flex;align-items:center;gap:3px}
+.badge3d svg{width:9px;height:9px;stroke:#fff}
+
+.tachado{font-size:10.5px;color:var(--ink4);text-decoration:line-through}
+.pct{background:var(--ok-soft);color:var(--ok);font-size:10px;font-weight:700;
+  padding:2px 8px;border-radius:20px}
+
+.vacio{padding:44px 24px;text-align:center;color:var(--ink2);font-size:14px;line-height:1.6}
+
+/* ── Pie del asesor ───────────────────────────────────────────────────── */
+.asesor{background:var(--card);border-top:1px solid var(--line);
+  padding:16px 17px;display:flex;align-items:center;gap:11px;
+  padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+.av{width:38px;height:38px;border-radius:50%;background:var(--att);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:13.5px;
+  font-weight:700;flex-shrink:0;overflow:hidden}
+.av img{width:100%;height:100%;object-fit:cover}
+.asesor-b{flex:1;min-width:0}
+.asesor-n{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.asesor-s{font-size:10.5px;color:var(--ink2)}
+.wa-btn{background:var(--wa);color:#fff;border:none;border-radius:20px;
+  padding:10px 16px;font-size:12.5px;font-weight:600;font-family:inherit;
+  cursor:pointer;display:flex;align-items:center;gap:5px;flex-shrink:0;text-decoration:none}
+.wa-btn svg{width:15px;height:15px;fill:#fff}
+
+/* ── Detalle ──────────────────────────────────────────────────────────── */
+.det{position:fixed;inset:0;z-index:100;background:var(--bg);overflow-y:auto;
+  -webkit-overflow-scrolling:touch;display:none}
+.det.open{display:block}
+.det-in{max-width:520px;margin:0 auto;padding-bottom:30px}
+.det-top{background:var(--card);padding:14px 17px 18px;
+  padding-top:calc(14px + env(safe-area-inset-top))}
+.volver{background:none;border:none;color:var(--att);font-size:14px;font-family:inherit;
+  display:flex;align-items:center;gap:4px;padding:0;margin-bottom:14px;cursor:pointer}
+.volver svg{width:15px;height:15px;stroke:var(--att)}
+.det-head{display:flex;gap:14px;align-items:center}
+.det-img{width:86px;height:108px;background:var(--soft);border-radius:12px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
+.det-img img{max-width:88%;max-height:92%;object-fit:contain}
+.det-n{font-size:18px;font-weight:700;letter-spacing:-.02em;line-height:1.25}
+.ver3d{margin-top:9px;display:inline-flex;align-items:center;gap:5px;
+  border:1px solid var(--line2);border-radius:20px;padding:6px 12px;
+  font-size:11px;background:none;font-family:inherit;cursor:pointer;color:var(--ink)}
+.ver3d svg{width:13px;height:13px;stroke:var(--att)}
+
+.lbl{font-size:10px;color:var(--ink2);letter-spacing:.5px;font-weight:600;margin-bottom:8px}
+.blq{padding:16px 17px 0}
+.plazos{display:flex;gap:6px}
+.pz{flex:1;background:var(--card);border:1px solid var(--line2);border-radius:11px;
+  padding:10px;font-size:12.5px;font-family:inherit;cursor:pointer;color:var(--ink)}
+.pz.on{background:var(--att);border-color:var(--att);color:#fff;font-weight:600}
+
+.tabla{background:var(--card);border-radius:var(--r);overflow:hidden}
+.th{display:flex;background:var(--soft);padding:9px 14px;font-size:9px;
+  color:var(--ink2);letter-spacing:.4px;font-weight:600}
+.tr{display:flex;padding:11px 14px;align-items:center;border:none;background:none;
+  width:100%;font-family:inherit;cursor:pointer;border-bottom:1px solid #F5F6F8}
+.tr:last-child{border-bottom:none}
+.tr.on{background:var(--att-soft)}
+.tr-p{flex:1;text-align:left;font-size:13px;color:var(--ink)}
+.tr.on .tr-p{font-weight:600}
+.tr-g{width:46px;text-align:right;font-size:11px;color:var(--ink2)}
+.tr-m{width:70px;text-align:right;font-size:13.5px;font-weight:700}
+
+.sim{background:var(--card);border-radius:var(--r);padding:15px}
+.sim-top{display:flex;align-items:baseline;justify-content:space-between}
+.sim-v{font-size:17px;font-weight:700}
+input[type=range]{width:100%;margin:13px 0 6px;accent-color:var(--att)}
+.sim-lim{display:flex;justify-content:space-between;font-size:9.5px;color:var(--ink3)}
+.sim-out{margin-top:14px;padding-top:13px;border-top:1px solid var(--line);
+  display:flex;align-items:baseline;justify-content:space-between}
+.sim-out span{font-size:12px;color:var(--ink2)}
+.sim-out b{font-size:22px;font-weight:700;letter-spacing:-.02em}
+
+.nota{background:var(--card);border-radius:12px;padding:12px 13px;display:flex;
+  gap:9px;align-items:flex-start;margin:13px 17px 0}
+.nota svg{width:15px;height:15px;stroke:var(--att);flex-shrink:0;margin-top:1px}
+.nota span{font-size:10.5px;color:var(--ink2);line-height:1.5}
+
+.cta{margin:15px 17px 0;background:var(--wa);border:none;border-radius:var(--r);
+  padding:15px;width:calc(100% - 34px);color:#fff;font-size:14.5px;font-weight:600;
+  font-family:inherit;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;gap:8px;text-decoration:none}
+.cta svg{width:18px;height:18px;fill:#fff}
+
+.incl{background:var(--card);border-radius:var(--r);padding:13px 14px}
+.incl-t{font-size:10px;color:var(--ink2);letter-spacing:.5px;font-weight:600;margin-bottom:9px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--soft);border-radius:20px;padding:6px 11px;font-size:10.5px}
+
+.pie{text-align:center;font-size:10px;color:var(--ink3);padding:22px 24px 10px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="wrap">
+  <div class="top">
+    <div class="top-row">
+      <span class="marca">PRIME<i>MX</i></span>
+      <span class="dist">Distribuidor AT&amp;T</span>
+    </div>
+  </div>
+
+  <div class="buscar">
+    <div class="buscar-in">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Buscar equipo" autocomplete="off" enterkeyhint="search">
+      <button class="buscar-x" id="qx" onclick="limpiar()" aria-label="Limpiar">&#10005;</button>
+    </div>
+  </div>
+
+  <div class="marcas" id="marcas"></div>
+
+  <div id="cuerpo"></div>
+
+  <div class="asesor" id="asesor"></div>
+</div>
+
+<div class="det" id="det"><div class="det-in" id="det-in"></div></div>
+
+<script>
+/* ══ CATÁLOGO PARA CLIENTES ═══════════════════════════════════════════════
+   Página pública. El cliente la abre desde WhatsApp, sin instalar ni entrar.
+
+   Precios EN VIVO: se leen de catalog.js al cargar, nunca se congelan en el
+   enlace. Así el asesor puede compartir desde una versión vieja de la app y
+   el cliente igual ve lo vigente.
+
+   El asesor viaja en el parámetro ?a= — cada quien comparte su propio enlace
+   y el botón de WhatsApp apunta a su teléfono.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+var HOY = new Date().toISOString().slice(0,10);
+var qs  = new URLSearchParams(location.search);
+
+/* Datos del asesor: vienen en el enlace, no de una base. Sin backend. */
+var ASESOR = {
+  attuid: qs.get('a')  || '',
+  nombre: qs.get('n')  || '',
+  tel:    (qs.get('t') || '').replace(/\D/g,''),
+  tienda: qs.get('s')  || ''
+};
+
+var EST = { marca:'Todas', q:'', equipo:null, plan:null, plazo:null, enganche:0 };
+
+function fmx(n){ return '$' + Math.round(n||0).toLocaleString('es-MX'); }
+function iniciales(s){
+  var p = String(s||'').trim().split(/\s+/);
+  return ((p[0]||'')[0]||'') + ((p[1]||'')[0]||'');
+}
+
+/* ── Datos ────────────────────────────────────────────────────────────── */
+
+function vigente(id){
+  var v = (typeof VIGENCY!=='undefined') ? VIGENCY[id] : null;
+  return !v || v==='indefinido' || v >= HOY;
+}
+
+function equipos(){
+  if(typeof CAT==='undefined') return [];
+  var out=[];
+  Object.keys(CAT).forEach(function(c){
+    (CAT[c]||[]).forEach(function(d){
+      if(!vigente(d.id)) return;
+      if(!PRICES[d.id] || !PRICES[d.id].contado) return;
+      out.push(d);
+    });
+  });
+  return out;
+}
+
+var PLANES = ['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Diamante'];
+
+function renta(p){
+  var r=null;
+  (PLANS_DATA||[]).forEach(function(x){ if(x.name===p) r=x.renta; });
+  return r;
+}
+function gb(p){
+  var g=null;
+  (PLANS_DATA||[]).forEach(function(x){ if(x.name===p) g=x.gb; });
+  return g;
+}
+
+/* Mensualidad = renta del plan + equipo financiado, sin enganche. */
+function mensual(id, plan, plazo, enganche){
+  var pr = PRICES[id];
+  if(!pr || !pr.planes[plan]) return null;
+  var promo = pr.planes[plan][String(plazo)];
+  if(promo===null || promo===undefined) return null;
+  var resta = Math.max(0, promo - (enganche||0));
+  return renta(plan) + Math.round(resta / plazo);
+}
+
+/* La opción más barata del equipo: es el "desde" de la tarjeta. */
+function desde(id){
+  var min=null, mejor=null;
+  PLANES.forEach(function(p){
+    [24,30,36].forEach(function(z){
+      var m = mensual(id, p, z, 0);
+      if(m===null) return;
+      if(min===null || m<min){ min=m; mejor={plan:p, plazo:z}; }
+    });
+  });
+  return min===null ? null : { mensual:min, plan:mejor.plan, plazo:mejor.plazo };
+}
+
+/* Mejor descuento del equipo, para el sello de la tarjeta. */
+function descuento(id){
+  var pr=PRICES[id], max=0;
+  if(!pr || !pr.contado) return 0;
+  PLANES.forEach(function(p){
+    [24,30,36].forEach(function(z){
+      var promo = pr.planes[p] && pr.planes[p][String(z)];
+      if(promo===null || promo===undefined) return;
+      var d = (pr.contado - promo) / pr.contado * 100;
+      if(d>max) max=d;
+    });
+  });
+  return Math.floor(max);
+}
+
+/* Tope de enganche (regla de Diego):
+   · descuento < 70%  →  70% del precio promocional
+   · descuento ≥ 70%  →  hasta 3 rentas de garantía del plan
+   En ambos casos nunca puede pasar del precio del equipo. */
+function topeEnganche(id, plan, plazo){
+  var pr=PRICES[id];
+  if(!pr || !pr.planes[plan]) return 0;
+  var promo = pr.planes[plan][String(plazo)];
+  if(promo===null || promo===undefined || promo<=0) return 0;
+  var desc = (pr.contado - promo) / pr.contado * 100;
+  var tope = desc >= 70 ? renta(plan)*3 : promo*0.70;
+  return Math.floor(Math.min(tope, promo) / 100) * 100;
+}
+
+function img(id){
+  if(typeof IMG==='undefined') return null;
+  var v = IMG[id];
+  if(typeof v==='string' && IMG[v]) v = IMG[v];   // alias
+  return (typeof v==='string' && v.length>10) ? v : null;
+}
+function tiene3D(id){
+  if(typeof MODEL3D==='undefined') return false;
+  return !!MODEL3D[id];
+}
+
+/* ── Render ───────────────────────────────────────────────────────────── */
+
+function marcasDisponibles(){
+  var s={};
+  equipos().forEach(function(d){ s[d.brand]=(s[d.brand]||0)+1; });
+  return Object.keys(s).sort(function(a,b){ return s[b]-s[a]; });
+}
+
+function pintarMarcas(){
+  var h = '<button class="mk'+(EST.marca==='Todas'?' on':'')+'" onclick="setMarca(\'Todas\')">Todas</button>';
+  marcasDisponibles().forEach(function(m){
+    var lindo = m.charAt(0) + m.slice(1).toLowerCase();
+    h += '<button class="mk'+(EST.marca===m?' on':'')+'" onclick="setMarca(\''+m+'\')">'+lindo+'</button>';
+  });
+  document.getElementById('marcas').innerHTML = h;
+}
+
+function filtrados(){
+  var q = EST.q.toLowerCase().trim();
+  return equipos().filter(function(d){
+    if(EST.marca!=='Todas' && d.brand!==EST.marca) return false;
+    if(!q) return true;
+    return (d.name+' '+d.brand+' '+d.storage).toLowerCase().indexOf(q) >= 0;
+  });
+}
+
+function tarjeta(d){
+  var s = desde(d.id);
+  if(!s) return '';
+  var pct = descuento(d.id);
+  var im = img(d.id);
+  var h = '<button class="eq" onclick="abrir(\''+d.id+'\')">'
+    + '<span class="eq-img">'
+    + (im ? '<img src="'+im+'" alt="" loading="lazy">'
+          : '<svg class="ph" viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>')
+    + (tiene3D(d.id) ? '<span class="badge3d"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 2l9 5v10l-9 5-9-5V7z"/></svg>3D</span>' : '')
+    + (pct>=25 ? '<span class="badge">-'+pct+'%</span>' : '')
+    + '</span>'
+    + '<span class="marca-txt">'+d.brand+'</span>'
+    + '<span class="eq-n">'+d.name+'</span>'
+    + '<span class="eq-s">'+d.storage+'</span>'
+    + '<span class="eq-p"><span class="desde">desde</span><br>'
+    + '<span class="mens">'+fmx(s.mensual)+'<small>/mes</small></span></span>'
+    + '</button>';
+  return h;
+}
+
+function pintar(){
+  var lista = filtrados();
+  var h = '';
+
+  /* Sin filtros: ofertas del momento primero. Con filtros: rejilla directa. */
+  var libre = (EST.marca==='Todas' && !EST.q.trim());
+
+  if(libre){
+    var orden = lista.slice().sort(function(a,b){ return descuento(b.id)-descuento(a.id); });
+    var top = orden[0];
+    if(top){
+      var s = desde(top.id), im = img(top.id), pct = descuento(top.id);
+      h += '<div class="sec"><h2>Ofertas del momento</h2>'
+         + '<p>Los mejores descuentos de esta semana</p></div>';
+      h += '<button class="hero-card" onclick="abrir(\''+top.id+'\')">'
+        + '<span class="hero-tag">MEJOR OFERTA</span>'
+        + '<span class="hero-img">'
+        + (im ? '<img src="'+im+'" alt="">' : '<svg class="ph" viewBox="0 0 24 24" fill="none" stroke-width="1.6"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/></svg>')
+        + '</span>'
+        + '<span class="hero-b"><span class="marca-txt">'+top.brand+'</span>'
+        + '<span class="eq-n" style="font-size:15px">'+top.name+'</span>'
+        + '<span class="eq-s">'+top.storage+'</span>'
+        + '<span style="display:flex;align-items:baseline;gap:8px;margin-top:7px">'
+        + '<span class="tachado">'+fmx(PRICES[top.id].contado)+'</span>'
+        + '<span class="pct">-'+pct+'%</span></span>'
+        + '<span style="display:block;margin-top:6px"><span class="desde">desde </span>'
+        + '<span class="mens" style="font-size:17px">'+fmx(s.mensual)+'</span>'
+        + '<small style="font-size:10px;color:var(--ink2)">/mes</small></span>'
+        + '</span></button>';
+      lista = orden.slice(1);
+      h += '<div class="sec-mini"><b>Más opciones</b><span>'+lista.length+' equipos</span></div>';
+    }
+  } else {
+    lista = lista.slice().sort(function(a,b){
+      var x=desde(a.id), y=desde(b.id);
+      return (x?x.mensual:9e9) - (y?y.mensual:9e9);
+    });
+    h += '<div class="sec-mini"><b>'+lista.length+(lista.length===1?' equipo':' equipos')+'</b>'
+       + '<span>Menor pago primero</span></div>';
+  }
+
+  if(!lista.length){
+    h += '<div class="vacio">No encontramos equipos con esa búsqueda.<br>Prueba con otra marca o modelo.</div>';
+  } else {
+    h += '<div class="grid">' + lista.map(tarjeta).join('') + '</div>';
+  }
+
+  document.getElementById('cuerpo').innerHTML = h;
+}
+
+function pintarAsesor(){
+  var el = document.getElementById('asesor');
+  if(!ASESOR.nombre && !ASESOR.tel){ el.style.display='none'; return; }
+  var txt = encodeURIComponent('Hola'+(ASESOR.nombre?' '+ASESOR.nombre.split(' ')[0]:'')
+    + ', vi el catálogo y me interesa conocer más opciones.');
+  var href = ASESOR.tel ? 'https://wa.me/'+ASESOR.tel+'?text='+txt : 'https://wa.me/?text='+txt;
+  el.innerHTML = '<span class="av">'+iniciales(ASESOR.nombre)+'</span>'
+    + '<span class="asesor-b"><span class="asesor-n">'+(ASESOR.nombre||'Tu asesor')+'</span>'
+    + '<span class="asesor-s">Te asesora sin costo</span></span>'
+    + '<a class="wa-btn" href="'+href+'" target="_blank" rel="noopener">'
+    + '<svg viewBox="0 0 24 24"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.2.2 2.1 3.2 5 4.5.7.3 1.3.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.2-.3-.2-.6-.4z"/><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>'
+    + 'Escribir</a>';
+}
+
+/* ── Detalle ──────────────────────────────────────────────────────────── */
+
+function abrir(id){
+  var d=null;
+  Object.keys(CAT).forEach(function(c){ (CAT[c]||[]).forEach(function(x){ if(x.id===id) d=x; }); });
+  if(!d) return;
+  EST.equipo = d;
+  var s = desde(id);
+  EST.plan = s ? s.plan : 'Plata';
+  EST.plazo = s ? s.plazo : 24;
+  EST.enganche = 0;
+  pintarDetalle();
+  document.getElementById('det').classList.add('open');
+  document.body.style.overflow='hidden';
+  window.scrollTo(0,0);
+  history.pushState({det:1},'','#'+id);
+}
+
+function cerrarDetalle(){
+  document.getElementById('det').classList.remove('open');
+  document.body.style.overflow='';
+  EST.equipo=null;
+  if(location.hash) history.replaceState(null,'',location.pathname+location.search);
+}
+
+/* Planes con precio para el plazo elegido. En gama baja los altos no aplican. */
+function planesDisponibles(){
+  var d=EST.equipo;
+  return PLANES.filter(function(p){
+    var m = mensual(d.id, p, EST.plazo, 0);
+    return m !== null;
+  });
+}
+
+function pintarDetalle(){
+  var d = EST.equipo;
+  if(!d) return;
+  var pr = PRICES[d.id];
+  var im = img(d.id);
+  var pct = descuento(d.id);
+
+  var h = '<div class="det-top">'
+    + '<button class="volver" onclick="cerrarDetalle()">'
+    + '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Volver</button>'
+    + '<div class="det-head"><span class="det-img">'
+    + (im ? '<img src="'+im+'" alt="">' : '<svg class="ph" viewBox="0 0 24 24" fill="none" stroke-width="1.5" style="width:34px;height:34px;stroke:var(--ink4)"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/></svg>')
+    + '</span><div style="flex:1;min-width:0">'
+    + '<div class="marca-txt">'+d.brand+'</div>'
+    + '<div class="det-n">'+d.name+'</div>'
+    + '<div class="eq-s" style="margin-top:1px">'+d.storage+'</div>'
+    + '<div style="margin-top:8px;display:flex;align-items:center;gap:8px">'
+    + '<span class="tachado">'+fmx(pr.contado)+'</span>'
+    + (pct>=10 ? '<span class="pct">-'+pct+'%</span>' : '') + '</div>'
+    + (tiene3D(d.id) ? '<button class="ver3d" onclick="ver3D()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 2l9 5v10l-9 5-9-5V7z"/></svg>Verlo en 3D</button>' : '')
+    + '</div></div></div>';
+
+  h += '<div class="blq"><div class="lbl">PLAZO</div><div class="plazos">'
+    + [24,30,36].map(function(z){
+        return '<button class="pz'+(EST.plazo===z?' on':'')+'" onclick="setPlazo('+z+')">'+z+' meses</button>';
+      }).join('') + '</div></div>';
+
+  var disp = planesDisponibles();
+  if(disp.indexOf(EST.plan)<0 && disp.length) EST.plan = disp[0];
+
+  h += '<div class="blq"><div class="lbl">ELIGE TU PLAN</div><div class="tabla">'
+    + '<div class="th"><span style="flex:1">PLAN</span>'
+    + '<span style="width:46px;text-align:right">DATOS</span>'
+    + '<span style="width:70px;text-align:right">AL MES</span></div>';
+  disp.forEach(function(p){
+    var m = mensual(d.id, p, EST.plazo, EST.enganche);
+    h += '<button class="tr'+(EST.plan===p?' on':'')+'" onclick="setPlan(\''+p+'\')">'
+      + '<span class="tr-p">'+p+'</span>'
+      + '<span class="tr-g">'+(gb(p)||'—')+' GB</span>'
+      + '<span class="tr-m">'+fmx(m)+'</span></button>';
+  });
+  h += '</div></div>';
+
+  var tope = topeEnganche(d.id, EST.plan, EST.plazo);
+  if(EST.enganche > tope) EST.enganche = tope;
+  h += '<div class="blq"><div class="lbl">SIMULA TU PAGO INICIAL</div><div class="sim">'
+    + '<div class="sim-top"><span style="font-size:12px;color:var(--ink2)">Pago inicial</span>'
+    + '<span class="sim-v" id="eng-v">'+fmx(EST.enganche)+'</span></div>'
+    + '<input type="range" id="eng" min="0" max="'+tope+'" step="100" value="'+EST.enganche+'">'
+    + '<div class="sim-lim"><span>$0</span><span>'+fmx(tope)+'</span></div>'
+    + '<div class="sim-out"><span>Pagarías al mes</span>'
+    + '<b id="mes-v">'+fmx(mensual(d.id, EST.plan, EST.plazo, EST.enganche))+'</b></div>'
+    + '</div></div>';
+
+  if(typeof PLAN_BENEFITS!=='undefined'){
+    h += '<div class="blq"><div class="incl"><div class="incl-t">TU PLAN INCLUYE</div><div class="chips">'
+      + '<span class="chip">'+PLAN_BENEFITS.redes+'</span>'
+      + '<span class="chip">'+PLAN_BENEFITS.minutos+'</span>'
+      + (PLAN_BENEFITS.extras||[]).map(function(x){ return '<span class="chip">'+x+'</span>'; }).join('')
+      + '</div></div></div>';
+  }
+
+  h += '<div class="nota"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>'
+    + '<span>Montos estimados. El pago inicial y la mensualidad finales dependen de tu evaluación crediticia.</span></div>';
+
+  var msg = 'Hola'+(ASESOR.nombre?' '+ASESOR.nombre.split(' ')[0]:'')+', me interesa esta opción:\n\n'
+    + d.name+'\n'+d.storage+'\n\n'
+    + 'Plan AT&T '+EST.plan+' · '+EST.plazo+' meses\n'
+    + 'Pago inicial estimado '+fmx(EST.enganche)+'\n'
+    + 'Mensualidad estimada '+fmx(mensual(d.id, EST.plan, EST.plazo, EST.enganche))+'\n\n'
+    + '¿Cómo seguimos?';
+  var href = (ASESOR.tel ? 'https://wa.me/'+ASESOR.tel : 'https://wa.me/') + '?text=' + encodeURIComponent(msg);
+  h += '<a class="cta" id="cta" href="'+href+'" target="_blank" rel="noopener">'
+    + '<svg viewBox="0 0 24 24"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.2.2 2.1 3.2 5 4.5.7.3 1.3.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.2-.3-.2-.6-.4z"/><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>'
+    + 'Me interesa, contáctame</a>';
+
+  var vg = (typeof VIGENCY!=='undefined') ? VIGENCY[d.id] : null;
+  h += '<div class="pie">'
+    + (vg && vg!=='indefinido' ? 'Precios vigentes al '+fechaLarga(vg)+'<br>' : '')
+    + 'Sujeto a aprobación crediticia · Consulta términos y condiciones</div>';
+
+  document.getElementById('det-in').innerHTML = h;
+
+  var sl = document.getElementById('eng');
+  if(sl) sl.addEventListener('input', function(e){
+    EST.enganche = Number(e.target.value);
+    actualizarSim();
+  });
+}
+
+/* Solo refresca los números: mover el deslizante no debe repintar la pantalla
+   (destruiría el control a media interacción). */
+function actualizarSim(){
+  var d = EST.equipo; if(!d) return;
+  var m = mensual(d.id, EST.plan, EST.plazo, EST.enganche);
+  var a = document.getElementById('eng-v'); if(a) a.textContent = fmx(EST.enganche);
+  var b = document.getElementById('mes-v'); if(b) b.textContent = fmx(m);
+  document.querySelectorAll('.tr').forEach(function(tr, i){
+    var p = planesDisponibles()[i];
+    if(!p) return;
+    var el = tr.querySelector('.tr-m');
+    if(el) el.textContent = fmx(mensual(d.id, p, EST.plazo, EST.enganche));
+  });
+  var cta = document.getElementById('cta');
+  if(cta){
+    var msg = 'Hola'+(ASESOR.nombre?' '+ASESOR.nombre.split(' ')[0]:'')+', me interesa esta opción:\n\n'
+      + d.name+'\n'+d.storage+'\n\n'
+      + 'Plan AT&T '+EST.plan+' · '+EST.plazo+' meses\n'
+      + 'Pago inicial estimado '+fmx(EST.enganche)+'\n'
+      + 'Mensualidad estimada '+fmx(m)+'\n\n¿Cómo seguimos?';
+    cta.href = (ASESOR.tel ? 'https://wa.me/'+ASESOR.tel : 'https://wa.me/') + '?text=' + encodeURIComponent(msg);
+  }
+}
+
+function fechaLarga(iso){
+  var M=['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
+         'septiembre','octubre','noviembre','diciembre'];
+  var p=String(iso).split('-');
+  return Number(p[2])+' de '+M[Number(p[1])-1];
+}
+
+function ver3D(){
+  var d=EST.equipo; if(!d) return;
+  location.href = 'index.html#3d-'+d.id;
+}
+
+/* ── Interacción ──────────────────────────────────────────────────────── */
+
+function setMarca(m){ EST.marca=m; pintarMarcas(); pintar(); window.scrollTo(0,0); }
+function setPlan(p){ EST.plan=p; pintarDetalle(); }
+function setPlazo(z){ EST.plazo=z; EST.enganche=0; pintarDetalle(); }
+function limpiar(){
+  EST.q=''; document.getElementById('q').value='';
+  document.getElementById('qx').classList.remove('on');
+  pintar();
+}
+
+document.getElementById('q').addEventListener('input', function(e){
+  EST.q = e.target.value;
+  document.getElementById('qx').classList.toggle('on', !!EST.q);
+  pintar();
+});
+
+window.addEventListener('popstate', function(){
+  if(EST.equipo) cerrarDetalle();
+});
+
+/* ── Arranque ─────────────────────────────────────────────────────────── */
+
+function iniciar(){
+  if(typeof CAT==='undefined'){
+    document.getElementById('cuerpo').innerHTML =
+      '<div class="vacio">No pudimos cargar el catálogo.<br>Revisa tu conexión e intenta de nuevo.</div>';
+    return;
+  }
+  pintarMarcas();
+  pintar();
+  pintarAsesor();
+}
+iniciar();
+</script>
+</body>
+</html>
