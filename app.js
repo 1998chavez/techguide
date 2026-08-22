@@ -12055,6 +12055,13 @@ function abrirMiCatalogo(){
   var url = urlMiCatalogo();
   var msg = 'Hola, te comparto el catálogo de equipos con plan AT&T. '
           + 'Ahí puedes ver precios, simular tu pago mensual y escribirme cualquier duda.\n\n' + url;
+  /* [v1.14.1] Antes se abría wa.me directo y el teléfono obligaba a elegir
+     WhatsApp Business. Mismo criterio que enviarCotizacionTexto: selector
+     nativo del dispositivo, y wa.me solo como respaldo en escritorio. */
+  if(navigator.share){
+    navigator.share({ title:'Catálogo Prime MX', text:msg }).catch(function(){});
+    return;
+  }
   window.open('https://wa.me/?text='+encodeURIComponent(msg), '_blank', 'noopener');
 }
 
