@@ -12011,84 +12011,76 @@ setTimeout(buscarActualizacion, 8000); // un primer sondeo al entrar
 
 
 /* ══ MI CATÁLOGO ══════════════════════════════════════════════════════════
-   [v1.13] Enlace público del asesor para compartir por WhatsApp. Cada quien
+   [v1.15.3] Enlace público del asesor para compartir por WhatsApp. Cada quien
    tiene el suyo: el catálogo es el mismo, cambia a quién contacta el cliente.
 
-   Los datos del asesor viajan EN EL ENLACE, no en una base: así funciona sin
-   backend y sin dar de alta nada cuando entra un asesor nuevo — su enlace
-   existe desde el primer día.
+   El enlace lleva SOLO el ATTUID. Nombre, teléfono, tienda y foto viven en
+   Firestore (/asesores_publicos/{attuid}) — antes viajaban en la URL y la
+   foto en base64 producía enlaces de ~1,700 caracteres, ilegibles en WhatsApp.
 
-   Los PRECIOS no viajan: catalogo.html los lee en vivo de catalog.js. Por eso
-   un enlace compartido hace tres semanas sigue mostrando lo vigente hoy.
+   Los PRECIOS no viajan nunca: catalogo.html los lee en vivo de catalog.js,
+   así que un enlace de hace tres semanas muestra lo vigente hoy.
    ═════════════════════════════════════════════════════════════════════════ */
 
 function urlMiCatalogo(){
   var attuid = (asesorData && asesorData.attuid) || '';
-  /* [v1.15] El enlace ya no lleva nombre, teléfono ni foto: eso vive en
-     Firestore bajo /asesores_publicos/{attuid}. Antes la foto en base64
-     producía enlaces de ~1,700 caracteres, ilegibles en WhatsApp. */
   var u = new URL(location.href);
-  var dir = u.pathname.replace(/[^/]*$/, '');
+  var dir = u.pathname.replace(/[^/]*$/, '');   /* deja la carpeta, quita el archivo */
   return u.origin + dir + 'catalogo.html' + (attuid ? '?a='+encodeURIComponent(attuid) : '');
 }
 
-/* Guarda la tarjeta de contacto que el catálogo lee. Se llama al compartir:
-   así el asesor no tiene que hacer nada extra y su tarjeta siempre refleja
-   lo último que puso en su perfil. */
+/* Recomprime la foto del perfil a 200px cuadrados (~12 KB), bien por debajo
+   del tope de 40 KB que fijan las reglas de Firestore. Es asíncrona porque
+   Image.onload lo es; por eso se lanza al arrancar la app y no al compartir. */
+function prepararFotoPub(){
+  try{
+    if(typeof getPerfilEfectivo!=='function') return;
+    var p = getPerfilEfectivo();
+    if(!p.foto || p.foto.length < 40) return;
+    var im = new Image();
+    im.onload = function(){
+      try{
+        var c = document.createElement('canvas');
+        c.width = c.height = 200;
+        var g = c.getContext('2d');
+        var lado = Math.min(im.width, im.height);   /* recorte cuadrado centrado */
+        g.drawImage(im, (im.width-lado)/2, (im.height-lado)/2, lado, lado, 0, 0, 200, 200);
+        var mini = c.toDataURL('image/jpeg', 0.72);
+        if(mini.length < 38000) window._fotoPub = mini;
+      }catch(e){}
+    };
+    im.src = p.foto;
+  }catch(e){}
+}
+
+/* Escribe la tarjeta que el catálogo lee. Devuelve true si se guardó. */
 async function guardarTarjetaPublica(){
   var attuid = (asesorData && asesorData.attuid) || '';
-  if(!attuid || !window.TG_PUB || !TG_PUB.guardarTarjeta) return;
+  if(!attuid) return false;
   var p = (typeof getPerfilEfectivo==='function') ? getPerfilEfectivo() : {};
   var tel = String(p.phone||'').replace(/\D/g,'');
-  if(tel.length===10) tel = '52'+tel;   /* MX sin lada internacional */
+  if(tel.length===10) tel = '52'+tel;          /* MX sin lada internacional */
   var datos = {
     attuid: attuid,
     nombre: String(p.name||'').slice(0,80),
     tienda: String(p.sucursal||'').slice(0,60),
-    telefono: tel.slice(0,15)
+    telefono: tel.slice(0,15),
+    ts: new Date().toISOString()
   };
-  /* La foto se recomprime a 200px: pesa ~12 KB, bien por debajo del tope de
-     40 KB que fijan las reglas, y se ve nítida en el avatar. */
-  var f = window._fotoPub;
-  if(f && f.length < 40000) datos.foto = f;
+  if(window._fotoPub && window._fotoPub.length < 38000) datos.foto = window._fotoPub;
   try{
     /* Reusa loadFirebase() de la app: no hace falta otra instancia. */
+    if(typeof loadFirebase !== 'function') return false;
     await loadFirebase();
-    if(!firestoreDB || !firestoreFns) return;
-    datos.ts = new Date().toISOString();
+    if(!firestoreDB || !firestoreFns || !firestoreFns.setDoc) return false;
     await firestoreFns.setDoc(
       firestoreFns.doc(firestoreDB, 'asesores_publicos', attuid),
       datos, { merge:true });
-  }catch(e){ console.warn('tarjeta pública', e && e.message); }
-}
-
-function fotoParaEnlace(){
-  try{
-    var p = getPerfilEfectivo();
-    if(!p.foto || p.foto.length < 40) return '';
-    if(window._fotoMini) return window._fotoMini;
-    /* La recompresión es asíncrona; si aún no está lista se manda sin foto y
-       queda lista para el siguiente enlace. */
-    prepararFotoMini(p.foto);
-    return '';
-  }catch(e){ return ''; }
-}
-
-function prepararFotoMini(b64){
-  try{
-    var im = new Image();
-    im.onload = function(){
-      var c = document.createElement('canvas');
-      c.width = c.height = 96;
-      var g = c.getContext('2d');
-      /* Recorte cuadrado centrado, como se ve en el avatar. */
-      var lado = Math.min(im.width, im.height);
-      g.drawImage(im, (im.width-lado)/2, (im.height-lado)/2, lado, lado, 0, 0, 96, 96);
-      var mini = c.toDataURL('image/jpeg', 0.6);
-      if(mini.length < 6000) window._fotoMini = mini;
-    };
-    im.src = b64;
-  }catch(e){}
+    return true;
+  }catch(e){
+    console.warn('[catalogo] no se guardó la tarjeta:', e && e.message);
+    return false;
+  }
 }
 
 async function abrirMiCatalogo(){
@@ -12101,15 +12093,19 @@ async function abrirMiCatalogo(){
     if(typeof pmdGo==='function') setTimeout(function(){ pmdGo('perfil'); }, 900);
     return;
   }
-  /* Guardar la tarjeta ANTES de compartir: si falla, el catálogo igual abre
-     pero sin el pie del asesor. */
+  /* La foto puede no estar lista si el asesor entró y compartió de inmediato:
+     se prepara y se espera un momento antes de guardar. */
+  if(!window._fotoPub) {
+    prepararFotoPub();
+    await new Promise(function(r){ setTimeout(r, 700); });
+  }
   await guardarTarjetaPublica();
+
   var url = urlMiCatalogo();
   var msg = 'Hola, te comparto el catálogo de equipos con plan AT&T. '
           + 'Ahí puedes ver precios, simular tu pago mensual y escribirme cualquier duda.\n\n' + url;
-  /* [v1.14.1] Antes se abría wa.me directo y el teléfono obligaba a elegir
-     WhatsApp Business. Mismo criterio que enviarCotizacionTexto: selector
-     nativo del dispositivo, y wa.me solo como respaldo en escritorio. */
+  /* Selector nativo del dispositivo, mismo criterio que enviarCotizacionTexto:
+     antes wa.me forzaba WhatsApp Business. */
   if(navigator.share){
     navigator.share({ title:'Catálogo Prime MX', text:msg }).catch(function(){});
     return;
@@ -12117,28 +12113,27 @@ async function abrirMiCatalogo(){
   window.open('https://wa.me/?text='+encodeURIComponent(msg), '_blank', 'noopener');
 }
 
-/* [v1.15.1] La tarjeta se sincroniza sola al abrir la app, no solo al
-   compartir: si el asesor ya repartió su enlace y luego cambia su foto o
-   teléfono, el catálogo lo refleja sin que tenga que volver a compartir.
-   Se hace una vez al día para no escribir en cada apertura. */
+/* La tarjeta se sincroniza sola una vez al día: si el asesor ya repartió su
+   enlace y luego cambia foto o teléfono, el catálogo lo refleja sin que tenga
+   que volver a compartir. */
 if(typeof window!=='undefined' && typeof document!=='undefined'){
   setTimeout(function(){
-    if(typeof prepararFotoPub==='function') prepararFotoPub();
+    prepararFotoPub();
     setTimeout(function(){
       try{
         var hoy = new Date().toISOString().slice(0,10);
         if(localStorage.getItem('_tarjetaPub') === hoy) return;
-        if(typeof guardarTarjetaPublica!=='function') return;
-        guardarTarjetaPublica().then(function(){
-          try{ localStorage.setItem('_tarjetaPub', hoy); }catch(e){}
+        guardarTarjetaPublica().then(function(ok){
+          if(ok){ try{ localStorage.setItem('_tarjetaPub', hoy); }catch(e){} }
         });
       }catch(e){}
     }, 2500);   /* después de que la foto esté recomprimida */
-  }, 3000);
+  }, 4000);
 }
 
 if(typeof window!=='undefined'){
   window.urlMiCatalogo = urlMiCatalogo;
   window.guardarTarjetaPublica = guardarTarjetaPublica;
+  window.prepararFotoPub = prepararFotoPub;
   window.abrirMiCatalogo = abrirMiCatalogo;
 }
