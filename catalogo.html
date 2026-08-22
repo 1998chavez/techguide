@@ -768,24 +768,45 @@ function refrescarSim(){
 
 /* ── Compartir: menú nativo, no WhatsApp forzado ──────────────────────── */
 
-/* [v1.15.4] Del lado del CLIENTE el destinatario ya está definido: es el
-   asesor que mandó el enlace. Abrir el selector nativo aquí solo agrega un
-   paso y desvía la conversación. Se va directo a su WhatsApp.
-   (Del lado del ASESOR sí se usa el selector, porque ahí no se sabe a quién
-   se le va a compartir el catálogo.) */
+/* [v1.15.5] Del lado del CLIENTE el destinatario ya está definido: el asesor
+   que mandó el enlace. Se va directo a su chat, sin selector.
+
+   POR QUÉ NO BASTA wa.me: en Android, si el cliente tiene WhatsApp Business
+   instalado, el sistema lo elige por defecto y sale "tu número no está
+   registrado en WhatsApp Business". El esquema whatsapp:// apunta a WhatsApp
+   Messenger; si no está instalado no pasa nada y a los 1.2 s se cae a wa.me,
+   que sí deja que el sistema use Business. */
 function compartir(texto){
-  if(ASESOR.tel){
-    window.open('https://wa.me/'+ASESOR.tel+'?text='+encodeURIComponent(texto),
-                '_blank', 'noopener');
+  if(!ASESOR.tel){
+    /* Sin teléfono no hay a quién escribirle: selector para que al menos
+       pueda copiar el mensaje. */
+    if(navigator.share){ navigator.share({ text:texto }).catch(function(){}); return; }
+    window.open('https://wa.me/?text='+encodeURIComponent(texto), '_blank', 'noopener');
     return;
   }
-  /* Sin teléfono no hay a quién escribirle: cae al selector para que el
-     cliente al menos pueda copiar o mandarlo por donde quiera. */
-  if(navigator.share){
-    navigator.share({ text:texto }).catch(function(){});
-    return;
-  }
-  window.open('https://wa.me/?text='+encodeURIComponent(texto), '_blank', 'noopener');
+
+  var txt = encodeURIComponent(texto);
+  var respaldo = 'https://wa.me/'+ASESOR.tel+'?text='+txt;
+
+  /* En escritorio el esquema whatsapp:// no aplica: directo a wa.me. */
+  var esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'');
+  if(!esMovil){ window.open(respaldo, '_blank', 'noopener'); return; }
+
+  var salio = false;
+  function seFue(){ salio = true; }
+  document.addEventListener('visibilitychange', seFue, { once:true });
+  window.addEventListener('pagehide', seFue, { once:true });
+  window.addEventListener('blur', seFue, { once:true });
+
+  location.href = 'whatsapp://send?phone='+ASESOR.tel+'&text='+txt;
+
+  setTimeout(function(){
+    document.removeEventListener('visibilitychange', seFue);
+    /* Si la página sigue visible, Messenger no estaba instalado. */
+    if(!salio && !document.hidden){
+      window.open(respaldo, '_blank', 'noopener');
+    }
+  }, 1200);
 }
 
 function escribir(){
