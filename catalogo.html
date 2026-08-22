@@ -291,6 +291,9 @@ input[type=range]{width:100%;margin:14px 0 6px;accent-color:var(--att)}
 var HOY = new Date().toISOString().slice(0,10);
 var qs  = new URLSearchParams(location.search);
 
+/* [v1.15] Solo el ATTUID viaja en el enlace; el resto se lee de Firestore.
+   Antes la foto en base64 producía URLs de ~1,700 caracteres. Los parámetros
+   viejos se siguen aceptando para que los enlaces ya compartidos funcionen. */
 var ASESOR = {
   attuid: qs.get('a')  || '',
   nombre: qs.get('n')  || '',
@@ -298,6 +301,24 @@ var ASESOR = {
   tienda: qs.get('s')  || '',
   foto:   qs.get('f')  || ''
 };
+
+/* Trae la tarjeta del asesor. Sin SDK: una llamada REST a Firestore, que pesa
+   menos que cargar la librería completa para leer un documento. */
+function cargarAsesor(){
+  if(!ASESOR.attuid || ASESOR.nombre) { pintarAsesor(); return; }
+  var url = 'https://firestore.googleapis.com/v1/projects/techguide-primemx'
+          + '/databases/(default)/documents/asesores_publicos/'
+          + encodeURIComponent(ASESOR.attuid);
+  fetch(url).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
+    if(j && j.fields){
+      var f=j.fields;
+      ASESOR.nombre = (f.nombre  && f.nombre.stringValue)  || ASESOR.nombre;
+      ASESOR.tel    = (f.telefono&& f.telefono.stringValue)|| ASESOR.tel;
+      ASESOR.tienda = (f.tienda  && f.tienda.stringValue)  || ASESOR.tienda;
+      ASESOR.foto   = (f.foto    && f.foto.stringValue)    || ASESOR.foto;
+    }
+  }).catch(function(){}).then(function(){ pintarAsesor(); });
+}
 
 var PLANES = ['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Diamante'];
 
@@ -790,7 +811,7 @@ function iniciar(){
       '<div class="vacio">No pudimos cargar el catálogo.<br>Revisa tu conexión.</div>';
     return;
   }
-  pintarPlanes(); pintarMarcas(); pintar(); pintarAsesor();
+  pintarPlanes(); pintarMarcas(); pintar(); cargarAsesor();
 }
 
 /* catalog-img.js avisa al terminar: repintar para que salgan las fotos. */

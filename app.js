@@ -12023,32 +12023,45 @@ setTimeout(buscarActualizacion, 8000); // un primer sondeo al entrar
    ═════════════════════════════════════════════════════════════════════════ */
 
 function urlMiCatalogo(){
-  var p = (typeof getPerfilEfectivo==='function') ? getPerfilEfectivo() : {};
   var attuid = (asesorData && asesorData.attuid) || '';
-  var tel = String(p.phone||'').replace(/\D/g,'');
-  /* MX sin lada internacional: se antepone 52. */
-  if(tel.length===10) tel = '52'+tel;
-  /* [v1.13.3] Antes se recortaba la URL con expresiones regulares y el
-     cache-buster de la app (…/?v=1787432152834) se colaba en la base:
-     el enlace salía como "?v=123/catalogo.html?a=…" y GitHub Pages
-     devolvía el index. URL nativo se queda solo con la carpeta. */
+  /* [v1.15] El enlace ya no lleva nombre, teléfono ni foto: eso vive en
+     Firestore bajo /asesores_publicos/{attuid}. Antes la foto en base64
+     producía enlaces de ~1,700 caracteres, ilegibles en WhatsApp. */
   var u = new URL(location.href);
-  var dir = u.pathname.replace(/[^/]*$/, '');      // deja la carpeta, quita el archivo
-  var q = [];
-  if(attuid)  q.push('a='+encodeURIComponent(attuid));
-  if(p.name)  q.push('n='+encodeURIComponent(p.name));
-  if(tel)     q.push('t='+tel);
-  if(p.sucursal) q.push('s='+encodeURIComponent(p.sucursal));
-  /* [v1.14.2] La foto del asesor vive en base64 solo en su teléfono. Se
-     recomprime a 96px para que quepa en la URL sin volverla impronunciable;
-     si aun así pesa, el catálogo cae a las iniciales. */
-  var f = fotoParaEnlace();
-  if(f) q.push('f='+encodeURIComponent(f));
-  return u.origin + dir + 'catalogo.html' + (q.length ? '?'+q.join('&') : '');
+  var dir = u.pathname.replace(/[^/]*$/, '');
+  return u.origin + dir + 'catalogo.html' + (attuid ? '?a='+encodeURIComponent(attuid) : '');
 }
 
-/* Miniatura de 96px: una foto de perfil normal pesa 40-80 KB en base64, que
-   haría el enlace inservible. A 96px y calidad 0.6 baja a ~3 KB. */
+/* Guarda la tarjeta de contacto que el catálogo lee. Se llama al compartir:
+   así el asesor no tiene que hacer nada extra y su tarjeta siempre refleja
+   lo último que puso en su perfil. */
+async function guardarTarjetaPublica(){
+  var attuid = (asesorData && asesorData.attuid) || '';
+  if(!attuid || !window.TG_PUB || !TG_PUB.guardarTarjeta) return;
+  var p = (typeof getPerfilEfectivo==='function') ? getPerfilEfectivo() : {};
+  var tel = String(p.phone||'').replace(/\D/g,'');
+  if(tel.length===10) tel = '52'+tel;   /* MX sin lada internacional */
+  var datos = {
+    attuid: attuid,
+    nombre: String(p.name||'').slice(0,80),
+    tienda: String(p.sucursal||'').slice(0,60),
+    telefono: tel.slice(0,15)
+  };
+  /* La foto se recomprime a 200px: pesa ~12 KB, bien por debajo del tope de
+     40 KB que fijan las reglas, y se ve nítida en el avatar. */
+  var f = window._fotoPub;
+  if(f && f.length < 40000) datos.foto = f;
+  try{
+    /* Reusa loadFirebase() de la app: no hace falta otra instancia. */
+    await loadFirebase();
+    if(!firestoreDB || !firestoreFns) return;
+    datos.ts = new Date().toISOString();
+    await firestoreFns.setDoc(
+      firestoreFns.doc(firestoreDB, 'asesores_publicos', attuid),
+      datos, { merge:true });
+  }catch(e){ console.warn('tarjeta pública', e && e.message); }
+}
+
 function fotoParaEnlace(){
   try{
     var p = getPerfilEfectivo();
@@ -12078,7 +12091,7 @@ function prepararFotoMini(b64){
   }catch(e){}
 }
 
-function abrirMiCatalogo(){
+async function abrirMiCatalogo(){
   var p = (typeof getPerfilEfectivo==='function') ? getPerfilEfectivo() : {};
   var tel = String(p.phone||'').replace(/\D/g,'');
   if(!tel){
@@ -12088,6 +12101,9 @@ function abrirMiCatalogo(){
     if(typeof pmdGo==='function') setTimeout(function(){ pmdGo('perfil'); }, 900);
     return;
   }
+  /* Guardar la tarjeta ANTES de compartir: si falla, el catálogo igual abre
+     pero sin el pie del asesor. */
+  await guardarTarjetaPublica();
   var url = urlMiCatalogo();
   var msg = 'Hola, te comparto el catálogo de equipos con plan AT&T. '
           + 'Ahí puedes ver precios, simular tu pago mensual y escribirme cualquier duda.\n\n' + url;
@@ -12101,7 +12117,13 @@ function abrirMiCatalogo(){
   window.open('https://wa.me/?text='+encodeURIComponent(msg), '_blank', 'noopener');
 }
 
+/* Se prepara al cargar: así la primera vez que toque compartir ya está lista. */
+if(typeof window!=='undefined' && typeof document!=='undefined'){
+  setTimeout(function(){ if(typeof prepararFotoPub==='function') prepararFotoPub(); }, 3000);
+}
+
 if(typeof window!=='undefined'){
   window.urlMiCatalogo = urlMiCatalogo;
+  window.guardarTarjetaPublica = guardarTarjetaPublica;
   window.abrirMiCatalogo = abrirMiCatalogo;
 }
