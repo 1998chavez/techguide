@@ -289,22 +289,30 @@ input[type=range]{accent-color:var(--color-accent);width:100%;height:26px;margin
 .hbdg{position:absolute;top:12px;left:12px;background:var(--color-accent);color:var(--color-bg);font-size:12px;font-weight:700;letter-spacing:.02em;padding:5px 10px;white-space:nowrap}
 .sechead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:28px 0 14px}
 .sechead h2{margin:0;font-size:clamp(21px,3vw,27px);letter-spacing:-.02em}
-.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(162px,1fr));
-  gap:12px;padding:4px 0 2px}
+/* [v1.24] Más chicas y más densas: caben tres por fila en móvil, así se ven
+   más como escaparate y menos como bloques sueltos. */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(146px,1fr));
+  gap:10px;padding:4px 0 2px}
 /* [v1.23] Las tarjetas eran celdas planas de una hoja de cálculo: solo
    bordes de 1px. Ahora tienen cuerpo propio — fondo blanco, sombra sutil y
    respuesta al tacto — sin perder la retícula del sistema. */
 .pcard{display:flex;flex-direction:column;align-items:stretch;min-width:0;
   text-align:left;background:#fff;border:1px solid var(--color-neutral-300);
-  padding:10px 10px 15px;cursor:pointer;font-family:inherit;color:inherit;
-  font-size:15px;box-shadow:0 1px 2px rgba(45,43,43,.05);
-  transition:box-shadow .18s ease,transform .18s ease}
-.pcard:hover{box-shadow:0 6px 18px rgba(45,43,43,.13);transform:translateY(-2px);
+  padding:8px 8px 13px;cursor:pointer;font-family:inherit;color:inherit;
+  font-size:15px;position:relative;overflow:hidden;
+  box-shadow:0 1px 2px rgba(45,43,43,.05);
+  transition:box-shadow .2s ease,transform .2s ease,border-color .2s ease}
+/* Filo de acento que aparece al tocar: da carácter sin romper la retícula. */
+.pcard::after{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;
+  background:var(--color-accent);transform:scaleX(0);transform-origin:left;
+  transition:transform .25s cubic-bezier(.2,.7,.2,1)}
+.pcard:hover::after,.pcard:active::after{transform:scaleX(1)}
+.pcard:hover{box-shadow:0 8px 22px rgba(45,43,43,.14);transform:translateY(-3px);
   border-color:var(--color-neutral-400)}
-.pcard:active{transform:translateY(0) scale(.985);box-shadow:0 1px 2px rgba(45,43,43,.08)}
+.pcard:active{transform:translateY(-1px) scale(.99)}
 .pcard:hover{background:var(--color-neutral-100)}
 .pimg{position:relative;display:flex;align-items:center;justify-content:center;
-  aspect-ratio:1/1.02;background:var(--color-surface);overflow:hidden}
+  aspect-ratio:1/.96;background:var(--color-surface);overflow:hidden}
 .pcard .pimg img{max-width:66%;max-height:78%;transition:transform .25s ease}
 .pcard:hover .pimg img{transform:scale(1.045)}
 .pimg img{max-width:64%;max-height:78%;object-fit:contain;mix-blend-mode:multiply}
@@ -312,14 +320,14 @@ input[type=range]{accent-color:var(--color-accent);width:100%;height:26px;margin
 .bdg-new{position:absolute;top:8px;right:8px;border:1px solid var(--color-accent);color:var(--color-accent-700);background:var(--color-bg);font-size:9.5px;font-weight:700;letter-spacing:.08em;padding:2px 7px}
 .bdg-3d{position:absolute;bottom:8px;right:8px;background:var(--color-text);color:var(--color-bg);font-size:9.5px;font-weight:700;padding:3px 7px;display:flex;align-items:center;gap:4px}
 .pk{margin-top:11px;font-size:9.5px;font-weight:600;letter-spacing:.12em;color:var(--color-neutral-600)}
-.pn{margin-top:3px;font-size:15px;font-weight:600;line-height:1.25;letter-spacing:-.01em}
+.pn{margin-top:3px;font-size:13.5px;font-weight:600;line-height:1.25;letter-spacing:-.015em}
 .ps{margin-top:2px;font-size:12px;color:var(--color-neutral-600)}
 .pfrom{margin-top:11px;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)}
 .prow{display:flex;align-items:baseline;gap:4px}
-.pp{font-family:var(--font-heading);font-weight:800;font-size:19px;letter-spacing:-.02em}
+.pp{font-family:var(--font-heading);font-weight:800;font-size:18px;letter-spacing:-.03em}
 .ppm{font-size:11px;color:var(--color-neutral-600)}
 .pc{margin-top:3px;font-size:11px;color:var(--color-neutral-600)}
-.cellgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:4px 0 2px}
+.cellgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;padding:4px 0 2px}
 .cellgrid.bands{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
 .cell{background:#fff;border:1px solid var(--color-neutral-300);
   box-shadow:0 1px 2px rgba(45,43,43,.05);transition:box-shadow .18s,transform .18s;padding:20px 16px 18px;display:flex;flex-direction:column;gap:4px;text-align:left;cursor:pointer;font-family:inherit;color:inherit;min-width:0;font-size:15px}
@@ -367,7 +375,7 @@ input[type=range]{accent-color:var(--color-accent);width:100%;height:26px;margin
    Ahora solo se pega cuando hay dos columnas de verdad. */
 .dleft{position:static}
 @media (min-width:760px){ .dleft{position:sticky;top:72px} }
-.dimg{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1.02;background:var(--color-surface);overflow:hidden}
+.dimg{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1.02;transition:aspect-ratio .3s ease;background:var(--color-surface);overflow:hidden}
 .dimg img{max-width:56%;max-height:82%;object-fit:contain;mix-blend-mode:multiply}
 .dimg .off{position:absolute;top:12px;left:12px;background:var(--color-accent);color:var(--color-bg);font-size:12px;font-weight:700;padding:5px 10px;white-space:nowrap}
 .dimg .new{position:absolute;top:12px;right:12px;border:1px solid var(--color-accent);color:var(--color-accent-700);background:var(--color-bg);font-size:10px;font-weight:700;letter-spacing:.08em;padding:3px 8px}
@@ -604,7 +612,8 @@ var APP={
   +'<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:24px">'
   +'<button class="btn btn-primary" style="padding:13px 20px;font-size:14.5px;white-space:nowrap" onclick="APP.goCatAll()">Explorar equipos'+ICO.arr+'</button>'
   +'<button class="btn btn-secondary" style="padding:13px 20px;font-size:14.5px;white-space:nowrap" onclick="APP.goOfertas()">Ofertas de la semana</button></div>'
-  +'<div style="margin-top:26px;font-size:12px;color:var(--color-neutral-600)">'+devs.length+' equipos · '+Object.keys(bset).length+' marcas · Plan AT&amp;T incluido en tu pago</div>'
+  /* [v1.24] Fuera el contador "N equipos · N marcas": es dato interno, no
+     ayuda a decidir y roba peso al llamado a la acción. */
   +'</div>';
   var hero=null;
   var cands=devs.filter(function(d){return self.img(d.id)&&info[d.id].contado>=12000;});
@@ -703,7 +712,7 @@ var APP={
   +'<button class="btn btn-ghost" style="font-size:14px;padding-left:0" onclick="APP.closeDev()">'+ICO.back+'Volver</button>'
   +'<span style="margin-left:auto;font-size:10.5px;letter-spacing:.12em;font-weight:700;color:var(--color-neutral-600)">'+esc(dv.brand)+'</span>'
   +'</div></div><div class="dwrap"><div class="dgrid">';
-  h+='<div class="dleft"><div class="dimg">'+(im?('<img class="grayscale" src="'+im+'" alt="'+esc(dv.name)+'">'):ICO.ph(44));
+  h+='<div class="dleft"><div class="dimg"'+(s.paso>1?' style="aspect-ratio:2.4/1"':'')+'>'+(im?('<img class="grayscale" src="'+im+'" alt="'+esc(dv.name)+'">'):ICO.ph(44));
   if(pct>=this.UMBRAL)h+='<span class="off">'+(pct>=100?'Incluido con plan':('-'+pct+'%'))+'</span>';
   if(dv.status==='NPI')h+='<span class="new">NUEVO</span>';
   if(m3)h+='<button class="b3d" onclick="APP.open3D()">'+ICO.cube12+'Verlo en 3D</button>';
@@ -714,19 +723,24 @@ var APP={
   h+='</div>';
   h+='<div style="min-width:0">'
   +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.12em;color:var(--color-neutral-600)">'+esc(dv.brand)+'</div>'
-  +'<h1 style="margin:6px 0 0;font-size:clamp(27px,4vw,40px);line-height:1.06;letter-spacing:-.025em">'+esc(dv.name)+'</h1>';
+  +'<h1 style="margin:6px 0 0;font-size:'+(s.paso===1?'clamp(27px,4vw,40px)':'21px')+';line-height:1.06;letter-spacing:-.025em">'+esc(dv.name)+'</h1>';
   var SV=window.STORAGE_VARIANTS||{},vlist=SV[base];
   var variants=vlist?vlist.filter(function(v){return v[1];}):[];
-  if(variants.length>1){h+='<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">';
+  if(s.paso===1 && variants.length>1){h+='<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">';
    variants.forEach(function(v){h+='<button class="chip'+(v[1]===s.varId?' on':'')+'" onclick="APP.setVar(\''+v[1]+'\')">'+esc(v[0])+'</button>';});
    h+='</div>';}
   else h+='<div style="margin-top:6px;font-size:13.5px;color:var(--color-neutral-600)">'+esc(dv.storage)+'</div>';
+  /* [v1.24] Del paso 2 en adelante el encabezado se encoge: el precio "desde"
+     y los argumentos de venta ya cumplieron su función y ahora compiten con
+     la decisión en curso. Queda solo qué equipo es. */
+  if(s.paso===1){
   h+='<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:18px">'
   +'<span style="font-family:var(--font-heading);font-weight:800;font-size:33px;letter-spacing:-.03em">'+this.fmx(this.desdeGlobal(id))
   +'<span style="font-size:14px;font-weight:400;color:var(--color-neutral-600)"> /mes desde</span></span>'
   +(pct>=10?('<span class="tag tag-accent" style="font-weight:700">hasta -'+pct+'% con plan</span>'):'')
   +'</div><div style="margin-top:4px;font-size:13px;color:var(--color-neutral-600)">De contado '+this.fmx(window.PRICES[id].contado)+'</div>';
-  if((dv.sell||[]).length){h+='<div class="hr2" style="margin:22px 0 16px"></div><div class="kick">Por qué este equipo</div>'
+  }
+  if(s.paso===1 && (dv.sell||[]).length){h+='<div class="hr2" style="margin:22px 0 16px"></div><div class="kick">Por qué este equipo</div>'
    +'<div style="display:flex;flex-direction:column;gap:9px;margin-top:12px">';
    dv.sell.forEach(function(t){h+='<div style="display:flex;gap:10px"><span style="width:6px;height:6px;background:var(--color-accent);flex:none;margin-top:7px"></span><span style="font-size:14px;line-height:1.5">'+esc(t)+'</span></div>';});
    h+='</div>';}
