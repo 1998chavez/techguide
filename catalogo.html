@@ -534,7 +534,7 @@ var APP={
   return '<header class="hdr"><div class="hdr-in">'
   +'<button class="mark" onclick="APP.goHome()">PRIME<b>MX</b></button>'
   +'<div class="sbar">'+ICO.lupa
-  +'<input id="q" type="search" value="'+esc(s.q)+'" oninput="APP.onQ(this.value)" placeholder="Buscar equipo o marca" autocomplete="off" enterkeyhint="search" aria-label="Buscar equipo">'
+  +'<input id="q" type="search" value="'+esc(s.q)+'" oninput="APP.onQ(this.value)" placeholder="Buscar equipo" autocomplete="off" enterkeyhint="search" aria-label="Buscar equipo">'
   +(s.q?('<button onclick="APP.onQ(\'\')" aria-label="Limpiar búsqueda" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-600);padding:6px 0;display:flex">'+ICO.x+'</button>'):'')
   +'</div><button class="navlink" onclick="APP.goCatAll()">Equipos</button></div></header>';},
 
@@ -542,7 +542,9 @@ var APP={
   var info={};devs.forEach(function(d){info[d.id]={desde:self.desdeGlobal(d.id),pct:self.descMax(d.id),contado:window.PRICES[d.id].contado};});
   var bset={};devs.forEach(function(d){bset[d.brand]=(bset[d.brand]||0)+1;});
   var h='<section class="wrap"><div class="hero"><div>'
-  +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">Catálogo · precios al '+esc(this.fecha())+'</div>'
+  /* [v1.22.1] Sin fecha: una fecha en pantalla envejece mal y los precios
+     cambian cada semana. La vigencia se atiende en los legales. */
+  +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">Catálogo de equipos</div>'
   +'<h1>Estrena equipo. Págalo a tu ritmo.</h1>'
   +'<p style="margin:16px 0 0;font-size:15.5px;line-height:1.55;color:var(--color-neutral-700);max-width:460px">Elige tu smartphone, ajusta plan y plazo, y conoce tu mensualidad al momento. Tu asesor te acompaña por WhatsApp.</p>'
   +'<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:24px">'
@@ -652,7 +654,9 @@ var APP={
   if(dv.status==='NPI')h+='<span class="new">NUEVO</span>';
   if(m3)h+='<button class="b3d" onclick="APP.open3D()">'+ICO.cube12+'Verlo en 3D</button>';
   h+='</div>';
-  if(yt)h+='<a class="btn btn-ghost" style="margin-top:10px;font-size:13px" href="'+esc(yt)+'" target="_blank" rel="noopener">'+ICO.play+'Ver review en video</a>';
+  /* [v1.22.1] El enlace del review se encimaba sobre la foto: era inline y
+     quedaba flotando. Ahora va en su propio bloque, debajo de la imagen. */
+  if(yt)h+='<div style="margin-top:12px;clear:both"><a class="btn btn-ghost" style="display:inline-flex;font-size:13px;padding:8px 0" href="'+esc(yt)+'" target="_blank" rel="noopener">'+ICO.play+'Ver review en video</a></div>';
   h+='</div>';
   h+='<div style="min-width:0">'
   +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.12em;color:var(--color-neutral-600)">'+esc(dv.brand)+'</div>'
@@ -696,12 +700,15 @@ var APP={
   var gar=(s.plan&&s.plazo)?this.esGarF(id,s.plan,s.plazo):false;
   var engMax=(s.plan&&s.plazo)?this.tope(id,s.plan,s.plazo):0;
   if(!gar&&engMax>0){
-   h+='<div class="kick" style="margin-top:20px">Enganche <span class="sub">· opcional, baja tu mensualidad</span></div>'
+   h+='<div class="kick" style="margin-top:20px">Enganche</div>'
    +'<div style="border:1px solid var(--color-divider);padding:14px 16px;margin-top:10px">'
-   +'<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;color:var(--color-neutral-600)">Das hoy</span>'
+   +'<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;color:var(--color-neutral-600)">Enganche</span>'
    +'<span id="engv" style="font-family:var(--font-heading);font-weight:800;font-size:19px">'+this.fmx(s.eng)+'</span></div>'
    +'<input type="range" min="0" max="'+engMax+'" step="100" value="'+s.eng+'" oninput="APP.onEng(this.value)" aria-label="Enganche">'
-   +'<div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--color-neutral-600)"><span>$0</span><span>'+this.fmx(engMax)+'</span></div></div>';}
+   +'<div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--color-neutral-600)"><span>$0</span><span>'+this.fmx(engMax)+'</span></div>'
+   /* El monto real lo fija crédito: se dice aquí, no en letra chica. */
+   +'<div style="font-size:11px;color:var(--color-neutral-600);line-height:1.45;margin-top:12px;padding-top:12px;border-top:1px solid var(--color-neutral-300)">Simulación de enganche sujeto a aprobación crediticia.</div>'
+   +'</div>';}
   if(gar){
    h+='<div class="kick" style="margin-top:20px">Rentas de garantía <span class="sub">· depósito, no cambia tu mensualidad</span></div><div class="rowchips">';
    [0,1,2,3].forEach(function(n){h+='<button class="box'+(s.rentas===n?' on':'')+'" onclick="APP.set({rentas:'+n+'})">'
@@ -713,7 +720,7 @@ var APP={
   if(pol){h+='<button class="xtr'+(s.seguro?' on':'')+'" onclick="APP.tog(\'seguro\')">'
    +'<span style="display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left">'
    +'<span style="font-size:14px;font-weight:700">Seguro de protección <span style="font-family:var(--font-heading);font-weight:800">+'+this.fmx(pol.price)+'/mes</span></span>'
-   +'<span style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.45">Robo y daño fuera de garantía · hasta 2 reemplazos al año. Deducible 30% daño / 40% robo. Póliza Allianz, administra Asurion.</span></span>'
+   +'<span style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.45">Robo y daño fuera de garantía · hasta 2 reemplazos al año. Deducible 30% daño / 40% robo.</span></span>'
    +'<span class="ck'+(s.seguro?' on':'')+'">'+(s.seguro?ICO.chk:'')+'</span></button>';}
   h+='<button class="xtr'+(s.control?' on':'')+'" onclick="APP.tog(\'control\')">'
   +'<span style="display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left">'
