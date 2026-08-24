@@ -293,6 +293,12 @@ input[type=range]{accent-color:var(--color-accent);width:100%;height:26px;margin
    más como escaparate y menos como bloques sueltos. */
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(146px,1fr));
   gap:10px;padding:4px 0 2px}
+/* Carrusel: una fila que se desliza, con el corte del borde insinuando que
+   hay más. */
+.prow{display:flex;gap:10px;overflow-x:auto;padding:4px 0 6px;
+  -webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+.prow .pcard{flex:0 0 158px;scroll-snap-align:start}
+.prow::after{content:'';flex:0 0 4px}
 /* [v1.23] Las tarjetas eran celdas planas de una hoja de cálculo: solo
    bordes de 1px. Ahora tienen cuerpo propio — fondo blanco, sombra sutil y
    respuesta al tacto — sin perder la retícula del sistema. */
@@ -589,6 +595,12 @@ var APP={
   h+='<span class="pc">Contado '+this.fmx(P.contado)+'</span></button>';
   return h;},
  gridHTML:function(list){var self=this;return '<div class="pgrid">'+list.map(function(d){return self.cardHTML(d);}).join('')+'</div>';},
+ /* [v1.25] En el home las secciones van en carrusel horizontal: la rejilla
+    apilaba decenas de tarjetas y el cliente tenía que hacer scroll eterno
+    antes de llegar a la siguiente sección. La rejilla se queda para las
+    vistas de catálogo, donde sí quieres verlo todo. */
+ filaHTML:function(list){var self=this;
+  return '<div class="prow nsb">'+list.map(function(d){return self.cardHTML(d);}).join('')+'</div>';},
 
  headerHTML:function(){var s=this.s;
   return '<header class="hdr"><div class="hdr-in">'
@@ -632,9 +644,9 @@ var APP={
   h+='</div></section>';
   var offers=devs.slice().sort(function(a,b){return info[b.id].pct-info[a.id].pct;}).slice(0,6);
   h+='<section class="wrap"><div class="hr2"></div><div class="sechead" style="padding-top:24px"><h2>Ofertas de la semana</h2>'
-  +'<button class="btn btn-ghost" style="font-size:13px" onclick="APP.goOfertas()">Ver todas</button></div>'+this.gridHTML(offers)+'</section>';
+  +'<button class="btn btn-ghost" style="font-size:13px" onclick="APP.goOfertas()">Ver todas</button></div>'+this.filaHTML(offers)+'</section>';
   var news=devs.filter(function(d){return d.status==='NPI';}).slice(0,6);
-  if(news.length){h+='<section class="wrap"><div class="sechead"><h2>Recién llegados</h2></div>'+this.gridHTML(news)+'</section>';}
+  if(news.length){h+='<section class="wrap"><div class="sechead"><h2>Recién llegados</h2></div>'+this.filaHTML(news)+'</section>';}
   var bkeys=Object.keys(bset).sort(function(a,b){return bset[b]-bset[a];});
   h+='<section class="wrap"><div class="sechead"><h2>Explora por marca</h2></div><div class="cellgrid">';
   bkeys.forEach(function(b){h+='<button class="cell" onclick="APP.goCat({marca:\''+b+'\',banda:\'\',gama:\'\',ofertas:false,q:\'\'})">'
@@ -826,12 +838,16 @@ var APP={
   +'<div style="margin-top:9px;font-size:10.5px;color:var(--color-neutral-600)">Estimado sin compromiso. Sujeto a evaluación crediticia y vigencia de promociones.</div></div>';
   var entries=Object.keys(dv.specs||{}).map(function(k){return [k,dv.specs[k]];});
   var rows=s.specsFull?entries:entries.slice(0,7);
+  /* [v1.25] La ficha se colaba en todos los pasos. Pertenece al paso 1,
+     cuando el cliente decide SI quiere el equipo; después estorba. */
+  if(s.paso===1){
   h+='<div class="hr2" style="margin:26px 0 14px"></div><h4 style="margin:0;font-size:17px">Ficha técnica</h4>'
   +'<table class="table" style="margin-top:8px;font-size:13px"><tbody>';
   rows.forEach(function(r){h+='<tr><td style="color:var(--color-neutral-600);white-space:nowrap;vertical-align:top">'+esc(r[0])+'</td><td>'+esc(r[1])+'</td></tr>';});
   h+='</tbody></table>';
   if(entries.length>7)h+='<button class="btn btn-ghost" style="margin-top:6px;font-size:13px" onclick="APP.tog(\'specsFull\')">'
    +(s.specsFull?'Ver menos':('Ver ficha completa ('+entries.length+')'))+'</button>';
+  }
   h+='</div></div>';
   var devs=this.equipos(),info={};devs.forEach(function(d){info[d.id]={contado:window.PRICES[d.id].contado};});
   var others=devs.filter(function(d){return d.id!==s.dev&&d.id!==base;});
@@ -839,7 +855,8 @@ var APP={
   var mismos=others.filter(function(d){return d.brand===dv.brand;}).sort(function(a,b){return Math.abs(info[a.id].contado-C0)-Math.abs(info[b.id].contado-C0);});
   var resto=others.filter(function(d){return d.brand!==dv.brand;}).sort(function(a,b){return Math.abs(info[a.id].contado-C0)-Math.abs(info[b.id].contado-C0);});
   var rel=mismos.slice(0,2).concat(resto).slice(0,4);
-  if(rel.length){h+='<div class="hr2" style="margin:34px 0 0"></div>'
+  /* Los relacionados también viven en el paso 1: ahí sí ayudan a comparar. */
+  if(s.paso===1 && rel.length){h+='<div class="hr2" style="margin:34px 0 0"></div>'
    +'<div style="display:flex;align-items:baseline;justify-content:space-between;padding:20px 0 12px"><h4 style="margin:0;font-size:18px">También te puede gustar</h4></div>'
    +this.gridHTML(rel);}
   h+='</div></div>';
