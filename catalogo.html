@@ -570,7 +570,7 @@ var APP={
   var gar=this.esGarF(s.varId,s.plan,s.plazo);
   var inicial=gar?(s.rentas*this.renta(s.plan)):s.eng;
   var extras='';
-  if(s.seguro&&pol)extras+='\nSeguro de protección +'+this.fmx(pol.price);
+  if(s.seguro&&pol)extras+='\nAT&T Protección+ '+this.fmx(pol.price);
   if(s.control)extras+='\nControl de datos +'+this.fmx(window.CONTROL_PRICE||50);
   var A=s.asesor;
   this.compartir('Hola'+(A.nombre?' '+A.nombre.split(' ')[0]:'')+', me interesa esta opción:\n\n'
@@ -811,8 +811,16 @@ var APP={
  h+='<div class="kick" style="margin-top:16px">Opcionales</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">';
   if(pol){h+='<button class="xtr'+(s.seguro?' on':'')+'" onclick="APP.tog(\'seguro\')">'
    +'<span style="display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left">'
-   +'<span style="font-size:14px;font-weight:700">Seguro de protección <span style="font-family:var(--font-heading);font-weight:800">+'+this.fmx(pol.price)+'/mes</span></span>'
-   +'<span style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.45">Robo y daño fuera de garantía · hasta 2 reemplazos al año. Deducible 30% daño / 40% robo.</span></span>'
+   +'<span style="font-size:14px;font-weight:700">AT&amp;T Protección+ <span style="font-family:var(--font-heading);font-weight:800">+'+this.fmx(pol.price)+'/mes</span></span>'
+   /* [v1.26] Beneficios del sitio oficial (proteccionequiposatt.com.mx).
+      Antes decía "hasta 2 reemplazos al año" y "deducible 30%/40%": lo
+      primero es falso —los siniestros son ilimitados— y el deducible
+      depende de marca y modelo, no es un porcentaje fijo. */
+   /* [v1.26.1] La reparación de pantalla o batería por $99 NO aplica a todos:
+      el sitio oficial dice "únicamente para ciertos modelos de equipo y
+      marcas", sujeta a disponibilidad de piezas. Prometerlo en todo el
+      catálogo sería vender algo que no se puede sostener. */
+   +'<span style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.45">Siniestros ilimitados y almacenamiento ilimitado de fotos en la nube. Reparación de pantalla o batería por $99 solo en modelos elegibles. Deducible según marca y modelo: consúltalo con tu asesor.</span></span>'
    +'<span class="ck'+(s.seguro?' on':'')+'">'+(s.seguro?ICO.chk:'')+'</span></button>';}
   h+='<button class="xtr'+(s.control?' on':'')+'" onclick="APP.tog(\'control\')">'
   +'<span style="display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left">'
