@@ -289,10 +289,24 @@ input[type=range]{accent-color:var(--color-accent);width:100%;height:26px;margin
 .hbdg{position:absolute;top:12px;left:12px;background:var(--color-accent);color:var(--color-bg);font-size:12px;font-weight:700;letter-spacing:.02em;padding:5px 10px;white-space:nowrap}
 .sechead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:28px 0 14px}
 .sechead h2{margin:0;font-size:clamp(21px,3vw,27px);letter-spacing:-.02em}
-.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));border-top:1px solid var(--color-neutral-300)}
-.pcard{display:flex;flex-direction:column;align-items:stretch;min-width:0;text-align:left;background:var(--color-bg);border:0;border-right:1px solid var(--color-neutral-300);border-bottom:1px solid var(--color-neutral-300);padding:12px 12px 16px;cursor:pointer;font-family:inherit;color:inherit;font-size:15px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(162px,1fr));
+  gap:12px;padding:4px 0 2px}
+/* [v1.23] Las tarjetas eran celdas planas de una hoja de cálculo: solo
+   bordes de 1px. Ahora tienen cuerpo propio — fondo blanco, sombra sutil y
+   respuesta al tacto — sin perder la retícula del sistema. */
+.pcard{display:flex;flex-direction:column;align-items:stretch;min-width:0;
+  text-align:left;background:#fff;border:1px solid var(--color-neutral-300);
+  padding:10px 10px 15px;cursor:pointer;font-family:inherit;color:inherit;
+  font-size:15px;box-shadow:0 1px 2px rgba(45,43,43,.05);
+  transition:box-shadow .18s ease,transform .18s ease}
+.pcard:hover{box-shadow:0 6px 18px rgba(45,43,43,.13);transform:translateY(-2px);
+  border-color:var(--color-neutral-400)}
+.pcard:active{transform:translateY(0) scale(.985);box-shadow:0 1px 2px rgba(45,43,43,.08)}
 .pcard:hover{background:var(--color-neutral-100)}
-.pimg{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1.06;background:var(--color-surface);overflow:hidden}
+.pimg{position:relative;display:flex;align-items:center;justify-content:center;
+  aspect-ratio:1/1.02;background:var(--color-surface);overflow:hidden}
+.pcard .pimg img{max-width:66%;max-height:78%;transition:transform .25s ease}
+.pcard:hover .pimg img{transform:scale(1.045)}
 .pimg img{max-width:64%;max-height:78%;object-fit:contain;mix-blend-mode:multiply}
 .bdg-off{position:absolute;top:8px;left:8px;background:var(--color-accent-100);color:var(--color-accent-800);font-size:11px;font-weight:700;padding:3px 8px}
 .bdg-new{position:absolute;top:8px;right:8px;border:1px solid var(--color-accent);color:var(--color-accent-700);background:var(--color-bg);font-size:9.5px;font-weight:700;letter-spacing:.08em;padding:2px 7px}
@@ -305,9 +319,12 @@ input[type=range]{accent-color:var(--color-accent);width:100%;height:26px;margin
 .pp{font-family:var(--font-heading);font-weight:800;font-size:19px;letter-spacing:-.02em}
 .ppm{font-size:11px;color:var(--color-neutral-600)}
 .pc{margin-top:3px;font-size:11px;color:var(--color-neutral-600)}
-.cellgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border-top:1px solid var(--color-neutral-300)}
+.cellgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:4px 0 2px}
 .cellgrid.bands{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
-.cell{background:var(--color-bg);border:0;border-right:1px solid var(--color-neutral-300);border-bottom:1px solid var(--color-neutral-300);padding:20px 16px 18px;display:flex;flex-direction:column;gap:4px;text-align:left;cursor:pointer;font-family:inherit;color:inherit;min-width:0;font-size:15px}
+.cell{background:#fff;border:1px solid var(--color-neutral-300);
+  box-shadow:0 1px 2px rgba(45,43,43,.05);transition:box-shadow .18s,transform .18s;padding:20px 16px 18px;display:flex;flex-direction:column;gap:4px;text-align:left;cursor:pointer;font-family:inherit;color:inherit;min-width:0;font-size:15px}
+.cell:hover{box-shadow:0 6px 18px rgba(45,43,43,.13);transform:translateY(-2px)}
+.cell:active{transform:translateY(0) scale(.985)}
 .cell:hover{background:var(--color-neutral-100)}
 .cell .t{font-family:var(--font-heading);font-weight:800;font-size:18px;letter-spacing:-.01em}
 .cell .c{font-size:11.5px;color:var(--color-neutral-600)}
@@ -331,8 +348,25 @@ input[type=range]{accent-color:var(--color-accent);width:100%;height:26px;margin
 .dtop{position:sticky;top:0;z-index:5;background:var(--color-bg);border-bottom:2px solid var(--color-divider)}
 .dtop-in{max-width:1120px;margin:0 auto;padding:8px 20px;display:flex;align-items:center;gap:12px}
 .dwrap{max-width:1120px;margin:0 auto;padding:22px 20px 160px}
+.steps{display:flex;align-items:flex-start;padding:2px 0 4px}
+.st-i{display:flex;align-items:flex-start}
+.st-i:not(:last-child){flex:1}
+.st-c{display:flex;flex-direction:column;align-items:center;gap:4px;flex:none}
+.st-n{width:22px;height:22px;display:flex;align-items:center;justify-content:center;
+  font-size:10.5px;font-weight:700;background:var(--color-neutral-200);
+  color:var(--color-neutral-500);transition:all .2s}
+.st-n.on,.st-n.ok{background:var(--color-accent);color:#fff}
+.st-l{font-size:8.5px;font-weight:500;color:var(--color-neutral-500);white-space:nowrap}
+.st-l.on{font-weight:700;color:var(--color-text)}
+.st-line{flex:1;height:2px;margin:10px 3px 0;background:var(--color-neutral-200);transition:background .25s}
+.st-line.ok{background:var(--color-accent)}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:32px;align-items:start}
-.dleft{position:sticky;top:72px}
+/* [v1.23] La columna de la foto era sticky siempre. En móvil las columnas
+   se apilan, así que la foto quedaba pegada ENCIMA del contenido que
+   subía: por eso "Ver review" y "Por qué este equipo" se encimaban.
+   Ahora solo se pega cuando hay dos columnas de verdad. */
+.dleft{position:static}
+@media (min-width:760px){ .dleft{position:sticky;top:72px} }
 .dimg{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1.02;background:var(--color-surface);overflow:hidden}
 .dimg img{max-width:56%;max-height:82%;object-fit:contain;mix-blend-mode:multiply}
 .dimg .off{position:absolute;top:12px;left:12px;background:var(--color-accent);color:var(--color-bg);font-size:12px;font-weight:700;padding:5px 10px;white-space:nowrap}
@@ -386,6 +420,7 @@ var ICO={
 var APP={
  s:{view:'home',q:'',marca:'Todas',banda:'',gama:'',orden:'desde',ofertas:false,
     dev:null,varId:null,plan:null,plazo:null,eng:0,rentas:0,todosPlanes:false,seguro:false,control:false,
+    paso:1,
     specsFull:false,legal:false,v3d:false,
     asesor:{attuid:'',nombre:'',tel:'',tienda:'',foto:''}},
  UMBRAL:45,
@@ -459,15 +494,32 @@ var APP={
   var plan=(fp&&con.indexOf(fp)>=0)?fp:(lista[0]||null);
   return {plan:plan,plazo:this.defPlazo(id,plan),eng:0,rentas:0};},
  openDev:function(id){var d=this.findDev(id);if(!d)return;
-  var st=Object.assign({dev:id,varId:id,todosPlanes:false,seguro:false,control:false,specsFull:false,v3d:false},this.defaults(id));
+  var st=Object.assign({dev:id,varId:id,paso:1,todosPlanes:false,seguro:false,control:false,specsFull:false,v3d:false},this.defaults(id));
   this.set(st);var dt=el('det');if(dt)dt.scrollTop=0;
   try{history.pushState({d:1},'','#'+id);}catch(e){}},
- closeDev:function(){this.set({dev:null,v3d:false});this.dropHash();},
+ closeDev:function(){this.set({dev:null,v3d:false,paso:1});this.dropHash();},
+ /* [v1.23] Navegación por pasos: una decisión a la vez. El scroll vertical
+    con todo abierto perdía al cliente. */
+ pasosHTML:function(){
+  var s=this.s, L=['Modelo','Plan','Plazo','Extras','Enganche','Pago'], h='<div class="steps">';
+  for(var i=0;i<L.length;i++){
+   var n=i+1, ok=n<s.paso, on=n===s.paso;
+   /* Los pasos ya recorridos se pueden tocar para volver. */
+   h+='<div class="st-i"><div class="st-c"'+(ok?' onclick="APP.irPaso('+n+')" style="cursor:pointer"':'')+'>'
+     +'<div class="st-n'+(ok?' ok':(on?' on':''))+'">'+(ok?'&#10003;':n)+'</div>'
+     +'<span class="st-l'+(on?' on':'')+'">'+L[i]+'</span></div>'
+     +(i<L.length-1?'<div class="st-line'+(ok?' ok':'')+'"></div>':'')+'</div>';
+  }
+  return h+'</div>';
+ },
+ irPaso:function(n){this.set({paso:n});var d=el('det');if(d)d.scrollTop=0;},
+ pasoPlan:function(p){this.set({plan:p,plazo:null,eng:0,rentas:0,paso:3});var d=el('det');if(d)d.scrollTop=0;},
+ pasoPlazo:function(z){this.set({plazo:z,eng:0,rentas:0,paso:4});var d=el('det');if(d)d.scrollTop=0;},
  setVar:function(id){var s=this.s,st={varId:id,eng:0,rentas:0};
   if(!s.plan||!this.planConPrecio(id,s.plan)){Object.assign(st,this.defaults(id));}
   else if(this.mensual(id,s.plan,s.plazo,0)===null){st.plazo=this.defPlazo(id,s.plan);}
   this.set(st);},
- setPlan:function(p){var s=this.s,z=(this.mensual(s.varId,p,s.plazo,0)!==null)?s.plazo:this.defPlazo(s.varId,p);
+ setPlan:function(p){this.s.paso=3;var s=this.s,z=(this.mensual(s.varId,p,s.plazo,0)!==null)?s.plazo:this.defPlazo(s.varId,p);
   this.set({plan:p,plazo:z,eng:0,rentas:0});},
  totMensual:function(){var s=this.s,id=s.varId;
   var t=(s.plan&&s.plazo)?this.mensual(id,s.plan,s.plazo,s.eng):null;
@@ -536,7 +588,9 @@ var APP={
   +'<div class="sbar">'+ICO.lupa
   +'<input id="q" type="search" value="'+esc(s.q)+'" oninput="APP.onQ(this.value)" placeholder="Buscar equipo" autocomplete="off" enterkeyhint="search" aria-label="Buscar equipo">'
   +(s.q?('<button onclick="APP.onQ(\'\')" aria-label="Limpiar búsqueda" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-600);padding:6px 0;display:flex">'+ICO.x+'</button>'):'')
-  +'</div><button class="navlink" onclick="APP.goCatAll()">Equipos</button></div></header>';},
+  /* [v1.23] Fuera el botón "Equipos": en una misma pantalla la palabra salía
+   seis veces. El hero ya tiene "Explorar equipos". */
+ +'</div></div></header>';},
 
  homeHTML:function(){var self=this,s=this.s,devs=this.equipos();
   var info={};devs.forEach(function(d){info[d.id]={desde:self.desdeGlobal(d.id),pct:self.descMax(d.id),contado:window.PRICES[d.id].contado};});
@@ -676,12 +730,19 @@ var APP={
    +'<div style="display:flex;flex-direction:column;gap:9px;margin-top:12px">';
    dv.sell.forEach(function(t){h+='<div style="display:flex;gap:10px"><span style="width:6px;height:6px;background:var(--color-accent);flex:none;margin-top:7px"></span><span style="font-size:14px;line-height:1.5">'+esc(t)+'</span></div>';});
    h+='</div>';}
-  h+='<div class="hr2" style="margin:22px 0 16px"></div><h3 style="margin:0;font-size:21px;letter-spacing:-.02em">Arma tu pago mensual</h3>';
+  /* [v1.23] Un paso a la vez. Antes todo venía apilado en vertical y el
+   cliente se perdía entre plan, plazo, extras y enganche a la vez. */
+ h+='<div class="hr2" style="margin:22px 0 16px"></div>';
+ h+=this.pasosHTML();
+ /* Un título por paso. El índice 0 nunca se usa: los pasos van de 1 a 6. */
+ var PT=['','Arma tu pago mensual','Elige tu plan','¿A cuántos meses?','Extras opcionales','Pago inicial','Tu pago'];
+ h+='<h3 style="margin:14px 0 0;font-size:21px;letter-spacing:-.02em">'+(PT[s.paso]||'')+'</h3>';
   var con=this.PL.filter(function(p){return self.planConPrecio(id,p);});
   var sug=this.sugeridos(dv).filter(function(p){return con.indexOf(p)>=0;});
   var lista=s.todosPlanes?con:(sug.length?sug:con);
   if(s.plan&&lista.indexOf(s.plan)<0)lista=lista.concat([s.plan]);
-  h+='<div class="kick" style="margin-top:16px">Plan <span class="sub">· comparativa a 36 meses</span></div><div class="plangrid">';
+  if(s.paso===2){
+ h+='<div class="kick" style="margin-top:16px">Precios a 36 meses</div><div class="plangrid">';
   lista.forEach(function(p){var rm=self.refMensual(id,p);
    h+='<button class="opt'+(s.plan===p?' on':'')+'" onclick="APP.setPlan(\''+p+'\')">'
    +'<span class="oprow"><span style="font-size:15px;font-weight:700">'+esc(p)+'</span>'
@@ -692,15 +753,19 @@ var APP={
   if(!s.todosPlanes&&lista.length<con.length)
    h+='<button class="btn btn-ghost" style="margin-top:8px;font-size:13px" onclick="APP.set({todosPlanes:true})">Ver los '+con.length+' planes</button>';
   h+='<div style="margin-top:8px;font-size:10.5px;color:var(--color-neutral-600)">Todos incluyen 6 redes sociales ilimitadas y llamadas sin límite. *Aplica Política de Uso Justo de AT&amp;T.</div>';
-  h+='<div class="kick" style="margin-top:20px">Plazo</div><div class="rowchips">';
+  }
+ if(s.paso===3){
+ h+='<div class="kick" style="margin-top:16px">Plan '+esc(s.plan||'')+'</div><div class="rowchips">';
   [24,30,36].forEach(function(z){if(self.mensual(id,s.plan,z,0)===null)return;
-   h+='<button class="box'+(s.plazo===z?' on':'')+'" onclick="APP.set({plazo:'+z+',eng:0,rentas:0})">'
+   h+='<button class="box'+(s.plazo===z?' on':'')+'" onclick="APP.set({plazo:'+z+',eng:0,rentas:0,paso:4})">'
    +'<span class="bt">'+z+' meses</span><span class="bs" data-pzm="'+z+'">'+self.fmx(self.mensual(id,s.plan,z,s.eng))+'/mes</span></button>';});
   h+='</div>';
+  }
   var gar=(s.plan&&s.plazo)?this.esGarF(id,s.plan,s.plazo):false;
   var engMax=(s.plan&&s.plazo)?this.tope(id,s.plan,s.plazo):0;
-  if(!gar&&engMax>0){
-   h+='<div class="kick" style="margin-top:20px">Enganche</div>'
+  var pol=this.poliza(id),ctrl=window.CONTROL_PRICE||50;
+ if(s.paso===5 && !gar && engMax>0){
+ h+='<div class="kick" style="margin-top:16px">Simula tu pago inicial</div>'
    +'<div style="border:1px solid var(--color-divider);padding:14px 16px;margin-top:10px">'
    +'<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;color:var(--color-neutral-600)">Enganche</span>'
    +'<span id="engv" style="font-family:var(--font-heading);font-weight:800;font-size:19px">'+this.fmx(s.eng)+'</span></div>'
@@ -709,14 +774,15 @@ var APP={
    /* El monto real lo fija crédito: se dice aquí, no en letra chica. */
    +'<div style="font-size:11px;color:var(--color-neutral-600);line-height:1.45;margin-top:12px;padding-top:12px;border-top:1px solid var(--color-neutral-300)">Simulación de enganche sujeto a aprobación crediticia.</div>'
    +'</div>';}
-  if(gar){
-   h+='<div class="kick" style="margin-top:20px">Rentas de garantía <span class="sub">· depósito, no cambia tu mensualidad</span></div><div class="rowchips">';
+ if(s.paso===5 && gar){
+ h+='<div class="kick" style="margin-top:16px">Rentas de garantía <span class="sub">· depósito, no cambia tu mensualidad</span></div><div class="rowchips">';
    [0,1,2,3].forEach(function(n){h+='<button class="box'+(s.rentas===n?' on':'')+'" onclick="APP.set({rentas:'+n+'})">'
     +'<span class="bt">'+n+'</span><span class="bs">'+(n===1?'renta':'rentas')+'</span></button>';});
    h+='</div><div style="margin-top:8px;font-size:12px;color:var(--color-neutral-600)">Pagas al contratar: <b style="color:var(--color-text)">'
    +this.fmx(s.rentas*(this.renta(s.plan)||0))+'</b>. El número final lo define tu evaluación crediticia.</div>';}
-  var pol=this.poliza(id),ctrl=window.CONTROL_PRICE||50;
-  h+='<div class="kick" style="margin-top:20px">Extras opcionales</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">';
+
+ if(s.paso===4){
+ h+='<div class="kick" style="margin-top:16px">Opcionales</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">';
   if(pol){h+='<button class="xtr'+(s.seguro?' on':'')+'" onclick="APP.tog(\'seguro\')">'
    +'<span style="display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left">'
    +'<span style="font-size:14px;font-weight:700">Seguro de protección <span style="font-family:var(--font-heading);font-weight:800">+'+this.fmx(pol.price)+'/mes</span></span>'
@@ -727,9 +793,14 @@ var APP={
   +'<span style="font-size:14px;font-weight:700">Control de datos <span style="font-family:var(--font-heading);font-weight:800">+'+this.fmx(ctrl)+'/mes</span></span>'
   +'<span style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.45">Sin cargos sorpresa: al agotar tus datos, el servicio se pausa en lugar de cobrar extra.</span></span>'
   +'<span class="ck'+(s.control?' on':'')+'">'+(s.control?ICO.chk:'')+'</span></button></div>';
+  }
+  if(s.paso===1) h+='<button class="btn btn-primary" style="width:100%;margin-top:18px;justify-content:center" onclick="APP.irPaso(2)">Ver mi pago mensual</button>';
+  if(s.paso===4) h+='<button class="btn btn-primary" style="width:100%;margin-top:18px;justify-content:center" onclick="APP.irPaso(5)">Continuar</button>';
+  if(s.paso===5) h+='<button class="btn btn-primary" style="width:100%;margin-top:18px;justify-content:center" onclick="APP.irPaso(6)">Ver mi resumen</button>';
+  if(s.paso>1) h+='<button class="btn btn-ghost" style="width:100%;margin-top:10px;justify-content:center" onclick="APP.irPaso('+(s.paso-1)+')">Atrás</button>';
   var tot=this.totMensual();
   var inicial=gar?(s.rentas*(this.renta(s.plan)||0)):s.eng;
-  h+='<div class="totbox"><div style="font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600)">Pagarías al mes</div>'
+  if(s.paso===6) h+='<div class="totbox"><div style="font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600)">Pagarías al mes</div>'
   +'<div class="big" id="totm">'+(tot===null?'—':this.fmx(tot))+'</div>'
   +'<div style="margin-top:5px;font-size:12.5px;color:var(--color-neutral-600)">'
   +((s.plan&&s.plazo)?('Plan '+esc(s.plan)+' · '+(this.gbDe(s.plan)||'—')+' GB · '+s.plazo+' meses · equipo incluido en el cálculo'):'Elige plan y plazo')+'</div>'
