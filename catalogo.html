@@ -261,2727 +261,571 @@ textarea.input { min-height: 90px; resize: vertical; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
 
 
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--color-bg)}
+a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
+input[type=range]{accent-color:var(--color-accent);width:100%;height:26px;margin:10px 0 4px}
+.nsb{scrollbar-width:none}.nsb::-webkit-scrollbar{display:none}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.hr2{height:2px;background:var(--color-divider)}
+.kick{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.kick .sub{font-weight:400;color:var(--color-neutral-600);text-transform:none;letter-spacing:0}
+.muted{color:var(--color-neutral-600)}
+.hdr{position:sticky;top:0;z-index:60;background:var(--color-bg);border-bottom:2px solid var(--color-divider)}
+.hdr-in{max-width:1180px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:14px}
+.mark{background:none;border:0;cursor:pointer;padding:2px 0;font-family:var(--font-heading);font-weight:800;font-size:16px;letter-spacing:.08em;color:var(--color-text)}
+.mark b{color:var(--color-accent);font-weight:800}
+.sbar{flex:1;max-width:430px;display:flex;align-items:center;gap:9px;background:var(--color-surface);border:1px solid var(--color-divider);padding:0 12px}
+.sbar svg{color:var(--color-neutral-600);flex:none}
+.sbar input{border:0;background:none;outline:none;font-family:inherit;font-size:14px;color:inherit;padding:10px 0;width:100%;min-width:50px}
+.sbar input::-webkit-search-cancel-button{display:none}
+.navlink{background:none;border:0;cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:600;color:var(--color-text);padding:8px 2px;white-space:nowrap}
+.navlink:hover{color:var(--color-accent-700)}
+.hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr));gap:30px;padding:34px 0 38px;align-items:center}
+.hero h1{margin:12px 0 0;font-size:clamp(34px,5.4vw,58px);line-height:1.04;letter-spacing:-.025em;text-wrap:balance}
+.hcard{display:flex;flex-direction:column;background:none;border:0;padding:0;cursor:pointer;font-family:inherit;color:inherit;text-align:left;min-width:0;font-size:15px}
+.himg{position:relative;display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:1/0.92;background:var(--color-surface);overflow:hidden}
+.himg img{max-width:58%;max-height:80%;object-fit:contain;mix-blend-mode:multiply}
+.hbdg{position:absolute;top:12px;left:12px;background:var(--color-accent);color:var(--color-bg);font-size:12px;font-weight:700;letter-spacing:.02em;padding:5px 10px;white-space:nowrap}
+.sechead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:28px 0 14px}
+.sechead h2{margin:0;font-size:clamp(21px,3vw,27px);letter-spacing:-.02em}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));border-top:1px solid var(--color-neutral-300)}
+.pcard{display:flex;flex-direction:column;align-items:stretch;min-width:0;text-align:left;background:var(--color-bg);border:0;border-right:1px solid var(--color-neutral-300);border-bottom:1px solid var(--color-neutral-300);padding:12px 12px 16px;cursor:pointer;font-family:inherit;color:inherit;font-size:15px}
+.pcard:hover{background:var(--color-neutral-100)}
+.pimg{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1.06;background:var(--color-surface);overflow:hidden}
+.pimg img{max-width:64%;max-height:78%;object-fit:contain;mix-blend-mode:multiply}
+.bdg-off{position:absolute;top:8px;left:8px;background:var(--color-accent-100);color:var(--color-accent-800);font-size:11px;font-weight:700;padding:3px 8px}
+.bdg-new{position:absolute;top:8px;right:8px;border:1px solid var(--color-accent);color:var(--color-accent-700);background:var(--color-bg);font-size:9.5px;font-weight:700;letter-spacing:.08em;padding:2px 7px}
+.bdg-3d{position:absolute;bottom:8px;right:8px;background:var(--color-text);color:var(--color-bg);font-size:9.5px;font-weight:700;padding:3px 7px;display:flex;align-items:center;gap:4px}
+.pk{margin-top:11px;font-size:9.5px;font-weight:600;letter-spacing:.12em;color:var(--color-neutral-600)}
+.pn{margin-top:3px;font-size:15px;font-weight:600;line-height:1.25;letter-spacing:-.01em}
+.ps{margin-top:2px;font-size:12px;color:var(--color-neutral-600)}
+.pfrom{margin-top:11px;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)}
+.prow{display:flex;align-items:baseline;gap:4px}
+.pp{font-family:var(--font-heading);font-weight:800;font-size:19px;letter-spacing:-.02em}
+.ppm{font-size:11px;color:var(--color-neutral-600)}
+.pc{margin-top:3px;font-size:11px;color:var(--color-neutral-600)}
+.cellgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border-top:1px solid var(--color-neutral-300)}
+.cellgrid.bands{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.cell{background:var(--color-bg);border:0;border-right:1px solid var(--color-neutral-300);border-bottom:1px solid var(--color-neutral-300);padding:20px 16px 18px;display:flex;flex-direction:column;gap:4px;text-align:left;cursor:pointer;font-family:inherit;color:inherit;min-width:0;font-size:15px}
+.cell:hover{background:var(--color-neutral-100)}
+.cell .t{font-family:var(--font-heading);font-weight:800;font-size:18px;letter-spacing:-.01em}
+.cell .c{font-size:11.5px;color:var(--color-neutral-600)}
+.cell.more{color:var(--color-accent-700)}
+.cell.more:hover{background:var(--color-accent-100)}
+.chip{border:1px solid var(--color-divider);background:transparent;color:inherit;font-family:inherit;font-size:13px;padding:9px 15px;cursor:pointer;white-space:nowrap;min-height:38px}
+.chip:hover{background:var(--color-neutral-100)}
+.chip.on{background:var(--color-text);color:var(--color-bg);border-color:var(--color-text);font-weight:600}
+.cta{background:var(--color-accent);margin-top:36px}
+.cta-in{max-width:1180px;margin:0 auto;padding:46px 20px 50px}
+.cta h2{margin:0;color:var(--color-bg);font-size:clamp(26px,4.6vw,44px);line-height:1.06;letter-spacing:-.02em;max-width:640px;text-wrap:balance}
+.cta p{margin:14px 0 0;color:var(--color-accent-100);font-size:15px;line-height:1.55;max-width:520px}
+.abar{position:fixed;left:0;right:0;bottom:0;z-index:100;background:var(--color-bg);border-top:2px solid var(--color-divider)}
+.abar-in{max-width:1180px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:12px}
+.abar img{width:40px;height:40px;object-fit:cover;flex:none}
+.abar .ini{width:40px;height:40px;background:var(--color-text);color:var(--color-bg);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:800;font-size:13px;flex:none}
+.abar .who{flex:1;min-width:0;display:flex;flex-direction:column}
+.abar .who b{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.abar .who span{font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#det{position:fixed;inset:0;z-index:80;background:var(--color-bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.dtop{position:sticky;top:0;z-index:5;background:var(--color-bg);border-bottom:2px solid var(--color-divider)}
+.dtop-in{max-width:1120px;margin:0 auto;padding:8px 20px;display:flex;align-items:center;gap:12px}
+.dwrap{max-width:1120px;margin:0 auto;padding:22px 20px 160px}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:32px;align-items:start}
+.dleft{position:sticky;top:72px}
+.dimg{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1.02;background:var(--color-surface);overflow:hidden}
+.dimg img{max-width:56%;max-height:82%;object-fit:contain;mix-blend-mode:multiply}
+.dimg .off{position:absolute;top:12px;left:12px;background:var(--color-accent);color:var(--color-bg);font-size:12px;font-weight:700;padding:5px 10px;white-space:nowrap}
+.dimg .new{position:absolute;top:12px;right:12px;border:1px solid var(--color-accent);color:var(--color-accent-700);background:var(--color-bg);font-size:10px;font-weight:700;letter-spacing:.08em;padding:3px 8px}
+.b3d{position:absolute;bottom:12px;right:12px;background:var(--color-text);color:var(--color-bg);border:0;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;padding:9px 13px;display:flex;align-items:center;gap:6px}
+.plangrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:8px;margin-top:10px}
+.opt{display:flex;flex-direction:column;align-items:stretch;padding:13px 14px;cursor:pointer;text-align:left;font-family:inherit;color:inherit;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);font-size:15px}
+.opt:hover{background:var(--color-neutral-100)}
+.opt.on{border-color:var(--color-text);box-shadow:inset 0 0 0 1px var(--color-text);background:var(--color-surface)}
+.oprow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;width:100%}
+.opm{font-family:var(--font-heading);font-weight:800;font-size:15px}
+.opms{font-size:10px;font-weight:400;color:var(--color-neutral-600)}
+.optags{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.rowchips{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.box{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:10px 18px;cursor:pointer;font-family:inherit;color:inherit;border:1px solid var(--color-divider);background:var(--color-bg)}
+.box:hover{background:var(--color-neutral-100)}
+.box.on{border-color:var(--color-text);box-shadow:inset 0 0 0 1px var(--color-text);background:var(--color-surface)}
+.box .bt{font-family:var(--font-heading);font-weight:800;font-size:16px}
+.box .bs{font-size:11px;color:var(--color-neutral-600)}
+.xtr{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 15px;cursor:pointer;font-family:inherit;color:inherit;width:100%;border:1px solid var(--color-divider);background:var(--color-bg);text-align:left}
+.xtr:hover{background:var(--color-neutral-100)}
+.xtr.on{border-color:var(--color-text);box-shadow:inset 0 0 0 1px var(--color-text);background:var(--color-surface)}
+.ck{width:18px;height:18px;flex:none;margin-top:2px;display:flex;align-items:center;justify-content:center;border:1px solid var(--color-neutral-500);background:var(--color-bg)}
+.ck.on{background:var(--color-accent);border-color:var(--color-accent)}
+.totbox{border:2px solid var(--color-text);margin-top:22px;padding:18px 18px 16px}
+.totbox .big{font-family:var(--font-heading);font-weight:800;font-size:clamp(36px,6vw,46px);letter-spacing:-.03em;line-height:1.05;margin-top:6px}
+#v3d{position:fixed;inset:0;z-index:130;background:var(--color-surface)}
 </style>
-<script>
-// GENERATED from dc-runtime/src/*.ts — do not edit. Rebuild with `cd dc-runtime && bun run build`.
-"use strict";
-(() => {
-  var __defProp = Object.defineProperty;
-  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-
-  // src/react.ts
-  function getReact() {
-    const R = window.React;
-    if (!R) throw new Error("dc-runtime: window.React is not available yet");
-    return R;
-  }
-  function getReactDOM() {
-    const RD = window.ReactDOM;
-    if (!RD) throw new Error("dc-runtime: window.ReactDOM is not available yet");
-    return RD;
-  }
-  var h = ((...args) => getReact().createElement(
-    ...args
-  ));
-
-  // src/parse.ts
-  function parseDcDocument(doc) {
-    const dc = doc.querySelector("x-dc");
-    if (!dc) return null;
-    const scriptEl = doc.querySelector("script[data-dc-script]");
-    const { props, preview } = parseDataProps(
-      scriptEl?.getAttribute("data-props") ?? null
-    );
-    return {
-      template: dc.innerHTML,
-      js: scriptEl ? scriptEl.textContent || "" : "",
-      props,
-      preview
-    };
-  }
-  function parseDcText(src) {
-    const openMatch = /<x-dc(?:\s[^>]*)?>/.exec(src);
-    if (!openMatch) return null;
-    const close = src.lastIndexOf("</x-dc>");
-    if (close === -1 || close < openMatch.index) return null;
-    const template = src.slice(openMatch.index + openMatch[0].length, close);
-    const doc = new DOMParser().parseFromString(src, "text/html");
-    const scriptEl = doc.querySelector("script[data-dc-script]");
-    const { props, preview } = parseDataProps(
-      scriptEl?.getAttribute("data-props") ?? null
-    );
-    return {
-      template,
-      js: scriptEl ? scriptEl.textContent || "" : "",
-      props,
-      preview
-    };
-  }
-  function parseDataProps(raw) {
-    if (!raw) return { props: null, preview: null };
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return { props: null, preview: null };
-    }
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return { props: null, preview: null };
-    }
-    const obj = parsed;
-    const preview = obj.$preview && typeof obj.$preview === "object" ? obj.$preview : null;
-    const rest = {};
-    for (const k of Object.keys(obj)) {
-      if (k[0] !== "$") rest[k] = obj[k];
-    }
-    return { props: Object.keys(rest).length ? rest : null, preview };
-  }
-  function dcNameFromPath(pathname) {
-    let p = pathname || "";
-    try {
-      p = decodeURIComponent(p);
-    } catch {
-    }
-    const base = p.split("/").pop() || "Root";
-    return base.replace(/\.dc\.html$/, "").replace(/\.html?$/, "") || "Root";
-  }
-
-  // src/boot.ts
-  var BASE_CSS = `
-    .sc-placeholder{background:color-mix(in srgb,currentColor 8%,transparent);
-      border:1px solid color-mix(in srgb,currentColor 50%,transparent);
-      border-radius:2px;box-sizing:border-box;overflow:hidden}
-    @keyframes sc-shine{0%{background-position:100% 50%}100%{background-position:0% 50%}}
-    html.sc-dc-streaming .sc-placeholder,
-    html.sc-dc-streaming .sc-interp.sc-missing{position:relative;
-      background:color-mix(in srgb,currentColor 5%,transparent);
-      border-color:transparent}
-    html.sc-dc-streaming .sc-placeholder::before,
-    html.sc-dc-streaming .sc-interp.sc-missing::before{content:'';
-      position:absolute;inset:0;pointer-events:none;
-      background:linear-gradient(90deg,rgba(217,119,87,0) 25%,rgba(247,225,211,.95) 37%,rgba(217,119,87,0) 63%);
-      background-size:400% 100%;animation:sc-shine 1.4s ease infinite}
-    html.sc-dc-streaming .sc-placeholder:nth-child(n+9 of .sc-placeholder)::before,
-    html.sc-dc-streaming .sc-interp.sc-missing:nth-child(n+9 of .sc-interp.sc-missing)::before{animation:none;
-      background:color-mix(in srgb,currentColor 8%,transparent)}
-    .sc-placeholder-error{padding:4px 8px;font:11px/1.4 ui-monospace,monospace;
-      color:color-mix(in srgb,currentColor 70%,transparent);word-break:break-word}
-    .sc-interp.sc-missing{display:inline-block;width:2em;height:1em;overflow:hidden;
-      vertical-align:text-bottom;background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.5);
-      border-radius:2px;box-sizing:border-box;color:transparent;
-      user-select:none}
-    .sc-interp.sc-unresolved{font-family:ui-monospace,monospace;font-size:.85em;
-      color:color-mix(in srgb,currentColor 50%,transparent);
-      background:color-mix(in srgb,currentColor 10%,transparent);border-radius:3px;
-      padding:0 3px}
-    .sc-host.sc-has-error{position:relative}
-    .sc-logic-error{position:absolute;top:8px;left:8px;z-index:2147483647;max-width:60ch;
-      padding:6px 10px;background:#b00020;color:#fff;font:12px/1.4 ui-monospace,monospace;
-      border-radius:4px;white-space:pre-wrap;pointer-events:none}
-    /* Mirrors PRINT_BASELINE_CSS in apps/web deck-stage-export.ts \u2014 keep both
-       in sync until dc-runtime regains a build step. */
-    @media print {
-      @page { margin: 0.5cm; }
-      figure, table { break-inside: avoid; }
-      #dc-root, #dc-root > .sc-host { height: auto; }
-      *, *::before, *::after {
-        print-color-adjust: exact; -webkit-print-color-adjust: exact;
-        backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
-        animation-delay: -99s !important; animation-duration: .001s !important;
-        animation-iteration-count: 1 !important; animation-fill-mode: both !important;
-        animation-play-state: running !important; transition-duration: 0s !important;
-      }
-    }
-  `;
-  var FULL_PAGE_CSS = "html,body{height:100%;margin:0}#dc-root,#dc-root>.sc-host{height:100%}";
-  function rootNameForDocument(doc, loc) {
-    let bootPath = loc.pathname || "";
-    if (!/\.dc\.html?$/i.test(safeDecode(bootPath))) {
-      try {
-        bootPath = new URL(doc.baseURI || "/").pathname;
-      } catch {
-      }
-    }
-    return dcNameFromPath(bootPath);
-  }
-  function safeDecode(s) {
-    try {
-      return decodeURIComponent(s);
-    } catch {
-      return s;
-    }
-  }
-  function boot(runtime, doc = document) {
-    const parsed = parseDcDocument(doc);
-    if (!parsed) return null;
-    const React = getReact();
-    const rootName = rootNameForDocument(doc, location);
-    runtime.markFetched(rootName);
-    runtime.setRootName(rootName);
-    runtime.adoptParsed(rootName, parsed);
-    if (!window.__resources) {
-      fetch(location.href).then((res) => res.ok ? res.text() : "").then((t) => {
-        const raw = t ? parseDcText(t) : null;
-        if (raw?.template) runtime.updateHtml(rootName, raw.template);
-      }).catch(() => {
-      });
-    }
-    const dc = doc.querySelector("x-dc");
-    const hostEl = doc.createElement("div");
-    hostEl.id = "dc-root";
-    dc.replaceWith(hostEl);
-    if (!parsed.preview) {
-      const s = doc.createElement("style");
-      s.textContent = FULL_PAGE_CSS;
-      doc.head.appendChild(s);
-    }
-    const Root = runtime.getDC(rootName);
-    const entry = runtime.registry.get(rootName);
-    function StandaloneRoot() {
-      const [, setTick] = React.useState(0);
-      React.useEffect(() => {
-        const sub = () => setTick((n) => n + 1);
-        entry.subs.add(sub);
-        return () => {
-          entry.subs.delete(sub);
-        };
-      }, []);
-      const defaults = React.useMemo(() => {
-        const d = {};
-        for (const k in entry.propsMeta || {}) {
-          const v = entry.propsMeta?.[k]?.default;
-          if (v !== void 0) d[k] = v;
-        }
-        return d;
-      }, [entry.propsMeta]);
-      return h(Root, { ...defaults, ...entry.propOverrides || {} });
-    }
-    const ReactDOM = getReactDOM();
-    if (ReactDOM.createRoot)
-      ReactDOM.createRoot(hostEl).render(h(StandaloneRoot));
-    else ReactDOM.render(h(StandaloneRoot), hostEl);
-    return rootName;
-  }
-
-  // src/expr.ts
-  var IDENT_RE = /^[A-Za-z_$][A-Za-z0-9_$]*/;
-  var NUMBER_RE = /^-?\d+(\.\d+)?$/;
-  function resolve(vals, src) {
-    const expr = String(src).trim();
-    if (!expr) return void 0;
-    if (expr[0] === "(" && expr[expr.length - 1] === ")" && parensWrapWhole(expr)) {
-      return resolve(vals, expr.slice(1, -1));
-    }
-    const eq = findTopLevelEquality(expr);
-    if (eq) {
-      const lv = resolve(vals, expr.slice(0, eq.index));
-      const rv = resolve(vals, expr.slice(eq.index + eq.op.length));
-      switch (eq.op) {
-        case "===":
-          return lv === rv;
-        case "!==":
-          return lv !== rv;
-        case "==":
-          return lv == rv;
-        default:
-          return lv != rv;
-      }
-    }
-    if (expr[0] === "!") return !resolve(vals, expr.slice(1));
-    if (expr === "true") return true;
-    if (expr === "false") return false;
-    if (expr === "null") return null;
-    if (expr === "undefined") return void 0;
-    if (NUMBER_RE.test(expr)) return Number(expr);
-    if (expr.length >= 2 && (expr[0] === '"' || expr[0] === "'") && expr[expr.length - 1] === expr[0]) {
-      return expr.slice(1, -1);
-    }
-    return resolvePath(vals, expr);
-  }
-  function parensWrapWhole(expr) {
-    let depth = 0;
-    for (let i = 0; i < expr.length - 1; i++) {
-      if (expr[i] === "(") depth++;
-      else if (expr[i] === ")") {
-        depth--;
-        if (depth === 0) return false;
-      }
-    }
-    return true;
-  }
-  function findTopLevelEquality(expr) {
-    let depth = 0;
-    for (let i = 0; i < expr.length; i++) {
-      const c = expr[i];
-      if (c === "[" || c === "(") depth++;
-      else if (c === "]" || c === ")") depth--;
-      else if (depth === 0 && (c === "=" || c === "!") && expr[i + 1] === "=") {
-        if (i > 0 && (expr[i - 1] === "=" || expr[i - 1] === "!")) continue;
-        if (!expr.slice(0, i).trim()) continue;
-        const op = expr[i + 2] === "=" ? c + "==" : c + "=";
-        return { index: i, op };
-      }
-    }
-    return null;
-  }
-  function resolvePath(vals, expr) {
-    const head = expr.match(IDENT_RE);
-    if (!head) return void 0;
-    let cur = vals == null ? void 0 : vals[head[0]];
-    let i = head[0].length;
-    while (i < expr.length) {
-      if (expr[i] === ".") {
-        const m = expr.slice(i + 1).match(IDENT_RE) || expr.slice(i + 1).match(/^\d+/);
-        if (!m) return void 0;
-        cur = cur == null ? void 0 : cur[m[0]];
-        i += 1 + m[0].length;
-      } else if (expr[i] === "[") {
-        let depth = 1;
-        let j = i + 1;
-        while (j < expr.length && depth > 0) {
-          if (expr[j] === "[") depth++;
-          else if (expr[j] === "]") {
-            depth--;
-            if (depth === 0) break;
-          }
-          j++;
-        }
-        if (depth !== 0) return void 0;
-        const key = resolve(vals, expr.slice(i + 1, j));
-        cur = cur == null ? void 0 : cur[key];
-        i = j + 1;
-      } else {
-        return void 0;
-      }
-    }
-    return cur;
-  }
-
-  // src/encode.ts
-  var CAMEL_ATTR = "sc-camel-";
-  var INLINE_TEXT_TAGS = new Set(
-    "a abbr b bdi bdo br cite code del dfn em i ins kbd mark q s samp small span strike strong sub sup u var wbr".split(
-      " "
-    )
-  );
-  var RAW_WRAP = {
-    select: "sc-raw-select",
-    table: "sc-raw-table",
-    tbody: "sc-raw-tbody",
-    thead: "sc-raw-thead",
-    tfoot: "sc-raw-tfoot",
-    tr: "sc-raw-tr",
-    td: "sc-raw-td",
-    th: "sc-raw-th",
-    caption: "sc-raw-caption"
-  };
-  var RAW_UNWRAP = Object.fromEntries(
-    Object.entries(RAW_WRAP).map(([k, v]) => [v, k])
-  );
-  var EVENT_MAP = {
-    onclick: "onClick",
-    onchange: "onChange",
-    oninput: "onInput",
-    onsubmit: "onSubmit",
-    onkeydown: "onKeyDown",
-    onkeyup: "onKeyUp",
-    onkeypress: "onKeyPress",
-    onmousedown: "onMouseDown",
-    onmouseup: "onMouseUp",
-    onmouseenter: "onMouseEnter",
-    onmouseleave: "onMouseLeave",
-    onfocus: "onFocus",
-    onblur: "onBlur",
-    ondoubleclick: "onDoubleClick",
-    oncontextmenu: "onContextMenu",
-    onmousemove: "onMouseMove",
-    onmouseover: "onMouseOver",
-    onmouseout: "onMouseOut",
-    onpointerdown: "onPointerDown",
-    onpointerup: "onPointerUp",
-    onpointermove: "onPointerMove",
-    onpointerenter: "onPointerEnter",
-    onpointerleave: "onPointerLeave",
-    onpointercancel: "onPointerCancel",
-    onpointerover: "onPointerOver",
-    onpointerout: "onPointerOut",
-    ongotpointercapture: "onGotPointerCapture",
-    onlostpointercapture: "onLostPointerCapture",
-    ontouchstart: "onTouchStart",
-    ontouchend: "onTouchEnd",
-    ontouchmove: "onTouchMove",
-    ontouchcancel: "onTouchCancel",
-    ondragstart: "onDragStart",
-    ondragend: "onDragEnd",
-    ondragenter: "onDragEnter",
-    ondragleave: "onDragLeave",
-    ondragover: "onDragOver",
-    onanimationstart: "onAnimationStart",
-    onanimationend: "onAnimationEnd",
-    onanimationiteration: "onAnimationIteration",
-    ontransitionend: "onTransitionEnd"
-  };
-  var ATTRS = `(?:[^>"']|"[^"]*"|'[^']*')*`;
-  var IMPORT_SELF_CLOSE_RE = new RegExp(
-    "<(x-import|dc-import)(" + ATTRS + ")/>",
-    "gi"
-  );
-  var CAMEL_ATTR_RE = /(\s)([a-z]+[A-Z][A-Za-z0-9]*)(\s*=)/g;
-  function encodeCamelAttrs(html) {
-    return html.replace(
-      CAMEL_ATTR_RE,
-      (_, sp, name, eq) => sp + CAMEL_ATTR + name.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()) + eq
-    );
-  }
-  function encodeCase(html) {
-    html = html.replace(
-      IMPORT_SELF_CLOSE_RE,
-      (_, t, a) => "<" + t + a + "></" + t + ">"
-    );
-    html = html.replace(/<helmet(\s|>)/gi, "<sc-helmet$1");
-    html = html.replace(/<\/helmet\s*>/gi, "</sc-helmet>");
-    html = encodeCamelAttrs(html);
-    for (const [real, alias] of Object.entries(RAW_WRAP)) {
-      html = html.replace(
-        new RegExp("(</?)" + real + "(?=[\\s>])", "gi"),
-        "$1" + alias
-      );
-    }
-    return html;
-  }
-  function kebabToCamel(s) {
-    return s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-  }
-  function cssToObj(css) {
-    const o = {};
-    for (const decl of css.split(";")) {
-      const i = decl.indexOf(":");
-      if (i < 0) continue;
-      const prop = decl.slice(0, i).trim();
-      o[prop.startsWith("--") ? prop : kebabToCamel(prop)] = decl.slice(i + 1).trim();
-    }
-    return o;
-  }
-  function compileAttr(raw) {
-    const whole = raw.match(/^\s*\{\{([\s\S]+?)\}\}\s*$/);
-    if (whole) {
-      const path = whole[1];
-      return (vals) => resolve(vals, path);
-    }
-    if (raw.includes("{{")) {
-      const parts = raw.split(/\{\{([\s\S]+?)\}\}/g);
-      return (vals) => parts.map((s, i) => i & 1 ? resolve(vals, s) ?? "" : s).join("");
-    }
-    return () => raw;
-  }
-
-  // src/compile.ts
-  function collectProps(node, kind, host) {
-    const propGetters = [];
-    const pseudoClasses = [];
-    let hintSize = null;
-    for (const { name, value } of [...node.attributes]) {
-      if (name === "sc-name" || name === "data-dc-tpl") continue;
-      let key = name;
-      if (key.startsWith(CAMEL_ATTR))
-        key = kebabToCamel(key.slice(CAMEL_ATTR.length));
-      if (key === "hint-size") {
-        hintSize = value;
-        continue;
-      }
-      if (key.startsWith("style-")) {
-        pseudoClasses.push(host.pseudoClass(key.slice(6), value));
-        continue;
-      }
-      if (kind !== "dom") {
-        if (key.includes("-") && !(kind === "x-import" && (key.startsWith("aria-") || key.startsWith("data-"))))
-          key = kebabToCamel(key);
-      } else {
-        if (key === "class") key = "className";
-        else if (key === "for") key = "htmlFor";
-        else if (key.startsWith("on"))
-          key = EVENT_MAP[key] || "on" + key[2].toUpperCase() + key.slice(3);
-      }
-      propGetters.push([key, compileAttr(value)]);
-    }
-    return { propGetters, pseudoClasses, hintSize };
-  }
-  var HOST_STYLE_PROPS = /* @__PURE__ */ new Set([
-    "position",
-    "left",
-    "right",
-    "top",
-    "bottom",
-    "inset",
-    "width",
-    "height",
-    "z-index",
-    "transform"
-  ]);
-  function hostPositionStyle(style) {
-    const all = typeof style === "string" ? cssToObj(style) : style != null && typeof style === "object" ? style : null;
-    if (!all) return void 0;
-    const out = {};
-    for (const [k, v] of Object.entries(all)) {
-      const kebab = k.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase());
-      if (HOST_STYLE_PROPS.has(kebab)) out[k] = v;
-    }
-    return Object.keys(out).length ? out : void 0;
-  }
-  function compileTemplate(html, host) {
-    const tpl = document.createElement("template");
-    //! nosemgrep: direct-inner-html-assignment
-    tpl.innerHTML = encodeCase(html);
-    let tplN = 0;
-    (function stamp(node) {
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        node.setAttribute("data-dc-tpl", String(tplN++));
-      }
-      for (const c of node.childNodes) stamp(c);
-    })(tpl.content);
-    const builders = walkChildren(tpl.content, host);
-    const render = ((vals, ctx) => builders.map((b, i) => b(vals || {}, ctx, i)));
-    render.__annotated = tpl.innerHTML;
-    return render;
-  }
-  function walkChildren(node, host) {
-    return [...node.childNodes].map((c) => walk(c, host)).filter((b) => b != null);
-  }
-  var SLIDE_ID_VALUE_RE = /^[0-9a-f]{8}$/;
-  var DECK_CONTROL_FLOW_RE = /^(sc-if|sc-for|sc-else|dc-import|x-import)$/;
-  var DECK_AUX_RE = /^(template|script|style|sc-helmet|helmet)$/;
-  function isDeckMountTag(el) {
-    if (el.localName === "deck-stage") return true;
-    return el.localName === "x-import" && (el.getAttribute("component-from-global-scope") || "") === "deck-stage";
-  }
-  function walkDeckChildren(el, host) {
-    const pairs = [...el.childNodes].map((c) => ({ c, b: walk(c, host) })).filter((p) => p.b !== null);
-    const kids = pairs.map((p) => p.b);
-    const seen = /* @__PURE__ */ new Set();
-    const wsSeen = /* @__PURE__ */ new Map();
-    const keys = [];
-    const nextSlideId = new Array(pairs.length);
-    {
-      let upcoming = null;
-      for (let j = pairs.length - 1; j >= 0; j--) {
-        const n = pairs[j].c;
-        if (n.nodeType === Node.ELEMENT_NODE) {
-          const t = n.localName;
-          upcoming = !DECK_AUX_RE.test(t) && !DECK_CONTROL_FLOW_RE.test(t) ? n.getAttribute("data-om-slide-id") : null;
-        }
-        nextSlideId[j] = upcoming;
-      }
-    }
-    for (let j = 0; j < pairs.length; j++) {
-      const { c } = pairs[j];
-      if (c.nodeType === Node.TEXT_NODE) {
-        if ((c.nodeValue ?? "").trim() === "") {
-          const base = nextSlideId[j] ? "omid-ws:" + nextSlideId[j] : "omid-ws:aux";
-          const n = wsSeen.get(base) ?? 0;
-          wsSeen.set(base, n + 1);
-          keys.push(n === 0 ? base : base + ":" + n);
-          continue;
-        }
-        return { kids, keys: null };
-      }
-      if (c.nodeType !== Node.ELEMENT_NODE) {
-        keys.push(j);
-        continue;
-      }
-      const child = c;
-      const tag = child.localName;
-      if (DECK_AUX_RE.test(tag)) {
-        keys.push(j);
-        continue;
-      }
-      if (DECK_CONTROL_FLOW_RE.test(tag)) return { kids, keys: null };
-      const v = child.getAttribute("data-om-slide-id");
-      if (!v || !SLIDE_ID_VALUE_RE.test(v) || seen.has(v)) {
-        return { kids, keys: null };
-      }
-      seen.add(v);
-      keys.push("omid:" + v);
-    }
-    return { kids, keys };
-  }
-  function renderDeckKids(kids, kidKeys, vals, ctx) {
-    return kids.map((b, j) => {
-      const k = kidKeys ? kidKeys[j] : j;
-      const out = b(vals, ctx, k);
-      return kidKeys != null && typeof out === "string" ? h(getReact().Fragment, { key: k }, out) : out;
-    });
-  }
-  function walk(node, host) {
-    if (node.nodeType === Node.TEXT_NODE) return walkText(node);
-    if (node.nodeType !== Node.ELEMENT_NODE) return null;
-    const el = node;
-    const tag = el.tagName.toLowerCase();
-    if (tag === "sc-for") return walkFor(el, host);
-    if (tag === "sc-if") return walkIf(el, host);
-    if (tag === "x-import") return walkXImport(el, host);
-    if (tag === "sc-helmet") return host.helmet(el);
-    if (tag === "dc-import") return walkComponent(el, host);
-    return walkElement(el, host);
-  }
-  var warnedHoles = /* @__PURE__ */ new Set();
-  function warnUnresolved(ctx, what) {
-    const key = (ctx?.__name || "?") + "\0" + what;
-    if (warnedHoles.has(key)) return;
-    warnedHoles.add(key);
-    console.warn("[dc-runtime] " + (ctx?.__name || "template") + ": " + what);
-  }
-  function walkText(node) {
-    const txt = node.nodeValue ?? "";
-    if (!txt.includes("{{")) {
-      if (!txt.trim() && !txt.includes(" ")) return null;
-      return () => txt;
-    }
-    const parts = txt.split(/\{\{([\s\S]+?)\}\}/g);
-    return (vals, ctx, key) => h(
-      getReact().Fragment,
-      { key },
-      ...parts.map((p, i) => {
-        if (!(i & 1)) return p;
-        const v = resolve(vals, p);
-        if (v === void 0) {
-          if (!ctx?.__streamingNow) {
-            if (document.body?.hasAttribute("data-dc-editor-on")) {
-              return h(
-                "span",
-                { key: i, className: "sc-interp sc-unresolved" },
-                "{{ " + p.trim() + " }}"
-              );
-            }
-            warnUnresolved(
-              ctx,
-              "{{ " + p.trim() + " }} never resolved \u2014 rendered as empty"
-            );
-            return null;
-          }
-          return h(
-            "span",
-            { key: i, className: "sc-interp sc-missing" },
-            p.trim()
-          );
-        }
-        if (getReact().isValidElement(v) || Array.isArray(v)) {
-          return h(getReact().Fragment, { key: i }, v);
-        }
-        if (v === null || typeof v === "boolean") return null;
-        return h("span", { key: i, className: "sc-interp" }, String(v));
-      })
-    );
-  }
-  function walkFor(el, host) {
-    const listGet = compileAttr(el.getAttribute("list") || "");
-    const asName = el.getAttribute("as") || "item";
-    const hintN = parseInt(el.getAttribute("hint-placeholder-count") || "0", 10);
-    const kids = walkChildren(el, host);
-    const listSrc = el.getAttribute("list") || "";
-    return (vals, ctx, key) => {
-      let list = listGet(vals);
-      if (!Array.isArray(list)) {
-        if (!ctx?.__streamingNow) {
-          if (list !== void 0 && list !== null) {
-            warnUnresolved(
-              ctx,
-              'sc-for list="' + listSrc + '" is not an array (' + typeof list + ")"
-            );
-          }
-          list = [];
-        } else {
-          list = hintN > 0 ? Array(hintN).fill(void 0) : [];
-        }
-      }
-      return h(
-        getReact().Fragment,
-        { key },
-        list.map((item, i) => {
-          const sub = { ...vals, [asName]: item, $index: i };
-          return h(
-            getReact().Fragment,
-            { key: i },
-            kids.map((b, j) => b(sub, ctx, j))
-          );
-        })
-      );
-    };
-  }
-  function walkIf(el, host) {
-    const valGet = compileAttr(el.getAttribute("value") || "");
-    const hintRaw = el.getAttribute("hint-placeholder-val");
-    const hintGet = hintRaw != null ? compileAttr(hintRaw) : null;
-    const kids = walkChildren(el, host);
-    return (vals, ctx, key) => {
-      let v = valGet(vals);
-      if (v === void 0 && hintGet && ctx?.__streamingNow) v = hintGet(vals);
-      return v ? h(
-        getReact().Fragment,
-        { key },
-        kids.map((b, j) => b(vals, ctx, j))
-      ) : null;
-    };
-  }
-  function walkComponent(el, host) {
-    const name = el.getAttribute("name") || el.getAttribute("component") || "";
-    el.removeAttribute("name");
-    el.removeAttribute("component");
-    const tplId = el.getAttribute("data-dc-tpl");
-    const styleRaw = el.getAttribute("style");
-    el.removeAttribute("style");
-    const styleGet = styleRaw != null ? compileAttr(styleRaw) : null;
-    const { propGetters, hintSize } = collectProps(el, "dc-import", host);
-    const kids = walkChildren(el, host);
-    return (vals, ctx, key) => {
-      const props = {
-        key,
-        __hintSize: hintSize,
-        __tplId: tplId,
-        __hostStyle: styleGet ? hostPositionStyle(styleGet(vals)) : void 0
-      };
-      for (const [k, g] of propGetters) {
-        const v = g(vals);
-        if (k === "dcProps") {
-          if (v && typeof v === "object") Object.assign(props, v);
-          continue;
-        }
-        props[k] = v;
-      }
-      if (kids.length) props.children = kids.map((b, j) => b(vals, ctx, j));
-      return h(host.component(name), props);
-    };
-  }
-  function walkXImport(el, host) {
-    const globalNameGet = compileAttr(
-      el.getAttribute("component-from-global-scope") || ""
-    );
-    const exportNameGet = compileAttr(
-      el.getAttribute("component") || el.getAttribute("name") || ""
-    );
-    const fromRaw = el.getAttribute("from") || (el.getAttribute("component-from-global-scope") ? "" : el.getAttribute("src") || el.getAttribute("import") || "");
-    const urls = fromRaw.trim() ? fromRaw.trim().split(/\s+/) : [];
-    const url = urls.length ? urls[urls.length - 1] : "";
-    const kindOf = (u) => /\.(jsx|tsx)(\?|#|$)/i.test(u) ? "jsx" : "js";
-    const tplId = el.getAttribute("data-dc-tpl");
-    const styleRaw = el.getAttribute("style");
-    el.removeAttribute("style");
-    const styleGet = styleRaw != null ? compileAttr(styleRaw) : null;
-    const wrap = tplId != null || styleGet != null;
-    const { propGetters, hintSize } = collectProps(el, "x-import", host);
-    const hasContent = el.children.length > 0 || !!(el.textContent || "").trim();
-    const deckKeyed = hasContent && isDeckMountTag(el) ? walkDeckChildren(el, host) : null;
-    const kids = deckKeyed ? deckKeyed.kids : hasContent ? walkChildren(el, host) : [];
-    const kidKeys = deckKeyed?.keys ?? null;
-    const urlBindable = fromRaw.includes("{{");
-    if (urls.length && !urlBindable) {
-      let prev;
-      for (const u of urls) prev = host.loadExternal(kindOf(u), u, prev);
-    }
-    const evalName = (g, vals) => {
-      const v = g(vals);
-      const s = v == null ? "" : String(v);
-      return s.includes("{{") ? "" : s;
-    };
-    return (vals, ctx, key) => {
-      const globalName = evalName(globalNameGet, vals);
-      const name = globalName || evalName(exportNameGet, vals);
-      const C = !name || urlBindable ? null : globalName ? host.resolveExternalGlobal(url, globalName) : host.resolveExternal(url, name);
-      const hostStyle = styleGet ? hostPositionStyle(styleGet(vals)) : void 0;
-      const wrapper = wrap ? {
-        key,
-        className: "sc-host-x",
-        "data-dc-tpl": tplId,
-        style: hostStyle || { display: "contents" }
-      } : null;
-      if (!C) {
-        const error = urlBindable ? "x-import `from` cannot contain {{ \u2026 }} \u2014 module URLs are resolved at parse time; use a literal URL" : host.resolveExternalError(url, name);
-        const ph = host.placeholder({
-          key: wrapper ? void 0 : key,
-          name,
-          hintSize,
-          error
-        });
-        return wrapper ? h("div", wrapper, ph) : ph;
-      }
-      const props = wrapper ? {} : { key };
-      let unresolvedHole = false;
-      for (const [k, g] of propGetters) {
-        if (k === "component" || k === "componentFromGlobalScope" || k === "from") {
-          continue;
-        }
-        const v = g(vals);
-        if (v === void 0) unresolvedHole = true;
-        if (k === "dcProps") {
-          if (v && typeof v === "object") Object.assign(props, v);
-          continue;
-        }
-        props[k] = v;
-      }
-      if (unresolvedHole && ctx?.__htmlStreamingNow) {
-        const ph = host.placeholder({
-          key: wrapper ? void 0 : key,
-          name,
-          hintSize,
-          error: null
-        });
-        return wrapper ? h("div", wrapper, ph) : ph;
-      }
-      if (kids.length) {
-        props.children = renderDeckKids(kids, kidKeys, vals, ctx);
-      }
-      return wrapper ? h("div", wrapper, h(C, props)) : h(C, props);
-    };
-  }
-  function contentKey(el) {
-    const clone = el.cloneNode(true);
-    for (const d of clone.querySelectorAll("*")) {
-      while (d.attributes.length) d.removeAttribute(d.attributes[0].name);
-    }
-    const s = clone.innerHTML;
-    let h2 = 5381;
-    for (let i = 0; i < s.length; i++) h2 = (h2 << 5) + h2 + s.charCodeAt(i) | 0;
-    return s.length + "." + (h2 >>> 0).toString(36);
-  }
-  var NEVER_CONTENT_KEYED = new Set(
-    "script style textarea option title select canvas iframe video audio".split(
-      " "
-    )
-  );
-  var NOT_INLINE_SELECTOR = ":not(" + [...INLINE_TEXT_TAGS].join(",") + ")";
-  function walkElement(el, host) {
-    const realTag = RAW_UNWRAP[el.localName] || el.localName;
-    const tplId = el.getAttribute("data-dc-tpl");
-    const inlineOnly = el.childNodes.length > 0 && !NEVER_CONTENT_KEYED.has(realTag) && el.querySelector(NOT_INLINE_SELECTOR) === null;
-    const keySuffix = inlineOnly ? "|" + contentKey(el) : "";
-    const { propGetters, pseudoClasses } = collectProps(el, "dom", host);
-    const deckKeyed = isDeckMountTag(el) ? walkDeckChildren(el, host) : null;
-    const kids = deckKeyed ? deckKeyed.kids : walkChildren(el, host);
-    const kidKeys = deckKeyed?.keys ?? null;
-    return (vals, ctx, key) => {
-      const props = {
-        key: key + keySuffix,
-        "data-dc-tpl": tplId
-      };
-      for (const [k, g] of propGetters) {
-        let v = g(vals);
-        if (k === "style" && typeof v === "string") v = cssToObj(v);
-        if ((k === "value" || k === "checked") && v === void 0) {
-          v = k === "checked" ? false : "";
-        }
-        props[k] = v;
-      }
-      if (pseudoClasses.length) {
-        props.className = [props.className, ...pseudoClasses].filter(Boolean).join(" ");
-      }
-      return h(realTag, props, ...renderDeckKids(kids, kidKeys, vals, ctx));
-    };
-  }
-
-  // src/logic.ts
-  var StreamableLogic = class {
-    constructor(props) {
-      __publicField(this, "props");
-      __publicField(this, "state", {});
-      /** Back-pointer to the wrapper component, installed after construction. */
-      __publicField(this, "__host");
-      this.props = props || {};
-    }
-    setState(update, cb) {
-      this.__host && this.__host.__setLogicState(update, cb);
-    }
-    forceUpdate() {
-      this.__host && this.__host.forceUpdate();
-    }
-    componentDidMount() {
-    }
-    componentDidUpdate(_prevProps) {
-    }
-    componentWillUnmount() {
-    }
-    /** The flat object the template renders against (merged over props). */
-    renderVals() {
-      return {};
-    }
-  };
-  function evalDcLogic(src) {
-    //! nosemgrep: eval-and-function-constructor
-    const fn = new Function(
-      "DCLogic",
-      "StreamableLogic",
-      "React",
-      src + '\n;return (typeof Component!=="undefined"&&Component)||undefined;'
-    );
-    return fn(StreamableLogic, StreamableLogic, getReact());
-  }
-
-  // src/component.ts
-  function shallowEqual(a, b) {
-    if (!b) return false;
-    const ak = Object.keys(a).filter((k) => k !== "children");
-    const bk = Object.keys(b).filter((k) => k !== "children");
-    if (ak.length !== bk.length) return false;
-    for (const k of ak) if (a[k] !== b[k]) return false;
-    return true;
-  }
-  function Placeholder({
-    name,
-    hintSize,
-    streaming,
-    error
-  }) {
-    const [w, hgt] = (hintSize || "100%,60px").split(",");
-    return h(
-      "div",
-      {
-        className: "sc-placeholder" + (streaming ? " sc-streaming" : ""),
-        style: { width: w.trim(), height: hgt && hgt.trim() },
-        title: name
-      },
-      error ? h(
-        "div",
-        { className: "sc-placeholder-error" },
-        (name ? name + ": " : "") + error
-      ) : null
-    );
-  }
-  function hintToMin(hint) {
-    if (!hint) return void 0;
-    const [w, hgt] = hint.split(",");
-    return { minWidth: w.trim(), minHeight: hgt && hgt.trim() };
-  }
-  function createComponentFactory(registry, ensureFetched) {
-    const React = getReact();
-    const AncestorContext = React.createContext([]);
-    class StreamableComponent extends React.Component {
-      constructor(props) {
-        super(props);
-        __publicField(this, "__name");
-        __publicField(this, "__sub");
-        __publicField(this, "__needsDidMount", false);
-        /** Snapshot of the registry's streaming flags taken at render time —
-         *  builders read it off the RenderCtx (this) to pick placeholder vs
-         *  render-nothing for unresolved values. */
-        __publicField(this, "__streamingNow", false);
-        __publicField(this, "__htmlStreamingNow", false);
-        /** When a construct throws, remember the (class, registry.ver, props)
-         *  triple so render-time reconcile doesn't re-attempt it on every parent
-         *  re-render. A registry bump (new class, template, external module
-         *  resolving via bumpAll) changes `ver` and breaks the memo so an
-         *  env-dependent constructor can self-heal. */
-        __publicField(this, "__failedLogic", null);
-        __publicField(this, "__failedUserProps", null);
-        __publicField(this, "__failedVer", -1);
-        /** Per-instance constructor error — kept here (not on the registry entry)
-         *  so one instance's successful construct can't hide a sibling's failure,
-         *  and a construct can never wipe an eval error `updateJs` recorded on
-         *  `r.logicError`. */
-        __publicField(this, "__ctorError", null);
-        __publicField(this, "logic");
-        this.__name = props.__name;
-        this.state = { __v: 0, __err: null };
-        this.__sub = () => {
-          if (this.state.__err) this.setState({ __err: null });
-          this.forceUpdate();
-        };
-        this.__makeLogic(registry.get(this.__name).Logic, null);
-        ensureFetched(this.__name);
-      }
-      /** Error-boundary hook: a render crash anywhere in this DC's subtree
-       *  (its own template, an x-import'd component, a child DC without its
-       *  own deeper boundary) lands here instead of unmounting the page. */
-      static getDerivedStateFromError(e) {
-        return { __err: e instanceof Error && e.message ? e.message : String(e) };
-      }
-      componentDidCatch(e, info) {
-        console.error(
-          "[dc-runtime] render error in <" + this.__name + ">:",
-          e,
-          info?.componentStack || ""
-        );
-      }
-      /** Instantiate the logic class (or the no-op base) and adopt `prevState`
-       *  over its initial state — used both at mount and on hot-swap. */
-      __makeLogic(Logic, prevState) {
-        const L = Logic || StreamableLogic;
-        try {
-          this.logic = new L(this.__userProps());
-          this.__failedLogic = null;
-          this.__failedUserProps = null;
-          this.__ctorError = null;
-        } catch (e) {
-          console.error(e);
-          this.__failedLogic = Logic;
-          this.__failedUserProps = this.__userProps();
-          this.__failedVer = registry.get(this.__name).ver;
-          this.__ctorError = this.__name + ": " + (e instanceof Error && e.message ? e.message : String(e));
-          this.logic = new StreamableLogic(
-            this.__userProps()
-          );
-        }
-        this.logic.__host = this;
-        if (prevState)
-          this.logic.state = { ...this.logic.state || {}, ...prevState };
-      }
-      /** The props the author's logic + template see — internal __-prefixed
-       *  wiring stripped. */
-      __userProps() {
-        const { __name, __hintSize, __tplId, __hostStyle, ...rest } = this.props;
-        return rest;
-      }
-      __setLogicState(update, cb) {
-        const prev = this.logic.state;
-        const patch = typeof update === "function" ? update(prev) : update;
-        this.logic.state = { ...prev, ...patch };
-        this.setState((s) => ({ __v: s.__v + 1 }), cb);
-      }
-      /** Swap the logic instance when the registry's Logic class changed
-       *  (streaming completion, hot reload). State carries over; didMount
-       *  re-fires after the swap commits so refs exist. */
-      __reconcileLogic() {
-        const r = registry.get(this.__name);
-        const Next = r.Logic;
-        const Cur = this.logic.constructor;
-        if (Next === Cur || !Next && Cur === StreamableLogic || Next === this.__failedLogic && r.ver === this.__failedVer && shallowEqual(this.__userProps(), this.__failedUserProps)) {
-          return;
-        }
-        if (!this.__needsDidMount) {
-          try {
-            this.logic.componentWillUnmount();
-          } catch (e) {
-            console.error(e);
-          }
-        }
-        this.__makeLogic(Next, this.logic.state);
-        this.__needsDidMount = true;
-      }
-      componentDidMount() {
-        registry.get(this.__name).subs.add(this.__sub);
-        try {
-          this.logic.componentDidMount();
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      componentDidUpdate(prevProps) {
-        this.logic.props = this.__userProps();
-        if (this.__needsDidMount) {
-          if (this.state.__err || !registry.get(this.__name).tpl) return;
-          this.__needsDidMount = false;
-          try {
-            this.logic.componentDidMount();
-          } catch (e) {
-            console.error(e);
-          }
-        } else {
-          try {
-            this.logic.componentDidUpdate(prevProps);
-          } catch (e) {
-            console.error(e);
-          }
-        }
-      }
-      componentWillUnmount() {
-        registry.get(this.__name).subs.delete(this.__sub);
-        if (!this.__needsDidMount) {
-          try {
-            this.logic.componentWillUnmount();
-          } catch (e) {
-            console.error(e);
-          }
-        }
-      }
-      render() {
-        const r = registry.get(this.__name);
-        const cls = "sc-host" + (r.htmlStreaming ? " sc-streaming-html" : "") + (r.jsStreaming ? " sc-streaming-js" : "");
-        const hintStyle = r.htmlStreaming ? hintToMin(this.props.__hintSize) : void 0;
-        const hostStyle = this.props.__hostStyle || hintStyle ? { ...hintStyle || {}, ...this.props.__hostStyle || {} } : void 0;
-        const hostBase = {
-          className: cls,
-          style: hostStyle,
-          "data-sc-name": this.__name,
-          "data-dc-tpl": this.props.__tplId
-        };
-        const chain = Array.isArray(this.context) ? this.context : [];
-        if (chain.includes(this.__name)) {
-          const cycle = [
-            ...chain.slice(chain.indexOf(this.__name)),
-            this.__name
-          ].join(" \u2192 ");
-          return h(
-            "div",
-            { ...hostBase, className: cls + " sc-has-error" },
-            h(Placeholder, {
-              name: this.__name,
-              hintSize: this.props.__hintSize,
-              error: "circular import: " + cycle
-            })
-          );
-        }
-        if (this.state.__err) {
-          return h(
-            "div",
-            { ...hostBase, className: cls + " sc-has-error" },
-            h(
-              "div",
-              { className: "sc-logic-error", "data-omelette-chrome": "" },
-              this.__name + ": " + this.state.__err
-            ),
-            h(Placeholder, {
-              name: this.__name,
-              hintSize: this.props.__hintSize,
-              error: this.state.__err
-            })
-          );
-        }
-        this.__reconcileLogic();
-        if (!r.tpl) {
-          return h(
-            "div",
-            hostBase,
-            h(Placeholder, { name: this.__name, hintSize: this.props.__hintSize })
-          );
-        }
-        const userProps = this.__userProps();
-        this.logic.props = userProps;
-        let vals = userProps;
-        let renderErr = r.logicError || this.__ctorError;
-        try {
-          vals = { ...userProps, ...this.logic.renderVals() || {} };
-        } catch (e) {
-          console.error(e);
-          renderErr = this.__name + ".renderVals(): " + (e instanceof Error && e.message ? e.message : String(e));
-        }
-        this.__streamingNow = !!(r.htmlStreaming || r.jsStreaming);
-        this.__htmlStreamingNow = !!r.htmlStreaming;
-        return h(
-          "div",
-          { ...hostBase, className: cls + (renderErr ? " sc-has-error" : "") },
-          renderErr && h(
-            "div",
-            { className: "sc-logic-error", "data-omelette-chrome": "" },
-            renderErr
-          ),
-          h(
-            AncestorContext.Provider,
-            { value: [...chain, this.__name] },
-            r.tpl(vals, this)
-          )
-        );
-      }
-    }
-    __publicField(StreamableComponent, "contextType", AncestorContext);
-    const named = /* @__PURE__ */ new Map();
-    function getDC(name) {
-      const hit = named.get(name);
-      if (hit) return hit;
-      function Dispatcher(p) {
-        const [, setTick] = React.useState(0);
-        React.useEffect(() => {
-          const sub = () => setTick((n) => n + 1);
-          registry.get(name).subs.add(sub);
-          return () => {
-            registry.get(name).subs.delete(sub);
-          };
-        }, []);
-        ensureFetched(name);
-        return h(StreamableComponent, { ...p, __name: name });
-      }
-      Dispatcher.displayName = name;
-      named.set(name, Dispatcher);
-      return Dispatcher;
-    }
-    return {
-      getDC,
-      StreamableComponent
-    };
-  }
-
-  // src/bundled.ts
-  function bundledBlob(url) {
-    const blobs = window.__resourceBlobs;
-    const b = blobs ? blobs[url.split("#")[0]] : void 0;
-    return b instanceof Blob ? b : null;
-  }
-
-  // src/cdn.ts
-  var REACT_URL = "https://unpkg.com/react@18.3.1/umd/react.production.min.js";
-  var REACT_SRI = "sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z";
-  var REACT_DOM_URL = "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js";
-  var REACT_DOM_SRI = "sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1";
-  var BABEL_URL = "https://unpkg.com/@babel/standalone@7.29.0/babel.min.js";
-  var BABEL_SRI = "sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y";
-  function cdnScriptFor(url, sri) {
-    const res = window.__resources;
-    const v = res ? res[url] : void 0;
-    return typeof v === "string" && v ? { src: v } : { src: url, integrity: sri };
-  }
-
-  // src/external.ts
-  var isCustomElementName = (n) => !n.includes(".") && n.includes("-");
-  function isRenderableType(g) {
-    if (typeof g === "function") return !isElementClass(g);
-    return typeof g === "object" && g !== null && typeof g.$$typeof === "symbol";
-  }
-  function resolveDottedPath(root, name) {
-    let cur = root;
-    for (const seg of name.split(".")) {
-      if (cur == null) return void 0;
-      cur = cur[seg];
-    }
-    return cur;
-  }
-  var GLOBAL_POLL_INTERVAL_MS = 50;
-  var GLOBAL_POLL_TIMEOUT_MS = 3e4;
-  function createExternalModules(onResolved) {
-    const cache = /* @__PURE__ */ new Map();
-    let babelLoading = null;
-    const reportedMissing = /* @__PURE__ */ new Map();
-    const polling = /* @__PURE__ */ new Set();
-    function ensureBabel() {
-      if (window.Babel) return Promise.resolve();
-      if (babelLoading) return babelLoading;
-      const babel = cdnScriptFor(BABEL_URL, BABEL_SRI);
-      babelLoading = new Promise((res, rej) => {
-        const s = document.createElement("script");
-        s.src = babel.src;
-        if (babel.integrity) {
-          s.integrity = babel.integrity;
-          s.crossOrigin = "anonymous";
-        }
-        s.onload = () => res();
-        s.onerror = rej;
-        document.head.appendChild(s);
-      });
-      return babelLoading;
-    }
-    const pending = /* @__PURE__ */ new Map();
-    function load(kind, url, after) {
-      const existing = pending.get(url);
-      if (existing) return existing;
-      cache.set(url, null);
-      console.info("[dc-runtime] x-import: loading", url, "(" + kind + ")");
-      const ready = Promise.all([
-        kind === "jsx" ? ensureBabel() : Promise.resolve(),
-        after ?? Promise.resolve()
-      ]);
-      const p = ready.then(() => {
-        const pre = bundledBlob(url);
-        if (pre) return pre.text();
-        return fetch(url).then((r) => {
-          if (!r.ok) throw new Error("HTTP " + r.status);
-          return r.text();
-        });
-      }).then((src) => {
-        const code = kind === "jsx" ? window.Babel.transform(src, {
-          filename: url,
-          presets: ["react", "typescript"]
-        }).code : src;
-        const module = { exports: {} };
-        const before = new Set(Object.keys(window));
-        //! nosemgrep: eval-and-function-constructor
-        new Function("React", "module", "exports", "require", code)(
-          getReact(),
-          module,
-          module.exports,
-          () => ({})
-        );
-        const globals = {};
-        for (const k of Object.keys(window)) {
-          if (!before.has(k) && typeof window[k] === "function") {
-            globals[k] = window[k];
-          }
-        }
-        cache.set(url, { mod: module.exports, globals });
-        console.info(
-          "[dc-runtime] x-import: loaded",
-          url,
-          "\u2014 exports:",
-          Object.keys(module.exports),
-          "window globals:",
-          Object.keys(globals)
-        );
-        onResolved();
-      }).catch((e) => {
-        cache.set(url, {
-          mod: {},
-          globals: {},
-          error: "failed to load: " + (e instanceof Error && e.message ? e.message : String(e))
-        });
-        console.error(
-          "[dc-runtime] x-import: FAILED to load",
-          url,
-          "(" + kind + ")",
-          e
-        );
-        onResolved();
-      });
-      pending.set(url, p);
-      return p;
-    }
-    function resolve2(url, name) {
-      const entry = cache.get(url);
-      if (!entry) return null;
-      const { mod, globals } = entry;
-      const C = mod && mod[name] || globals && globals[name] || typeof window !== "undefined" && window[name] || mod && mod.default;
-      if (typeof C === "function") return C;
-      const key = url + "\0" + name;
-      if (!reportedMissing.has(key)) {
-        reportedMissing.set(
-          key,
-          entry.error || 'no export named "' + name + '" (has: ' + Object.keys(mod).join(", ") + ")"
-        );
-        console.error(
-          "[dc-runtime] x-import: module",
-          url,
-          "loaded but has no component named",
-          JSON.stringify(name),
-          "\u2014 available exports:",
-          Object.keys(mod),
-          "window globals:",
-          Object.keys(globals),
-          ". The module must `module.exports = {" + name + "}` or set `window." + name + "`."
-        );
-      }
-      return null;
-    }
-    function waitForGlobal(name) {
-      if (polling.has(name)) return;
-      polling.add(name);
-      const started = Date.now();
-      const isCE = isCustomElementName(name);
-      const tick = () => {
-        const found = isCE ? customElements.get(name) : isRenderableType(resolveDottedPath(window, name));
-        if (found) {
-          polling.delete(name);
-          onResolved();
-          return;
-        }
-        if (Date.now() - started >= GLOBAL_POLL_TIMEOUT_MS) {
-          console.warn(
-            "[dc-runtime] x-import: global",
-            JSON.stringify(name),
-            "never appeared on window after " + GLOBAL_POLL_TIMEOUT_MS + "ms"
-          );
-          return;
-        }
-        setTimeout(tick, GLOBAL_POLL_INTERVAL_MS);
-      };
-      setTimeout(tick, GLOBAL_POLL_INTERVAL_MS);
-    }
-    function resolveGlobal(url, name) {
-      const isCE = isCustomElementName(name);
-      if (!url) {
-        if (isCE) {
-          if (customElements.get(name)) return name;
-          waitForGlobal(name);
-          return null;
-        }
-        const g2 = resolveDottedPath(window, name);
-        if (isRenderableType(g2)) return g2;
-        waitForGlobal(name);
-        return null;
-      }
-      const entry = cache.get(url);
-      if (!entry) return null;
-      if (isCE && customElements.get(name)) return name;
-      const g = entry.globals[name] ?? resolveDottedPath(window, name);
-      if (isRenderableType(g)) return g;
-      if (name.includes(".")) return null;
-      const key = url + "\0global\0" + name;
-      if (!reportedMissing.has(key)) {
-        reportedMissing.set(key, null);
-        if (isCE && !customElements.get(name)) {
-          console.warn(
-            "[dc-runtime] x-import:",
-            url,
-            "loaded but no custom element",
-            JSON.stringify(name),
-            "is registered and window." + name + " is not a function \u2014 rendering <" + name + "> as an unknown element."
-          );
-        }
-      }
-      return name;
-    }
-    function getError(url, name) {
-      const entry = cache.get(url);
-      if (entry?.error) return entry.error;
-      return reportedMissing.get(url + "\0" + name) || null;
-    }
-    return { load, resolve: resolve2, resolveGlobal, getError };
-  }
-  function isElementClass(g) {
-    try {
-      return typeof g === "function" && typeof HTMLElement !== "undefined" && g.prototype instanceof HTMLElement;
-    } catch {
-      return false;
-    }
-  }
-
-  // src/atomics.ts
-  var ATOMIC_CSS = (
-    // layout
-    ".fx{display:flex}.col{display:flex;flex-direction:column}.grid{display:grid}.ac{align-items:center}.jc{justify-content:center}.jb{justify-content:space-between}.f1{flex:1}.noshrink{flex-shrink:0}.wrap{flex-wrap:wrap}.fw5{font-weight:500}.fw6{font-weight:600}.fw7{font-weight:700}.fw8{font-weight:800}.fs11{font-size:11px}.fs12{font-size:12px}.fs13{font-size:13px}.fs14{font-size:14px}.fs15{font-size:15px}.fs16{font-size:16px}.fs20{font-size:20px}.fs22{font-size:22px}.upper{text-transform:uppercase}.tc{text-align:center}.nowrap{white-space:nowrap}.gap8{gap:8px}.gap10{gap:10px}.gap12{gap:12px}.gap16{gap:16px}.gap24{gap:24px}.m0{margin:0}.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}.mb16{margin-bottom:16px}.posrel{position:relative}.posabs{position:absolute}.round{border-radius:50%}.ohide{overflow:hidden}.bbox{box-sizing:border-box}.pointer{cursor:pointer}.w100{width:100%}.b0{border:none}"
-  );
-
-  // src/helmet.ts
-  var DESIGN_DOC_MODE_RE = /<meta\b[^>]*\bname\s*=\s*["']design_doc_mode["'][^>]*\b(?:content|value)\s*=\s*["'](\w+)["']/i;
-  var CANVAS_BG_LIGHT = "#f0eee6";
-  var CANVAS_BG_DARK = "#2e2c26";
-  function createHelmetManager(doc, isStreaming) {
-    const mounted = /* @__PURE__ */ new Set();
-    const live = /* @__PURE__ */ new Map();
-    let designDocMode = null;
-    let canvasStyleEl = null;
-    let appTheme = "light";
-    try {
-      const ds = doc.documentElement.dataset.theme;
-      appTheme = ds === "dark" || ds === "light" ? ds : new URLSearchParams(doc.defaultView?.location.search ?? "").get(
-        "theme"
-      ) === "dark" ? "dark" : "light";
-    } catch {
-    }
-    function applyCanvasBg() {
-      if (!canvasStyleEl) return;
-      const bg = appTheme === "dark" ? CANVAS_BG_DARK : CANVAS_BG_LIGHT;
-      canvasStyleEl.textContent = `html,body{background:${bg}}#dc-root>.sc-host{position:relative}`;
-    }
-    function postDesignMode(mode) {
-      if (window.parent === window) return;
-      try {
-        window.parent.postMessage({ type: "__dc_design_mode", mode }, "*");
-      } catch {
-      }
-    }
-    function setDesignDocMode(mode) {
-      if (mode === designDocMode) return;
-      designDocMode = mode;
-      postDesignMode(mode);
-      if (mode === "canvas") {
-        doc.documentElement.setAttribute("data-dc-canvas", "");
-        canvasStyleEl = doc.createElement("style");
-        canvasStyleEl.setAttribute("data-dc-canvas", "");
-        applyCanvasBg();
-        doc.head.appendChild(canvasStyleEl);
-      } else {
-        doc.documentElement.removeAttribute("data-dc-canvas");
-        canvasStyleEl?.remove();
-        canvasStyleEl = null;
-      }
-    }
-    window.addEventListener("message", (e) => {
-      const type = e.data && e.data.type;
-      if (type === "__dc_theme") {
-        const t = e.data.theme;
-        if (t === "light" || t === "dark") {
-          appTheme = t;
-          applyCanvasBg();
-        }
-        return;
-      }
-      if (!designDocMode || type !== "__dc_probe") return;
-      postDesignMode(designDocMode);
-    });
-    function compile(node) {
-      const raw = [...node.children];
-      const helmetClosed = node.nextSibling != null || node.parentNode?.nextSibling != null;
-      if (node.hasAttribute("data-dc-atomics") && !mounted.has("__dc-atomics")) {
-        mounted.add("__dc-atomics");
-        const el = doc.createElement("style");
-        el.id = "__dc-atomics";
-        el.textContent = ATOMIC_CSS;
-        doc.head.appendChild(el);
-      }
-      return (_vals, ctx) => {
-        const name = ctx && ctx.__name || "";
-        const streaming = !!(name && isStreaming(name));
-        for (let i = 0; i < raw.length; i++) {
-          const child = raw[i];
-          const tag = child.tagName;
-          const mayBePartial = streaming && !helmetClosed && i === raw.length - 1;
-          if (tag === "SCRIPT") {
-            if (mayBePartial) continue;
-            const key = "SCRIPT|" + (child.getAttribute("src") || child.textContent || "");
-            if (mounted.has(key)) continue;
-            mounted.add(key);
-            const el = doc.createElement("script");
-            for (const { name: an, value } of [...child.attributes])
-              el.setAttribute(an, value);
-            if (child.textContent) el.textContent = child.textContent;
-            doc.head.appendChild(el);
-          } else if (tag === "LINK" || tag === "META") {
-            if (mayBePartial) continue;
-            const key = tag + "|" + (child.getAttribute("href") || child.getAttribute("src") || child.outerHTML);
-            if (mounted.has(key)) continue;
-            mounted.add(key);
-            if (tag === "LINK") {
-              const rel = (child.getAttribute("rel") || "").toLowerCase().split(/\s+/);
-              const href = (child.getAttribute("href") || "").trim();
-              const res = window.__resources;
-              const pre = res && rel.includes("stylesheet") && !rel.includes("alternate") ? res[href] : void 0;
-              const blob = typeof pre === "string" && pre ? bundledBlob(pre) : null;
-              if (blob) {
-                const el = doc.createElement("style");
-                if (child.hasAttribute("disabled")) {
-                  el.setAttribute("media", "not all");
-                } else if (child.getAttribute("media")) {
-                  el.setAttribute("media", child.getAttribute("media"));
-                }
-                if (child.getAttribute("title"))
-                  el.setAttribute("title", child.getAttribute("title"));
-                void blob.text().then((css) => {
-                  el.textContent = css;
-                });
-                doc.head.appendChild(el);
-                continue;
-              }
-            }
-            doc.head.appendChild(child.cloneNode(true));
-          } else {
-            const key = name + "|" + i;
-            let el = live.get(key);
-            if (!el || el.tagName !== tag) {
-              if (el) el.remove();
-              el = doc.createElement(tag.toLowerCase());
-              live.set(key, el);
-              doc.head.appendChild(el);
-            }
-            for (const { name: an, value } of [...child.attributes]) {
-              if (el.getAttribute(an) !== value) el.setAttribute(an, value);
-            }
-            if (el.textContent !== child.textContent)
-              el.textContent = child.textContent;
-          }
-        }
-        return null;
-      };
-    }
-    return { compile, setDesignDocMode };
-  }
-
-  // src/pseudo.ts
-  function scanUnquotedUrl(css, i) {
-    if (css[i] !== "u" && css[i] !== "U" || css.slice(i, i + 4).toLowerCase() !== "url(" || /[a-z0-9_-]/i.test(css[i - 1] ?? "")) {
-      return -1;
-    }
-    let j = i + 4;
-    while (j < css.length && /\s/.test(css[j])) j++;
-    if (css[j] === '"' || css[j] === "'") return -1;
-    while (j < css.length && css[j] !== ")") {
-      if (css[j] === "\\") j++;
-      j++;
-    }
-    return j < css.length ? j + 1 : css.length;
-  }
-  function stripComments(css) {
-    let out = "";
-    let quote = "";
-    for (let i = 0; i < css.length; i++) {
-      const c = css[i];
-      if (quote) {
-        if (c === "\\") {
-          out += c + (css[i + 1] ?? "");
-          i++;
-          continue;
-        }
-        if (c === quote) quote = "";
-        out += c;
-      } else if (c === "'" || c === '"') {
-        quote = c;
-        out += c;
-      } else if (c === "/" && css[i + 1] === "*") {
-        const end = css.indexOf("*/", i + 2);
-        i = end === -1 ? css.length : end + 1;
-        out += " ";
-      } else {
-        const end = scanUnquotedUrl(css, i);
-        if (end === -1) out += c;
-        else {
-          out += css.slice(i, end);
-          i = end - 1;
-        }
-      }
-    }
-    return out;
-  }
-  function importantify(css) {
-    css = stripComments(css);
-    const decls = [];
-    let start = 0;
-    let depth = 0;
-    let quote = "";
-    for (let i = 0; i < css.length; i++) {
-      const c = css[i];
-      if (quote) {
-        if (c === "\\") i++;
-        else if (c === quote) quote = "";
-      } else if (c === "'" || c === '"') quote = c;
-      else if (c === "(") depth++;
-      else if (c === ")") depth = Math.max(0, depth - 1);
-      else if (c === ";" && depth === 0) {
-        decls.push(css.slice(start, i));
-        start = i + 1;
-      } else {
-        const end = scanUnquotedUrl(css, i);
-        if (end !== -1) i = end - 1;
-      }
-    }
-    decls.push(css.slice(start));
-    return decls.map((d) => d.trim()).filter(Boolean).map((d) => /!\s*important$/i.test(d) ? d : d + " !important").join(";");
-  }
-  function createPseudoSheet(doc) {
-    let el = null;
-    const cache = /* @__PURE__ */ new Map();
-    let n = 0;
-    return (pseudo, css) => {
-      const k = pseudo + "|" + css;
-      const hit = cache.get(k);
-      if (hit) return hit;
-      if (!el) {
-        el = doc.createElement("style");
-        doc.head.appendChild(el);
-      }
-      const cls = "scp" + (n++).toString(36);
-      const isPseudoElement = pseudo === "before" || pseudo === "after";
-      const sel = isPseudoElement ? "." + cls + "::" + pseudo : "." + cls + ":" + pseudo;
-      el.sheet.insertRule(
-        sel + "{" + (isPseudoElement ? css : importantify(css)) + "}",
-        el.sheet.cssRules.length
-      );
-      cache.set(k, cls);
-      return cls;
-    };
-  }
-
-  // src/registry.ts
-  function createRegistry() {
-    const entries = /* @__PURE__ */ Object.create(null);
-    function get(name) {
-      return entries[name] || (entries[name] = {
-        html: "",
-        tpl: null,
-        Logic: null,
-        jsStreaming: false,
-        htmlStreaming: false,
-        ver: 0,
-        subs: /* @__PURE__ */ new Set(),
-        fetched: false
-      });
-    }
-    function bump(name) {
-      const r = get(name);
-      r.ver++;
-      for (const fn of r.subs) fn();
-    }
-    return {
-      entries,
-      get,
-      bump,
-      bumpAll() {
-        for (const n in entries) bump(n);
-      }
-    };
-  }
-
-  // src/runtime.ts
-  var COMPONENT_DIR = ".";
-  function createRuntime(doc = document) {
-    const registry = createRegistry();
-    const pseudoClass = createPseudoSheet(doc);
-    const helmet = createHelmetManager(
-      doc,
-      (name) => registry.get(name).htmlStreaming
-    );
-    const external = createExternalModules(() => registry.bumpAll());
-    const factory = createComponentFactory(registry, ensureFetched);
-    const host = {
-      component: (name) => factory.getDC(name),
-      placeholder: (props) => h(Placeholder, props),
-      helmet: (node) => helmet.compile(node),
-      loadExternal: (kind, url, after) => external.load(kind, url, after),
-      resolveExternal: (url, name) => external.resolve(url, name),
-      resolveExternalGlobal: (url, name) => external.resolveGlobal(url, name),
-      resolveExternalError: (url, name) => external.getError(url, name),
-      pseudoClass
-    };
-    function ensureFetched(name) {
-      const r = registry.get(name);
-      if (r.fetched) return;
-      r.fetched = true;
-      const url = COMPONENT_DIR + "/" + encodeURIComponent(name) + ".dc.html";
-      const res = window.__resources;
-      const pre = res ? res[url] : void 0;
-      const target = typeof pre === "string" && pre ? pre : url;
-      const blob = bundledBlob(target);
-      (blob ? blob.text() : fetch(target).then((res2) => {
-        if (!res2.ok) {
-          console.error(
-            '[dc-runtime] sibling fetch for "' + name + '" failed:',
-            url,
-            "returned",
-            res2.status,
-            "\u2014 the reference renders as an empty placeholder."
-          );
-          return "";
-        }
-        return res2.text();
-      })).then((t) => {
-        if (!t) return;
-        const parsed = parseDcText(t);
-        if (!parsed) {
-          console.error(
-            '[dc-runtime] sibling fetch for "' + name + '":',
-            url,
-            "has no <x-dc> block \u2014 not a Design Component."
-          );
-          return;
-        }
-        if (parsed.props) r.propsMeta = parsed.props;
-        if (parsed.preview) r.preview = parsed.preview;
-        if (parsed.template && !r.html) updateHtml(name, parsed.template);
-        if (parsed.js && !r.Logic) updateJs(name, parsed.js);
-      }).catch(
-        (e) => console.error(
-          '[dc-runtime] sibling fetch for "' + name + '" threw:',
-          url,
-          e
-        )
-      );
-    }
-    let rootName = null;
-    function updateHtml(name, html) {
-      const r = registry.get(name);
-      r.html = html;
-      if (name === rootName) {
-        const mode = DESIGN_DOC_MODE_RE.exec(html)?.[1] ?? null;
-        if (mode || !r.htmlStreaming) helmet.setDesignDocMode(mode);
-      }
-      try {
-        r.tpl = compileTemplate(html, host);
-      } catch (e) {
-        console.error("[dc-runtime] template compile FAILED for", name, e);
-      }
-      registry.bump(name);
-    }
-    function updateJs(name, src) {
-      const r = registry.get(name);
-      const seq = r.jsSeq = (r.jsSeq || 0) + 1;
-      try {
-        const Cls = evalDcLogic(src);
-        if (r.jsSeq !== seq) return;
-        if (typeof Cls !== "function") {
-          r.logicError = name + ".dc.html: <scr"+"ipt data-dc-script> must define `class Component extends DCLogic`";
-        } else {
-          r.logicError = null;
-          r.Logic = Cls;
-        }
-      } catch (e) {
-        if (r.jsSeq !== seq) return;
-        console.error(
-          "[dc-runtime] logic class eval FAILED for",
-          name,
-          "\u2014 the template renders with props only.",
-          e
-        );
-        r.logicError = name + ": " + (e instanceof Error && e.message ? e.message : String(e));
-      }
-      registry.bump(name);
-    }
-    function setStreaming(name, kind, on) {
-      const r = registry.get(name);
-      if (kind === "html") r.htmlStreaming = !!on;
-      else r.jsStreaming = !!on;
-      let any = false;
-      for (const n in registry.entries) {
-        const e = registry.entries[n];
-        if (e && (e.htmlStreaming || e.jsStreaming)) {
-          any = true;
-          break;
-        }
-      }
-      doc.documentElement.classList.toggle("sc-dc-streaming", any);
-      registry.bump(name);
-    }
-    function dcUpdate(name, kind, content, streaming) {
-      if (streaming) registry.get(name).fetched = true;
-      if (kind === "html") {
-        setStreaming(name, "html", !!streaming);
-        updateHtml(name, content);
-      } else if (kind === "js") {
-        setStreaming(name, "js", !!streaming);
-        if (!streaming) updateJs(name, content);
-      } else if (kind === "props") {
-        const { props, preview } = parseDataProps(content);
-        const r = registry.get(name);
-        r.propsMeta = props ?? void 0;
-        r.preview = preview;
-        registry.bump(name);
-      }
-    }
-    function setProps(name, overrides) {
-      registry.get(name).propOverrides = overrides && typeof overrides === "object" ? { ...overrides } : null;
-      registry.bump(name);
-    }
-    function adoptParsed(name, parsed) {
-      if (!parsed) return;
-      const r = registry.get(name);
-      if (parsed.props) r.propsMeta = parsed.props;
-      if (parsed.preview) r.preview = parsed.preview;
-      if (parsed.template) updateHtml(name, parsed.template);
-      if (parsed.js) updateJs(name, parsed.js);
-    }
-    return {
-      registry,
-      getDC: factory.getDC,
-      updateHtml,
-      updateJs,
-      dcUpdate,
-      setProps,
-      adoptParsed,
-      setRootName: (name) => {
-        rootName = name;
-      },
-      markFetched: (name) => {
-        registry.get(name).fetched = true;
-      },
-      annotatedTemplate: (name) => {
-        const r = registry.get(name);
-        return r.tpl && r.tpl.__annotated || null;
-      },
-      templateSource: (name) => registry.get(name).html || null,
-      StreamableLogic
-    };
-  }
-
-  // src/stream-state.ts
-  function createStreamTracker(staleMs = 6e4, now = Date.now) {
-    const since = /* @__PURE__ */ new Map();
-    const liveOne = (n) => {
-      const t = since.get(n);
-      if (t === void 0) return false;
-      if (now() - t > staleMs) {
-        since.delete(n);
-        return false;
-      }
-      return true;
-    };
-    return {
-      push(name, streaming, viewportKey) {
-        if (viewportKey === "dc-model") return;
-        if (streaming) since.set(name, now());
-        else since.delete(name);
-      },
-      live(name) {
-        if (name !== void 0) return liveOne(name);
-        for (const n of [...since.keys()]) if (liveOne(n)) return true;
-        return false;
-      }
-    };
-  }
-
-  // src/index.ts
-  function hideRawTemplate() {
-    const s = document.createElement("style");
-    s.textContent = "x-dc{display:none!important}";
-    document.head.appendChild(s);
-  }
-  function loadScript(src, integrity) {
-    return new Promise((resolve2, reject) => {
-      //! nosemgrep: create-script-element
-      const s = document.createElement("script");
-      s.src = src;
-      if (integrity) {
-        s.integrity = integrity;
-        s.crossOrigin = "anonymous";
-      }
-      s.async = false;
-      s.onload = () => resolve2();
-      s.onerror = () => reject(new Error(`failed to load ${src}`));
-      document.head.appendChild(s);
-    });
-  }
-  function loadReactUmd() {
-    const w = window;
-    if (w.React && w.ReactDOM) return Promise.resolve();
-    const react = cdnScriptFor(REACT_URL, REACT_SRI);
-    const reactDom = cdnScriptFor(REACT_DOM_URL, REACT_DOM_SRI);
-    return Promise.all([
-      loadScript(react.src, react.integrity),
-      loadScript(reactDom.src, reactDom.integrity)
-    ]).then(() => void 0);
-  }
-  function init() {
-    const runtime = createRuntime(document);
-    let rootName = "Root";
-    const baseCss = document.createElement("style");
-    baseCss.textContent = BASE_CSS;
-    document.head.prepend(baseCss);
-    const notifyHost = () => {
-      if (window.parent === window) return;
-      const r = runtime.registry.entries[rootName];
-      try {
-        window.parent.postMessage(
-          {
-            type: "__dc_booted",
-            rootName,
-            propsMeta: r && r.propsMeta || null,
-            preview: r && r.preview || null
-          },
-          "*"
-        );
-      } catch {
-      }
-    };
-    const streams = createStreamTracker();
-    const api = {
-      __dcUpdate: (name, kind, content, streaming, viewportKey) => {
-        streams.push(name, streaming, viewportKey);
-        runtime.dcUpdate(name, kind, content, streaming);
-        if (name === rootName && !streaming && kind === "props") notifyHost();
-      },
-      __dcStreaming: (name) => streams.live(name),
-      __dcSetProps: (name, overrides) => runtime.setProps(name, overrides),
-      /** Name of the component currently mounted as the page root — DC tools
-       *  push their template-stream here when targeting "the open page". */
-      __dcRootName: () => rootName,
-      /** Editor bridge — the encoded, `data-dc-tpl`-annotated template source.
-       *  The host editor parses this into its own template DOM so it can map a
-       *  rendered node (carrying the same `data-dc-tpl`) back to the source
-       *  node that emitted it. Returns the encoded form (`sc-camel-*` attrs,
-       *  `<sc-raw-*>`/`<sc-helmet>` tags); the editor decodes on serialize. */
-      __dcAnnotatedTemplate: (name) => runtime.annotatedTemplate(name),
-      /** Editor bridge — the *original* (decoded) template source. */
-      __dcTemplateSource: (name) => runtime.templateSource(name),
-      __dcBoot: () => {
-        rootName = boot(runtime, document) ?? rootName;
-        notifyHost();
-      },
-      __dcRegistry: runtime.registry.entries,
-      getDC: (name) => runtime.getDC(name),
-      // `DCLogic` is the documented base class name; `StreamableLogic` is the
-      // implementation alias kept for any project that already references it.
-      DCLogic: runtime.StreamableLogic,
-      StreamableLogic: runtime.StreamableLogic
-    };
-    Object.assign(window, api);
-    window.__dcContentKeyed = true;
-    if (document.readyState !== "loading") api.__dcBoot();
-    else document.addEventListener("DOMContentLoaded", () => api.__dcBoot());
-  }
-  hideRawTemplate();
-  loadReactUmd().then(init).catch((err) => {
-    console.error("[dc] failed to load React or boot:", err);
-    throw err;
-  });
-})();
-
-</script>
-
+<script>window._onCatalogImgReady=function(){try{window.dispatchEvent(new CustomEvent('cat-imgs'))}catch(e){}};</script>
+<script src="catalog.js"></script>
+<script src="catalog-img.js"></script>
 </head>
 <body>
-<x-dc>
-<helmet>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  
-  <script>window._onCatalogImgReady=function(){try{window.dispatchEvent(new CustomEvent('cat-imgs'))}catch(e){}};</script>
-  <script src="catalog.js"></script>
-  <script src="catalog-img.js"></script>
-  <style>
-    html,body{margin:0;background:var(--color-bg)}
-    input[type="range"]{accent-color:var(--color-accent);height:26px}
-    .nsb{scrollbar-width:none}
-    .nsb::-webkit-scrollbar{display:none}
-    a{color:var(--color-accent-700)}
-    a:hover{color:var(--color-accent-800)}
-  </style>
-</helmet>
+<div id="app" style="min-height:100vh;padding-bottom:96px"></div>
+<script>
+'use strict';
+var esc=function(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');};
+var el=function(id){return document.getElementById(id);};
+var ICO={
+ lupa:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>',
+ x:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg>',
+ arr:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg>',
+ back:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>',
+ cube:'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 5v10l-9 5-9-5V7z"></path></svg>',
+ cube12:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 5v10l-9 5-9-5V7z"></path></svg>',
+ play:'<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>',
+ chk:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-bg)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>',
+ wa:function(n){return '<svg width="'+n+'" height="'+n+'" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.2.2 2.1 3.2 5 4.5.7.3 1.3.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.2-.3-.2-.6-.4z"></path><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2z"></path></svg>';},
+ ph:function(n){return '<svg width="'+n+'" height="'+n+'" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-400)" stroke-width="1.5" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"></rect><path d="M10 18.5h4"></path></svg>';}
+};
+var APP={
+ s:{view:'home',q:'',marca:'Todas',banda:'',gama:'',orden:'desde',ofertas:false,
+    dev:null,varId:null,plan:null,plazo:null,eng:0,rentas:0,todosPlanes:false,seguro:false,control:false,
+    specsFull:false,legal:false,v3d:false,
+    asesor:{attuid:'',nombre:'',tel:'',tienda:'',foto:''}},
+ UMBRAL:45,
+ PL:['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Diamante'],
+ BANDS:[[0,500],[501,900],[901,1500],[1501,Infinity]],
+ BLBL:['Hasta $500/mes','$501 a $900/mes','$901 a $1,500/mes','Más de $1,500/mes'],
 
-<div style="min-height:100vh;background:var(--color-bg);color:var(--color-text);padding-bottom:96px">
+ ready:function(){return !!(window.CAT&&window.PRICES&&window.PLANS_DATA);},
+ hoy:function(){return new Date().toISOString().slice(0,10);},
+ fmx:function(n){return '$'+Math.round(n||0).toLocaleString('es-MX');},
+ vigente:function(id){var v=window.VIGENCY?window.VIGENCY[id]:null;return !v||v==='indefinido'||v>=this.hoy();},
+ renta:function(p){var r=null;(window.PLANS_DATA||[]).forEach(function(x){if(x.name===p)r=x.renta;});return r;},
+ gbDe:function(p){var g=null;(window.PLANS_DATA||[]).forEach(function(x){if(x.name===p)g=x.gb;});return g;},
+ baseOf:function(id){var SV=window.STORAGE_VARIANTS||{};for(var k in SV){var l=SV[k]||[];for(var i=0;i<l.length;i++){if(l[i][1]===id)return k;}}return id;},
+ img:function(id){var T=window.IMG;if(!T)return null;var v=T[id];if(typeof v==='string'&&v.length<40&&T[v])v=T[v];
+  if(!(typeof v==='string'&&v.length>60)){var b=this.baseOf(id);if(b!==id){v=T[b];if(typeof v==='string'&&v.length<40&&T[v])v=T[v];}}
+  return (typeof v==='string'&&v.length>60)?v:null;},
+ findDev:function(id){var d=null,C=window.CAT||{};Object.keys(C).forEach(function(c){(C[c]||[]).forEach(function(x){if(x.id===id)d=x;});});return d;},
+ promoDe:function(id,plan,plazo){var pr=window.PRICES[id];if(!pr||!pr.planes||!pr.planes[plan])return null;var v=pr.planes[plan][String(plazo)];return (v===null||v===undefined)?null:v;},
+ descuento:function(id,plan,plazo){var pr=window.PRICES[id],promo=this.promoDe(id,plan,plazo);if(!pr||!pr.contado||promo===null)return 0;return Math.floor((pr.contado-promo)/pr.contado*100);},
+ esGarF:function(id,plan,plazo){return this.descuento(id,plan,plazo)>=70;},
+ tope:function(id,plan,plazo){var promo=this.promoDe(id,plan,plazo);if(promo===null||promo<=0)return 0;if(this.esGarF(id,plan,plazo))return 0;return Math.floor(Math.min(promo*0.70,promo)/100)*100;},
+ mensual:function(id,plan,plazo,eng){var promo=this.promoDe(id,plan,plazo);if(promo===null)return null;var r=this.renta(plan);if(r===null||r===undefined)return null;
+  var fin=this.esGarF(id,plan,plazo)?promo:Math.max(0,promo-(eng||0));return r+Math.round(fin/plazo);},
+ desdeGlobal:function(id){var min=null,self=this;this.PL.forEach(function(p){[24,30,36].forEach(function(z){var m=self.mensual(id,p,z,0);if(m!==null&&(min===null||m<min))min=m;});});return min;},
+ descMax:function(id){var m=0,self=this;this.PL.forEach(function(p){[24,30,36].forEach(function(z){var d=self.descuento(id,p,z);if(d>m)m=d;});});return m;},
+ planTieneFree:function(id,p){var self=this;return [24,30,36].some(function(z){return self.promoDe(id,p,z)===0;});},
+ planConPrecio:function(id,p){var self=this;return [24,30,36].some(function(z){return self.mensual(id,p,z,0)!==null;});},
+ refMensual:function(id,p){var zs=[36,30,24];for(var i=0;i<zs.length;i++){var m=this.mensual(id,p,zs[i],0);if(m!==null)return m;}return null;},
+ sugeridos:function(d){var PL=this.PL,c=window.PRICES[d.id]?window.PRICES[d.id].contado:0;
+  if(d.brand==='APPLE')return PL.slice(PL.indexOf('Plata'));
+  if(c<5000)return PL.slice(0,PL.indexOf('Plata')+1);
+  if(c<10000)return PL.slice(PL.indexOf('Azul 2'),PL.indexOf('Oro')+1);
+  if(c<15000)return PL.slice(PL.indexOf('Azul 3'),PL.indexOf('Black')+1);
+  return PL.slice(PL.indexOf('Plata'),PL.indexOf('Platino')+1);},
+ poliza:function(id){var c=window.PRICES[id]?window.PRICES[id].contado:0,t=window.SEGURO_TIERS||[];
+  for(var i=0;i<t.length;i++){if(c>=t[i].min&&c<=t[i].max)return t[i];}return null;},
+ model3d:function(id){var M=window.MODEL3D||{},m=M[id]||M[this.baseOf(id)];if(typeof m==='string')m=M[m];return (m&&m.src)?m:null;},
+ equipos:function(){var out=[],self=this,C=window.CAT||{};
+  Object.keys(C).forEach(function(c){(C[c]||[]).forEach(function(d){
+   if(self.baseOf(d.id)!==d.id)return;
+   if(!self.vigente(d.id))return;
+   if(!window.PRICES[d.id]||!window.PRICES[d.id].contado)return;
+   if(self.desdeGlobal(d.id)===null)return;
+   out.push(d);});});
+  return out;},
+ cap:function(s){return s.charAt(0)+s.slice(1).toLowerCase();},
+ fecha:function(){var M=window.CATALOG_META;if(!M||!M.catalog_date)return '';var p=M.catalog_date.split('-');
+  var mes=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][Number(p[1])-1]||'';
+  return Number(p[2])+' '+mes+' '+p[0];},
+ ini:function(s){var p=String(s||'').trim().split(/\s+/);return (((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase()||'MX';},
 
-  <header style="position:sticky;top:0;z-index:60;background:var(--color-bg);border-bottom:2px solid var(--color-divider)">
-    <div style="max-width:1180px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:14px">
-      <button onClick="{{goHome}}" style="background:none;border:0;cursor:pointer;padding:2px 0;font-family:var(--font-heading);font-weight:800;font-size:16px;letter-spacing:.08em;color:var(--color-text)">PRIME<span style="color:var(--color-accent)">MX</span></button>
-      <div style="flex:1;max-width:430px;display:flex;align-items:center;gap:9px;background:var(--color-surface);border:1px solid var(--color-divider);padding:0 12px">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:var(--color-neutral-600);flex:none"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
-        <input value="{{q}}" onChange="{{onQ}}" type="search" placeholder="Buscar equipo o marca" autocomplete="off" enterkeyhint="search" style="border:0;background:none;outline:none;font-family:inherit;font-size:14px;color:inherit;padding:10px 0;width:100%;min-width:50px">
-        <sc-if value="{{hasQ}}" hint-placeholder-val="{{false}}">
-          <button onClick="{{clearQ}}" aria-label="Limpiar búsqueda" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-600);padding:6px 0;display:flex"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg></button>
-        </sc-if>
-      </div>
-      <button onClick="{{goCatAll}}" style="background:none;border:0;cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:600;color:var(--color-text);padding:8px 2px;white-space:nowrap" style-hover="color:var(--color-accent-700)">Equipos</button>
-    </div>
-  </header>
+ /* ── estado ── */
+ set:function(patch){Object.assign(this.s,patch);this.render();},
+ tog:function(k){this.s[k]=!this.s[k];this.render();},
+ top:function(){window.scrollTo(0,0);},
+ goHome:function(){this.set({view:'home',dev:null,v3d:false,q:''});this.top();},
+ goCat:function(patch){this.set(Object.assign({view:'cat',dev:null,v3d:false},patch||{}));this.top();},
+ goCatAll:function(){this.goCat({marca:'Todas',banda:'',gama:'',ofertas:false,q:''});},
+ goOfertas:function(){this.goCat({marca:'Todas',banda:'',gama:'',ofertas:true,q:''});},
+ clearFilters:function(){this.set({marca:'Todas',banda:'',gama:'',ofertas:false,q:''});},
+ onQ:function(q){var st={q:q};if(q&&this.s.view!=='cat')st.view='cat';
+  if(this.s.dev){st.dev=null;st.v3d=false;this.dropHash();}this.set(st);},
+ dropHash:function(){if(location.hash){try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}}},
+ defPlazo:function(id,plan){if(!plan)return null;var zs=[36,30,24];for(var i=0;i<zs.length;i++){if(this.mensual(id,plan,zs[i],0)!==null)return zs[i];}return null;},
+ defaults:function(id){var d=this.findDev(id),self=this;
+  var con=this.PL.filter(function(p){return self.planConPrecio(id,p);});
+  var sug=d?this.sugeridos(d).filter(function(p){return con.indexOf(p)>=0;}):[];
+  var lista=sug.length?sug:con;
+  var fp=(window.FIRST_PLAN||{})[id];
+  var plan=(fp&&con.indexOf(fp)>=0)?fp:(lista[0]||null);
+  return {plan:plan,plazo:this.defPlazo(id,plan),eng:0,rentas:0};},
+ openDev:function(id){var d=this.findDev(id);if(!d)return;
+  var st=Object.assign({dev:id,varId:id,todosPlanes:false,seguro:false,control:false,specsFull:false,v3d:false},this.defaults(id));
+  this.set(st);var dt=el('det');if(dt)dt.scrollTop=0;
+  try{history.pushState({d:1},'','#'+id);}catch(e){}},
+ closeDev:function(){this.set({dev:null,v3d:false});this.dropHash();},
+ setVar:function(id){var s=this.s,st={varId:id,eng:0,rentas:0};
+  if(!s.plan||!this.planConPrecio(id,s.plan)){Object.assign(st,this.defaults(id));}
+  else if(this.mensual(id,s.plan,s.plazo,0)===null){st.plazo=this.defPlazo(id,s.plan);}
+  this.set(st);},
+ setPlan:function(p){var s=this.s,z=(this.mensual(s.varId,p,s.plazo,0)!==null)?s.plazo:this.defPlazo(s.varId,p);
+  this.set({plan:p,plazo:z,eng:0,rentas:0});},
+ totMensual:function(){var s=this.s,id=s.varId;
+  var t=(s.plan&&s.plazo)?this.mensual(id,s.plan,s.plazo,s.eng):null;
+  if(t!==null){var pol=this.poliza(id);if(s.seguro&&pol)t+=pol.price;if(s.control)t+=(window.CONTROL_PRICE||50);}
+  return t;},
+ onEng:function(v){var s=this.s;s.eng=Number(v)||0;
+  var self=this,id=s.varId;
+  var n=el('engv');if(n)n.textContent=this.fmx(s.eng);
+  [24,30,36].forEach(function(z){var m=document.querySelector('[data-pzm="'+z+'"]');
+   if(m){var x=self.mensual(id,s.plan,z,s.eng);m.textContent=(x===null?'—':self.fmx(x))+'/mes';}});
+  var t=this.totMensual(),tm=el('totm');if(tm)tm.textContent=t===null?'—':this.fmx(t);
+  var ti=el('toti');if(ti)ti.textContent=this.fmx(s.eng);},
 
-  <sc-if value="{{notReady}}" hint-placeholder-val="{{false}}">
-    <div style="max-width:1180px;margin:0 auto;padding:60px 20px;font-size:14px;color:var(--color-neutral-600)">Cargando catálogo…</div>
-  </sc-if>
+ /* ── WhatsApp ── */
+ compartir:function(texto){var A=this.s.asesor;
+  if(!A.tel){if(navigator.share){navigator.share({text:texto}).catch(function(){});return;}
+   window.open('https://wa.me/?text='+encodeURIComponent(texto),'_blank','noopener');return;}
+  var txt=encodeURIComponent(texto),respaldo='https://wa.me/'+A.tel+'?text='+txt;
+  var esMovil=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'');
+  if(!esMovil){window.open(respaldo,'_blank','noopener');return;}
+  var salio=false;function seFue(){salio=true;}
+  document.addEventListener('visibilitychange',seFue,{once:true});
+  window.addEventListener('pagehide',seFue,{once:true});
+  window.addEventListener('blur',seFue,{once:true});
+  location.href='whatsapp://send?phone='+A.tel+'&text='+txt;
+  setTimeout(function(){document.removeEventListener('visibilitychange',seFue);
+   if(!salio&&!document.hidden)window.open(respaldo,'_blank','noopener');},1200);},
+ escribir:function(){var A=this.s.asesor;
+  this.compartir('Hola'+(A.nombre?' '+A.nombre.split(' ')[0]:'')+', vi el catálogo y me interesa conocer más opciones.');},
+ interesa:function(){var s=this.s,d=this.findDev(s.varId);if(!d||!s.plan||!s.plazo)return;
+  var pol=this.poliza(s.varId);
+  var m=this.mensual(s.varId,s.plan,s.plazo,s.eng);
+  if(m!==null){if(s.seguro&&pol)m+=pol.price;if(s.control)m+=(window.CONTROL_PRICE||50);}
+  var gar=this.esGarF(s.varId,s.plan,s.plazo);
+  var inicial=gar?(s.rentas*this.renta(s.plan)):s.eng;
+  var extras='';
+  if(s.seguro&&pol)extras+='\nSeguro de protección +'+this.fmx(pol.price);
+  if(s.control)extras+='\nControl de datos +'+this.fmx(window.CONTROL_PRICE||50);
+  var A=s.asesor;
+  this.compartir('Hola'+(A.nombre?' '+A.nombre.split(' ')[0]:'')+', me interesa esta opción:\n\n'
+   +d.name+' '+d.storage+'\n\nPlan AT&T '+s.plan+' · '+s.plazo+' meses\n'
+   +(gar?(s.rentas+' '+(s.rentas===1?'renta':'rentas')+' de garantía ('+this.fmx(inicial)+')')
+        :('Enganche estimado '+this.fmx(inicial)))
+   +extras+'\nMensualidad estimada '+this.fmx(m)+'\n\n¿Cómo seguimos?');},
+ open3D:function(){if(!this._mv){var sc=document.createElement('script');sc.type='module';
+   sc.src='https://unpkg.com/@google/model-viewer@3.4.0/dist/model-viewer.min.js';
+   document.head.appendChild(sc);this._mv=true;}
+  this.set({v3d:true});},
 
-  <sc-if value="{{ready}}" hint-placeholder-val="{{true}}">
+ /* ── builders ── */
+ cardHTML:function(d){var id=d.id,pct=this.descMax(id),im=this.img(id),P=window.PRICES[id];
+  var h='<button class="pcard" onclick="APP.openDev(\''+id+'\')"><span class="pimg">';
+  h+=im?('<img class="grayscale" src="'+im+'" alt="" loading="lazy">'):ICO.ph(30);
+  if(pct>=this.UMBRAL)h+='<span class="bdg-off">'+(pct>=100?'Incluido':('-'+pct+'%'))+'</span>';
+  if(d.status==='NPI')h+='<span class="bdg-new">NUEVO</span>';
+  if(this.model3d(id))h+='<span class="bdg-3d">'+ICO.cube+'3D</span>';
+  h+='</span><span class="pk">'+esc(d.brand)+'</span><span class="pn">'+esc(d.name)+'</span><span class="ps">'+esc(d.storage)+'</span>';
+  h+='<span class="pfrom">Desde</span><span class="prow"><span class="pp">'+this.fmx(this.desdeGlobal(id))+'</span><span class="ppm">/mes</span></span>';
+  h+='<span class="pc">Contado '+this.fmx(P.contado)+'</span></button>';
+  return h;},
+ gridHTML:function(list){var self=this;return '<div class="pgrid">'+list.map(function(d){return self.cardHTML(d);}).join('')+'</div>';},
 
-  <sc-if value="{{isHome}}" hint-placeholder-val="{{true}}">
-  <section data-screen-label="Home · Hero" style="max-width:1180px;margin:0 auto;padding:0 20px">
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr));gap:30px;padding:34px 0 38px;align-items:center">
-      <div>
-        <div style="font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">Catálogo · precios al {{metaFecha}}</div>
-        <h1 style="margin:12px 0 0;font-size:clamp(34px,5.4vw,58px);line-height:1.04;letter-spacing:-.025em;text-wrap:balance">Estrena equipo. Págalo a tu ritmo.</h1>
-        <p style="margin:16px 0 0;font-size:15.5px;line-height:1.55;color:var(--color-neutral-700);max-width:460px">Elige tu smartphone, ajusta plan y plazo, y conoce tu mensualidad al momento. Tu asesor te acompaña por WhatsApp.</p>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:24px">
-          <button class="btn btn-primary" onClick="{{goCatAll}}" style="padding:13px 20px;font-size:14.5px;white-space:nowrap">Explorar equipos<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg></button>
-          <button class="btn btn-secondary" onClick="{{goOfertas}}" style="padding:13px 20px;font-size:14.5px;white-space:nowrap">Ofertas de la semana</button>
-        </div>
-        <div style="margin-top:26px;font-size:12px;color:var(--color-neutral-600)">{{statEquipos}} equipos · {{statMarcas}} marcas · Plan AT&amp;T incluido en tu pago</div>
-      </div>
-      <sc-if value="{{hasHero}}" hint-placeholder-val="{{true}}">
-      <button onClick="{{heroOpen}}" style="display:flex;flex-direction:column;background:none;border:0;padding:0;cursor:pointer;font-family:inherit;color:inherit;text-align:left;min-width:0">
-        <span style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:1/0.92;background:var(--color-surface);overflow:hidden">
-          {{heroImgEl}}
-          <sc-if value="{{heroPctTxt}}" hint-placeholder-val="{{false}}"><span style="position:absolute;top:12px;left:12px;background:var(--color-accent);color:var(--color-bg);font-size:12px;font-weight:700;letter-spacing:.02em;padding:5px 10px;white-space:nowrap">{{heroPctTxt}}</span></sc-if>
-        </span>
-        <span style="display:flex;justify-content:space-between;align-items:flex-end;gap:14px;width:100%;padding:14px 2px 0">
-          <span style="display:flex;flex-direction:column;min-width:0">
-            <span style="font-size:10.5px;font-weight:600;letter-spacing:.12em;color:var(--color-neutral-600)">{{heroBrand}}</span>
-            <span style="font-family:var(--font-heading);font-weight:800;font-size:21px;letter-spacing:-.02em;margin-top:2px">{{heroName}}</span>
-          </span>
-          <span style="display:flex;flex-direction:column;align-items:flex-end;flex:none">
-            <span style="font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)">Desde</span>
-            <span style="font-family:var(--font-heading);font-weight:800;font-size:22px;letter-spacing:-.02em">{{heroDesdeTxt}}<span style="font-size:12px;font-weight:400;color:var(--color-neutral-600)"> /mes</span></span>
-          </span>
-        </span>
-      </button>
-      </sc-if>
-    </div>
-  </section>
+ headerHTML:function(){var s=this.s;
+  return '<header class="hdr"><div class="hdr-in">'
+  +'<button class="mark" onclick="APP.goHome()">PRIME<b>MX</b></button>'
+  +'<div class="sbar">'+ICO.lupa
+  +'<input id="q" type="search" value="'+esc(s.q)+'" oninput="APP.onQ(this.value)" placeholder="Buscar equipo o marca" autocomplete="off" enterkeyhint="search" aria-label="Buscar equipo">'
+  +(s.q?('<button onclick="APP.onQ(\'\')" aria-label="Limpiar búsqueda" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-600);padding:6px 0;display:flex">'+ICO.x+'</button>'):'')
+  +'</div><button class="navlink" onclick="APP.goCatAll()">Equipos</button></div></header>';},
 
-  <section data-screen-label="Home · Ofertas" style="max-width:1180px;margin:0 auto;padding:0 20px">
-    <div style="height:2px;background:var(--color-divider)"></div>
-    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:24px 0 14px">
-      <h2 style="margin:0;font-size:clamp(21px,3vw,27px);letter-spacing:-.02em">Ofertas de la semana</h2>
-      <button class="btn btn-ghost" onClick="{{goOfertas}}" style="font-size:13px">Ver todas</button>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));border-top:1px solid var(--color-neutral-300)">
-      <sc-for list="{{offers}}" as="item" hint-placeholder-count="6">
-        <button onClick="{{item.open}}" style="display:flex;flex-direction:column;align-items:stretch;min-width:0;text-align:left;background:var(--color-bg);border:0;border-right:1px solid var(--color-neutral-300);border-bottom:1px solid var(--color-neutral-300);padding:12px 12px 16px;cursor:pointer;font-family:inherit;color:inherit" style-hover="background:var(--color-neutral-100)">
-          <span style="position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1.06;background:var(--color-surface);overflow:hidden">
-            <sc-if value="{{item.hasImg}}" hint-placeholder-val="{{false}}"><img class="grayscale" src="{{item.img}}" alt="" loading="lazy" style="max-width:64%;max-height:78%;object-fit:contain;mix-blend-mode:multiply"></sc-if>
-            <sc-if value="{{item.noImg}}" hint-placeholder-val="{{false}}"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-400)" stroke-width="1.5" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"></rect><path d="M10 18.5h4"></path></svg></sc-if>
-            <sc-if value="{{item.pctTxt}}" hint-placeholder-val="{{false}}"><span style="position:absolute;top:8px;left:8px;background:var(--color-accent-100);color:var(--color-accent-800);font-size:11px;font-weight:700;padding:3px 8px;white-space:nowrap">{{item.pctTxt}}</span></sc-if>
-            <sc-if value="{{item.nuevo}}" hint-placeholder-val="{{false}}"><span style="position:absolute;top:8px;right:8px;border:1px solid var(--color-accent);color:var(--color-accent-700);background:var(--color-bg);font-size:9.5px;font-weight:700;letter-spacing:.08em;padding:2px 7px">NUEVO</span></sc-if>
-            <sc-if value="{{item.d3}}" hint-placeholder-val="{{false}}"><span style="position:absolute;bottom:8px;right:8px;background:var(--color-text);color:var(--color-bg);font-size:9.5px;font-weight:700;padding:3px 7px;display:flex;align-items:center;gap:4px"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 5v10l-9 5-9-5V7z"></path></svg>3D</span></sc-if>
-          </span>
-          <span style="margin-top:11px;font-size:9.5px;font-weight:600;letter-spacing:.12em;color:var(--color-neutral-600)">{{item.brand}}</span>
-          <span style="margin-top:3px;font-size:15px;font-weight:600;line-height:1.25;letter-spacing:-.01em">{{item.name}}</span>
-          <span style="margin-top:2px;font-size:12px;color:var(--color-neutral-600)">{{item.storage}}</span>
-          <span style="margin-top:11px;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)">Desde</span>
-          <span style="display:flex;align-items:baseline;gap:4px"><span style="font-family:var(--font-heading);font-weight:800;font-size:19px;letter-spacing:-.02em">{{item.desdeTxt}}</span><span style="font-size:11px;color:var(--color-neutral-600)">/mes</span></span>
-          <sc-if value="{{showContado}}" hint-placeholder-val="{{true}}"><span style="margin-top:3px;font-size:11px;color:var(--color-neutral-600)">Contado {{item.contadoTxt}}</span></sc-if>
-        </button>
-      </sc-for>
-    </div>
-  </section>
+ homeHTML:function(){var self=this,s=this.s,devs=this.equipos();
+  var info={};devs.forEach(function(d){info[d.id]={desde:self.desdeGlobal(d.id),pct:self.descMax(d.id),contado:window.PRICES[d.id].contado};});
+  var bset={};devs.forEach(function(d){bset[d.brand]=(bset[d.brand]||0)+1;});
+  var h='<section class="wrap"><div class="hero"><div>'
+  +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">Catálogo · precios al '+esc(this.fecha())+'</div>'
+  +'<h1>Estrena equipo. Págalo a tu ritmo.</h1>'
+  +'<p style="margin:16px 0 0;font-size:15.5px;line-height:1.55;color:var(--color-neutral-700);max-width:460px">Elige tu smartphone, ajusta plan y plazo, y conoce tu mensualidad al momento. Tu asesor te acompaña por WhatsApp.</p>'
+  +'<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:24px">'
+  +'<button class="btn btn-primary" style="padding:13px 20px;font-size:14.5px;white-space:nowrap" onclick="APP.goCatAll()">Explorar equipos'+ICO.arr+'</button>'
+  +'<button class="btn btn-secondary" style="padding:13px 20px;font-size:14.5px;white-space:nowrap" onclick="APP.goOfertas()">Ofertas de la semana</button></div>'
+  +'<div style="margin-top:26px;font-size:12px;color:var(--color-neutral-600)">'+devs.length+' equipos · '+Object.keys(bset).length+' marcas · Plan AT&amp;T incluido en tu pago</div>'
+  +'</div>';
+  var hero=null;
+  var cands=devs.filter(function(d){return self.img(d.id)&&info[d.id].contado>=12000;});
+  cands.sort(function(a,b){return info[b.id].pct-info[a.id].pct;});
+  hero=cands[0]||devs[0]||null;
+  if(hero){var hid=hero.id,him=this.img(hid),hp=info[hid].pct;
+   h+='<button class="hcard" onclick="APP.openDev(\''+hid+'\')"><span class="himg">'
+   +(him?('<img class="grayscale" src="'+him+'" alt="'+esc(hero.name)+'">'):ICO.ph(44))
+   +(hp>=10?('<span class="hbdg">-'+hp+'% con plan</span>'):'')
+   +'</span><span style="display:flex;justify-content:space-between;align-items:flex-end;gap:14px;width:100%;padding:14px 2px 0">'
+   +'<span style="display:flex;flex-direction:column;min-width:0"><span style="font-size:10.5px;font-weight:600;letter-spacing:.12em;color:var(--color-neutral-600)">'+esc(hero.brand)+'</span>'
+   +'<span style="font-family:var(--font-heading);font-weight:800;font-size:21px;letter-spacing:-.02em;margin-top:2px">'+esc(hero.name)+'</span></span>'
+   +'<span style="display:flex;flex-direction:column;align-items:flex-end;flex:none"><span style="font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)">Desde</span>'
+   +'<span style="font-family:var(--font-heading);font-weight:800;font-size:22px;letter-spacing:-.02em">'+this.fmx(info[hid].desde)+'<span style="font-size:12px;font-weight:400;color:var(--color-neutral-600)"> /mes</span></span></span>'
+   +'</span></button>';}
+  h+='</div></section>';
+  var offers=devs.slice().sort(function(a,b){return info[b.id].pct-info[a.id].pct;}).slice(0,6);
+  h+='<section class="wrap"><div class="hr2"></div><div class="sechead" style="padding-top:24px"><h2>Ofertas de la semana</h2>'
+  +'<button class="btn btn-ghost" style="font-size:13px" onclick="APP.goOfertas()">Ver todas</button></div>'+this.gridHTML(offers)+'</section>';
+  var news=devs.filter(function(d){return d.status==='NPI';}).slice(0,6);
+  if(news.length){h+='<section class="wrap"><div class="sechead"><h2>Recién llegados</h2></div>'+this.gridHTML(news)+'</section>';}
+  var bkeys=Object.keys(bset).sort(function(a,b){return bset[b]-bset[a];});
+  h+='<section class="wrap"><div class="sechead"><h2>Explora por marca</h2></div><div class="cellgrid">';
+  bkeys.forEach(function(b){h+='<button class="cell" onclick="APP.goCat({marca:\''+b+'\',banda:\'\',gama:\'\',ofertas:false,q:\'\'})">'
+   +'<span class="t">'+esc(self.cap(b))+'</span><span class="c">'+bset[b]+(bset[b]===1?' equipo':' equipos')+'</span></button>';});
+  h+='<button class="cell more" onclick="APP.goCatAll()"><span class="t" style="display:flex;align-items:center;gap:6px">Todo'+ICO.arr+'</span><span class="c">'+devs.length+' equipos</span></button></div></section>';
+  h+='<section class="wrap"><div class="sechead"><h2>Encuentra por mensualidad</h2></div><div class="cellgrid bands">';
+  this.BANDS.forEach(function(B,i){var n=devs.filter(function(d){var v=info[d.id].desde;return v>=B[0]&&v<=B[1];}).length;
+   h+='<button class="cell" onclick="APP.goCat({banda:\''+i+'\',marca:\'Todas\',gama:\'\',ofertas:false,q:\'\'})">'
+   +'<span class="t" style="font-size:19px;letter-spacing:-.02em">'+self.BLBL[i]+'</span><span class="c">'+n+(n===1?' equipo':' equipos')+'</span></button>';});
+  h+='</div></section>';
+  h+='<section class="cta"><div class="cta-in"><h2>¿Dudas entre dos equipos? Tu asesor te ayuda a decidir.</h2>'
+  +'<p>Cuéntale qué usas y cuánto quieres pagar al mes. Te arma opciones reales, sin compromiso.</p>'
+  +'<button class="btn" style="margin-top:24px;background:var(--color-bg);color:var(--color-accent-700);padding:13px 20px;font-size:14.5px;white-space:nowrap" onclick="APP.escribir()">'+ICO.wa(16)+'Escribir por WhatsApp</button>'
+  +'</div></section>';
+  return h;},
 
-  <sc-if value="{{hasNews}}" hint-placeholder-val="{{false}}">
-  <section data-screen-label="Home · Recién llegados" style="max-width:1180px;margin:0 auto;padding:0 20px">
-    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:28px 0 14px">
-      <h2 style="margin:0;font-size:clamp(21px,3vw,27px);letter-spacing:-.02em">Recién llegados</h2>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));border-top:1px solid var(--color-neutral-300)">
-      <sc-for list="{{news}}" as="item" hint-placeholder-count="4">
-        <button onClick="{{item.open}}" style="display:flex;flex-direction:column;align-items:stretch;min-width:0;text-align:left;background:var(--color-bg);border:0;border-right:1px solid var(--color-neutral-300);border-bottom:1px solid var(--color-neutral-300);padding:12px 12px 16px;cursor:pointer;font-family:inherit;color:inherit" style-hover="background:var(--color-neutral-100)">
-          <span style="position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1.06;background:var(--color-surface);overflow:hidden">
-            <sc-if value="{{item.hasImg}}" hint-placeholder-val="{{false}}"><img class="grayscale" src="{{item.img}}" alt="" loading="lazy" style="max-width:64%;max-height:78%;object-fit:contain;mix-blend-mode:multiply"></sc-if>
-            <sc-if value="{{item.noImg}}" hint-placeholder-val="{{false}}"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-400)" stroke-width="1.5" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"></rect><path d="M10 18.5h4"></path></svg></sc-if>
-            <sc-if value="{{item.pctTxt}}" hint-placeholder-val="{{false}}"><span style="position:absolute;top:8px;left:8px;background:var(--color-accent-100);color:var(--color-accent-800);font-size:11px;font-weight:700;padding:3px 8px;white-space:nowrap">{{item.pctTxt}}</span></sc-if>
-            <sc-if value="{{item.nuevo}}" hint-placeholder-val="{{false}}"><span style="position:absolute;top:8px;right:8px;border:1px solid var(--color-accent);color:var(--color-accent-700);background:var(--color-bg);font-size:9.5px;font-weight:700;letter-spacing:.08em;padding:2px 7px">NUEVO</span></sc-if>
-            <sc-if value="{{item.d3}}" hint-placeholder-val="{{false}}"><span style="position:absolute;bottom:8px;right:8px;background:var(--color-text);color:var(--color-bg);font-size:9.5px;font-weight:700;padding:3px 7px;display:flex;align-items:center;gap:4px"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 5v10l-9 5-9-5V7z"></path></svg>3D</span></sc-if>
-          </span>
-          <span style="margin-top:11px;font-size:9.5px;font-weight:600;letter-spacing:.12em;color:var(--color-neutral-600)">{{item.brand}}</span>
-          <span style="margin-top:3px;font-size:15px;font-weight:600;line-height:1.25;letter-spacing:-.01em">{{item.name}}</span>
-          <span style="margin-top:2px;font-size:12px;color:var(--color-neutral-600)">{{item.storage}}</span>
-          <span style="margin-top:11px;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)">Desde</span>
-          <span style="display:flex;align-items:baseline;gap:4px"><span style="font-family:var(--font-heading);font-weight:800;font-size:19px;letter-spacing:-.02em">{{item.desdeTxt}}</span><span style="font-size:11px;color:var(--color-neutral-600)">/mes</span></span>
-          <sc-if value="{{showContado}}" hint-placeholder-val="{{true}}"><span style="margin-top:3px;font-size:11px;color:var(--color-neutral-600)">Contado {{item.contadoTxt}}</span></sc-if>
-        </button>
-      </sc-for>
-    </div>
-  </section>
-  </sc-if>
+ catHTML:function(){var self=this,s=this.s,devs=this.equipos();
+  var info={};devs.forEach(function(d){info[d.id]={desde:self.desdeGlobal(d.id),pct:self.descMax(d.id),contado:window.PRICES[d.id].contado};});
+  var bset={};devs.forEach(function(d){bset[d.brand]=(bset[d.brand]||0)+1;});
+  var list=devs.slice();
+  if(s.marca!=='Todas')list=list.filter(function(d){return d.brand===s.marca;});
+  var q=s.q.toLowerCase().trim();
+  if(q)list=list.filter(function(d){return (d.name+' '+d.brand+' '+d.storage).toLowerCase().indexOf(q)>=0;});
+  if(s.banda!==''){var B=this.BANDS[Number(s.banda)];list=list.filter(function(d){var v=info[d.id].desde;return v>=B[0]&&v<=B[1];});}
+  var GAMAS={e:[0,5999],m:[6000,11999],a:[12000,19999],p:[20000,Infinity]};
+  if(s.gama){var G=GAMAS[s.gama];list=list.filter(function(d){var c=info[d.id].contado;return c>=G[0]&&c<=G[1];});}
+  if(s.ofertas)list=list.filter(function(d){return info[d.id].pct>=self.UMBRAL;});
+  if(s.orden==='desde')list.sort(function(a,b){return info[a.id].desde-info[b.id].desde;});
+  else if(s.orden==='desdeDesc')list.sort(function(a,b){return info[b.id].desde-info[a.id].desde;});
+  else if(s.orden==='pct')list.sort(function(a,b){return info[b.id].pct-info[a.id].pct;});
+  else if(s.orden==='contadoDesc')list.sort(function(a,b){return info[b.id].contado-info[a.id].contado;});
+  else if(s.orden==='nuevo')list.sort(function(a,b){return (b.status==='NPI'?1:0)-(a.status==='NPI'?1:0)||info[a.id].desde-info[b.id].desde;});
+  var title=s.ofertas?'Ofertas':(s.marca!=='Todas'?this.cap(s.marca):(q?'Resultados':'Todos los equipos'));
+  var h='<section class="wrap"><div style="display:flex;align-items:baseline;gap:10px;padding:26px 0 4px">'
+  +'<h2 style="margin:0;font-size:clamp(22px,3vw,28px);letter-spacing:-.02em">'+esc(title)+'</h2>'
+  +'<span style="font-size:13px;color:var(--color-neutral-600)">'+list.length+(list.length===1?' equipo':' equipos')+'</span></div>';
+  h+='<div class="nsb" style="display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px">';
+  ['Todas'].concat(Object.keys(bset).sort(function(a,b){return bset[b]-bset[a];})).forEach(function(b){
+   h+='<button class="chip'+(s.marca===b?' on':'')+'" onclick="APP.set({marca:\''+b+'\'})">'+esc(b==='Todas'?'Todas':self.cap(b))+'</button>';});
+  h+='</div>';
+  h+='<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0 16px">'
+  +'<select class="input" style="width:auto;font-size:13px;min-height:38px" onchange="APP.set({orden:this.value})">'
+  +'<option value="desde"'+(s.orden==='desde'?' selected':'')+'>Menor mensualidad</option>'
+  +'<option value="desdeDesc"'+(s.orden==='desdeDesc'?' selected':'')+'>Mayor mensualidad</option>'
+  +'<option value="pct"'+(s.orden==='pct'?' selected':'')+'>Mayor descuento</option>'
+  +'<option value="contadoDesc"'+(s.orden==='contadoDesc'?' selected':'')+'>Contado: mayor a menor</option>'
+  +'<option value="nuevo"'+(s.orden==='nuevo'?' selected':'')+'>Novedades primero</option></select>'
+  +'<select class="input" style="width:auto;font-size:13px;min-height:38px" onchange="APP.set({banda:this.value})">'
+  +'<option value=""'+(s.banda===''?' selected':'')+'>Mensualidad: todas</option>'
+  +'<option value="0"'+(s.banda==='0'?' selected':'')+'>Hasta $500/mes</option>'
+  +'<option value="1"'+(s.banda==='1'?' selected':'')+'>$501 a $900/mes</option>'
+  +'<option value="2"'+(s.banda==='2'?' selected':'')+'>$901 a $1,500/mes</option>'
+  +'<option value="3"'+(s.banda==='3'?' selected':'')+'>Más de $1,500/mes</option></select>'
+  +'<select class="input" style="width:auto;font-size:13px;min-height:38px" onchange="APP.set({gama:this.value})">'
+  +'<option value=""'+(s.gama===''?' selected':'')+'>Gama: todas</option>'
+  +'<option value="e"'+(s.gama==='e'?' selected':'')+'>Esencial</option>'
+  +'<option value="m"'+(s.gama==='m'?' selected':'')+'>Media</option>'
+  +'<option value="a"'+(s.gama==='a'?' selected':'')+'>Alta</option>'
+  +'<option value="p"'+(s.gama==='p'?' selected':'')+'>Premium</option></select>'
+  +'<button class="chip'+(s.ofertas?' on':'')+'" onclick="APP.tog(\'ofertas\')">Solo ofertas</button>';
+  if(s.marca!=='Todas'||s.banda!==''||s.gama||s.ofertas||q)
+   h+='<button class="btn btn-ghost" style="font-size:13px" onclick="APP.clearFilters()">Limpiar filtros</button>';
+  h+='</div>';
+  if(list.length)h+=this.gridHTML(list);
+  else h+='<div style="padding:56px 0 70px"><h3 style="margin:0 0 6px;font-size:21px">Sin resultados</h3>'
+  +'<p style="margin:0;font-size:14px;color:var(--color-neutral-600)">Prueba con otra búsqueda o quita algún filtro.</p>'
+  +'<button class="btn btn-secondary" style="margin-top:16px" onclick="APP.clearFilters()">Quitar filtros</button></div>';
+  return h+'</section>';},
 
-  <section data-screen-label="Home · Marcas" style="max-width:1180px;margin:0 auto;padding:0 20px">
-    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:28px 0 14px">
-      <h2 style="margin:0;font-size:clamp(21px,3vw,27px);letter-spacing:-.02em">Explora por marca</h2>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border-top:1px solid var(--color-neutral-300)">
-      <sc-for list="{{brands}}" as="item" hint-placeholder-count="7">
-        <button onClick="{{item.go}}" style="background:var(--color-bg);border:0;border-right:1px solid var(--color-neutral-300);border-bottom:1px solid var(--color-neutral-300);padding:20px 16px 18px;display:flex;flex-direction:column;gap:4px;text-align:left;cursor:pointer;font-family:inherit;color:inherit;min-width:0" style-hover="background:var(--color-neutral-100)">
-          <span style="font-family:var(--font-heading);font-weight:800;font-size:18px;letter-spacing:-.01em">{{item.label}}</span>
-          <span style="font-size:11.5px;color:var(--color-neutral-600)">{{item.countTxt}}</span>
-        </button>
-      </sc-for>
-      <button onClick="{{goCatAll}}" style="background:var(--color-bg);border:0;border-right:1px solid var(--color-neutral-300);border-bottom:1px solid var(--color-neutral-300);padding:20px 16px 18px;display:flex;flex-direction:column;gap:4px;text-align:left;cursor:pointer;font-family:inherit;color:var(--color-accent-700);min-width:0" style-hover="background:var(--color-accent-100)">
-        <span style="font-family:var(--font-heading);font-weight:800;font-size:18px;letter-spacing:-.01em;display:flex;align-items:center;gap:6px">Todo<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg></span>
-        <span style="font-size:11.5px;color:var(--color-neutral-600)">{{statEquipos}} equipos</span>
-      </button>
-    </div>
-  </section>
+ detHTML:function(){var self=this,s=this.s,dv=this.findDev(s.varId)||this.findDev(s.dev);
+  if(!dv)return '';
+  var id=dv.id,pct=this.descMax(id),im=this.img(id),base=this.baseOf(s.dev);
+  var m3=this.model3d(id),yt=(window.YT&&(window.YT[id]||window.YT[base]))||null;
+  var h='<div id="det"><div class="dtop"><div class="dtop-in">'
+  +'<button class="btn btn-ghost" style="font-size:14px;padding-left:0" onclick="APP.closeDev()">'+ICO.back+'Volver</button>'
+  +'<span style="margin-left:auto;font-size:10.5px;letter-spacing:.12em;font-weight:700;color:var(--color-neutral-600)">'+esc(dv.brand)+'</span>'
+  +'</div></div><div class="dwrap"><div class="dgrid">';
+  h+='<div class="dleft"><div class="dimg">'+(im?('<img class="grayscale" src="'+im+'" alt="'+esc(dv.name)+'">'):ICO.ph(44));
+  if(pct>=this.UMBRAL)h+='<span class="off">'+(pct>=100?'Incluido con plan':('-'+pct+'%'))+'</span>';
+  if(dv.status==='NPI')h+='<span class="new">NUEVO</span>';
+  if(m3)h+='<button class="b3d" onclick="APP.open3D()">'+ICO.cube12+'Verlo en 3D</button>';
+  h+='</div>';
+  if(yt)h+='<a class="btn btn-ghost" style="margin-top:10px;font-size:13px" href="'+esc(yt)+'" target="_blank" rel="noopener">'+ICO.play+'Ver review en video</a>';
+  h+='</div>';
+  h+='<div style="min-width:0">'
+  +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.12em;color:var(--color-neutral-600)">'+esc(dv.brand)+'</div>'
+  +'<h1 style="margin:6px 0 0;font-size:clamp(27px,4vw,40px);line-height:1.06;letter-spacing:-.025em">'+esc(dv.name)+'</h1>';
+  var SV=window.STORAGE_VARIANTS||{},vlist=SV[base];
+  var variants=vlist?vlist.filter(function(v){return v[1];}):[];
+  if(variants.length>1){h+='<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">';
+   variants.forEach(function(v){h+='<button class="chip'+(v[1]===s.varId?' on':'')+'" onclick="APP.setVar(\''+v[1]+'\')">'+esc(v[0])+'</button>';});
+   h+='</div>';}
+  else h+='<div style="margin-top:6px;font-size:13.5px;color:var(--color-neutral-600)">'+esc(dv.storage)+'</div>';
+  h+='<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:18px">'
+  +'<span style="font-family:var(--font-heading);font-weight:800;font-size:33px;letter-spacing:-.03em">'+this.fmx(this.desdeGlobal(id))
+  +'<span style="font-size:14px;font-weight:400;color:var(--color-neutral-600)"> /mes desde</span></span>'
+  +(pct>=10?('<span class="tag tag-accent" style="font-weight:700">hasta -'+pct+'% con plan</span>'):'')
+  +'</div><div style="margin-top:4px;font-size:13px;color:var(--color-neutral-600)">De contado '+this.fmx(window.PRICES[id].contado)+'</div>';
+  if((dv.sell||[]).length){h+='<div class="hr2" style="margin:22px 0 16px"></div><div class="kick">Por qué este equipo</div>'
+   +'<div style="display:flex;flex-direction:column;gap:9px;margin-top:12px">';
+   dv.sell.forEach(function(t){h+='<div style="display:flex;gap:10px"><span style="width:6px;height:6px;background:var(--color-accent);flex:none;margin-top:7px"></span><span style="font-size:14px;line-height:1.5">'+esc(t)+'</span></div>';});
+   h+='</div>';}
+  h+='<div class="hr2" style="margin:22px 0 16px"></div><h3 style="margin:0;font-size:21px;letter-spacing:-.02em">Arma tu pago mensual</h3>';
+  var con=this.PL.filter(function(p){return self.planConPrecio(id,p);});
+  var sug=this.sugeridos(dv).filter(function(p){return con.indexOf(p)>=0;});
+  var lista=s.todosPlanes?con:(sug.length?sug:con);
+  if(s.plan&&lista.indexOf(s.plan)<0)lista=lista.concat([s.plan]);
+  h+='<div class="kick" style="margin-top:16px">Plan <span class="sub">· comparativa a 36 meses</span></div><div class="plangrid">';
+  lista.forEach(function(p){var rm=self.refMensual(id,p);
+   h+='<button class="opt'+(s.plan===p?' on':'')+'" onclick="APP.setPlan(\''+p+'\')">'
+   +'<span class="oprow"><span style="font-size:15px;font-weight:700">'+esc(p)+'</span>'
+   +'<span class="opm">'+(rm===null?'—':self.fmx(rm))+'<span class="opms">/mes</span></span></span>'
+   +'<span class="optags"><span class="tag tag-neutral">'+(self.gbDe(p)||'—')+' GB</span>'
+   +(self.planTieneFree(id,p)?'<span class="tag tag-accent">Equipo incluido</span>':'')+'</span></button>';});
+  h+='</div>';
+  if(!s.todosPlanes&&lista.length<con.length)
+   h+='<button class="btn btn-ghost" style="margin-top:8px;font-size:13px" onclick="APP.set({todosPlanes:true})">Ver los '+con.length+' planes</button>';
+  h+='<div style="margin-top:8px;font-size:10.5px;color:var(--color-neutral-600)">Todos incluyen 6 redes sociales ilimitadas y llamadas sin límite. *Aplica Política de Uso Justo de AT&amp;T.</div>';
+  h+='<div class="kick" style="margin-top:20px">Plazo</div><div class="rowchips">';
+  [24,30,36].forEach(function(z){if(self.mensual(id,s.plan,z,0)===null)return;
+   h+='<button class="box'+(s.plazo===z?' on':'')+'" onclick="APP.set({plazo:'+z+',eng:0,rentas:0})">'
+   +'<span class="bt">'+z+' meses</span><span class="bs" data-pzm="'+z+'">'+self.fmx(self.mensual(id,s.plan,z,s.eng))+'/mes</span></button>';});
+  h+='</div>';
+  var gar=(s.plan&&s.plazo)?this.esGarF(id,s.plan,s.plazo):false;
+  var engMax=(s.plan&&s.plazo)?this.tope(id,s.plan,s.plazo):0;
+  if(!gar&&engMax>0){
+   h+='<div class="kick" style="margin-top:20px">Enganche <span class="sub">· opcional, baja tu mensualidad</span></div>'
+   +'<div style="border:1px solid var(--color-divider);padding:14px 16px;margin-top:10px">'
+   +'<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;color:var(--color-neutral-600)">Das hoy</span>'
+   +'<span id="engv" style="font-family:var(--font-heading);font-weight:800;font-size:19px">'+this.fmx(s.eng)+'</span></div>'
+   +'<input type="range" min="0" max="'+engMax+'" step="100" value="'+s.eng+'" oninput="APP.onEng(this.value)" aria-label="Enganche">'
+   +'<div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--color-neutral-600)"><span>$0</span><span>'+this.fmx(engMax)+'</span></div></div>';}
+  if(gar){
+   h+='<div class="kick" style="margin-top:20px">Rentas de garantía <span class="sub">· depósito, no cambia tu mensualidad</span></div><div class="rowchips">';
+   [0,1,2,3].forEach(function(n){h+='<button class="box'+(s.rentas===n?' on':'')+'" onclick="APP.set({rentas:'+n+'})">'
+    +'<span class="bt">'+n+'</span><span class="bs">'+(n===1?'renta':'rentas')+'</span></button>';});
+   h+='</div><div style="margin-top:8px;font-size:12px;color:var(--color-neutral-600)">Pagas al contratar: <b style="color:var(--color-text)">'
+   +this.fmx(s.rentas*(this.renta(s.plan)||0))+'</b>. El número final lo define tu evaluación crediticia.</div>';}
+  var pol=this.poliza(id),ctrl=window.CONTROL_PRICE||50;
+  h+='<div class="kick" style="margin-top:20px">Extras opcionales</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">';
+  if(pol){h+='<button class="xtr'+(s.seguro?' on':'')+'" onclick="APP.tog(\'seguro\')">'
+   +'<span style="display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left">'
+   +'<span style="font-size:14px;font-weight:700">Seguro de protección <span style="font-family:var(--font-heading);font-weight:800">+'+this.fmx(pol.price)+'/mes</span></span>'
+   +'<span style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.45">Robo y daño fuera de garantía · hasta 2 reemplazos al año. Deducible 30% daño / 40% robo. Póliza Allianz, administra Asurion.</span></span>'
+   +'<span class="ck'+(s.seguro?' on':'')+'">'+(s.seguro?ICO.chk:'')+'</span></button>';}
+  h+='<button class="xtr'+(s.control?' on':'')+'" onclick="APP.tog(\'control\')">'
+  +'<span style="display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left">'
+  +'<span style="font-size:14px;font-weight:700">Control de datos <span style="font-family:var(--font-heading);font-weight:800">+'+this.fmx(ctrl)+'/mes</span></span>'
+  +'<span style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.45">Sin cargos sorpresa: al agotar tus datos, el servicio se pausa en lugar de cobrar extra.</span></span>'
+  +'<span class="ck'+(s.control?' on':'')+'">'+(s.control?ICO.chk:'')+'</span></button></div>';
+  var tot=this.totMensual();
+  var inicial=gar?(s.rentas*(this.renta(s.plan)||0)):s.eng;
+  h+='<div class="totbox"><div style="font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600)">Pagarías al mes</div>'
+  +'<div class="big" id="totm">'+(tot===null?'—':this.fmx(tot))+'</div>'
+  +'<div style="margin-top:5px;font-size:12.5px;color:var(--color-neutral-600)">'
+  +((s.plan&&s.plazo)?('Plan '+esc(s.plan)+' · '+(this.gbDe(s.plan)||'—')+' GB · '+s.plazo+' meses · equipo incluido en el cálculo'):'Elige plan y plazo')+'</div>'
+  +(((s.plan&&s.plazo)&&this.promoDe(id,s.plan,s.plazo)===0)?'<div style="margin-top:10px"><span class="tag tag-accent" style="font-weight:700">Equipo incluido en tu plan</span></div>':'')
+  +'<div style="height:1px;background:var(--color-divider);margin:14px 0 10px"></div>'
+  +'<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span style="color:var(--color-neutral-600)">'
+  +(gar?('Pagas al contratar ('+s.rentas+' '+(s.rentas===1?'renta':'rentas')+')'):'Enganche · pagas hoy')+'</span><b id="toti">'+this.fmx(inicial)+'</b></div>'
+  +'<button class="btn btn-primary btn-block" style="margin-top:14px;padding:14px 16px;font-size:14.5px" onclick="APP.interesa()">'+ICO.wa(17)+'Me interesa, contáctame</button>'
+  +'<div style="margin-top:9px;font-size:10.5px;color:var(--color-neutral-600)">Estimado sin compromiso. Sujeto a evaluación crediticia y vigencia de promociones.</div></div>';
+  var entries=Object.keys(dv.specs||{}).map(function(k){return [k,dv.specs[k]];});
+  var rows=s.specsFull?entries:entries.slice(0,7);
+  h+='<div class="hr2" style="margin:26px 0 14px"></div><h4 style="margin:0;font-size:17px">Ficha técnica</h4>'
+  +'<table class="table" style="margin-top:8px;font-size:13px"><tbody>';
+  rows.forEach(function(r){h+='<tr><td style="color:var(--color-neutral-600);white-space:nowrap;vertical-align:top">'+esc(r[0])+'</td><td>'+esc(r[1])+'</td></tr>';});
+  h+='</tbody></table>';
+  if(entries.length>7)h+='<button class="btn btn-ghost" style="margin-top:6px;font-size:13px" onclick="APP.tog(\'specsFull\')">'
+   +(s.specsFull?'Ver menos':('Ver ficha completa ('+entries.length+')'))+'</button>';
+  h+='</div></div>';
+  var devs=this.equipos(),info={};devs.forEach(function(d){info[d.id]={contado:window.PRICES[d.id].contado};});
+  var others=devs.filter(function(d){return d.id!==s.dev&&d.id!==base;});
+  var C0=window.PRICES[id].contado;
+  var mismos=others.filter(function(d){return d.brand===dv.brand;}).sort(function(a,b){return Math.abs(info[a.id].contado-C0)-Math.abs(info[b.id].contado-C0);});
+  var resto=others.filter(function(d){return d.brand!==dv.brand;}).sort(function(a,b){return Math.abs(info[a.id].contado-C0)-Math.abs(info[b.id].contado-C0);});
+  var rel=mismos.slice(0,2).concat(resto).slice(0,4);
+  if(rel.length){h+='<div class="hr2" style="margin:34px 0 0"></div>'
+   +'<div style="display:flex;align-items:baseline;justify-content:space-between;padding:20px 0 12px"><h4 style="margin:0;font-size:18px">También te puede gustar</h4></div>'
+   +this.gridHTML(rel);}
+  h+='</div></div>';
+  return h;},
 
-  <section data-screen-label="Home · Mensualidad" style="max-width:1180px;margin:0 auto;padding:0 20px">
-    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:28px 0 14px">
-      <h2 style="margin:0;font-size:clamp(21px,3vw,27px);letter-spacing:-.02em">Encuentra por mensualidad</h2>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));border-top:1px solid var(--color-neutral-300)">
-      <sc-for list="{{bands}}" as="item" hint-placeholder-count="4">
-        <button onClick="{{item.go}}" style="background:var(--color-bg);border:0;border-right:1px solid var(--color-neutral-300);border-bottom:1px solid var(--color-neutral-300);padding:20px 16px 18px;display:flex;flex-direction:column;gap:4px;text-align:left;cursor:pointer;font-family:inherit;color:inherit;min-width:0" style-hover="background:var(--color-neutral-100)">
-          <span style="font-family:var(--font-heading);font-weight:800;font-size:19px;letter-spacing:-.02em">{{item.label}}</span>
-          <span style="font-size:11.5px;color:var(--color-neutral-600)">{{item.countTxt}}</span>
-        </button>
-      </sc-for>
-    </div>
-  </section>
+ v3dHTML:function(){var s=this.s,dv=this.findDev(s.varId),m3=dv?this.model3d(dv.id):null;
+  if(!m3)return '';
+  return '<div id="v3d"><model-viewer src="'+esc(m3.src)+'"'+(m3.ios?(' ios-src="'+esc(m3.ios)+'"'):'')
+  +' alt="'+esc(dv.name)+'" camera-controls auto-rotate shadow-intensity="1" style="width:100%;height:100%;background:var(--color-surface)"></model-viewer>'
+  +'<button class="btn btn-secondary btn-icon" style="position:absolute;top:14px;right:14px;background:var(--color-bg)" onclick="APP.set({v3d:false})">'+ICO.x+'</button>'
+  +((m3.by)?('<div style="position:absolute;left:14px;bottom:10px;font-size:10px;color:var(--color-neutral-600)">Modelo 3D: '+esc(m3.by)+' · '+esc(m3.lic||'')+'</div>'):'')
+  +'</div>';},
 
-  <section data-screen-label="Home · CTA asesor" style="background:var(--color-accent);margin-top:36px">
-    <div style="max-width:1180px;margin:0 auto;padding:46px 20px 50px">
-      <h2 style="margin:0;color:var(--color-bg);font-size:clamp(26px,4.6vw,44px);line-height:1.06;letter-spacing:-.02em;max-width:640px;text-wrap:balance">¿Dudas entre dos equipos? Tu asesor te ayuda a decidir.</h2>
-      <p style="margin:14px 0 0;color:var(--color-accent-100);font-size:15px;line-height:1.55;max-width:520px">Cuéntale qué usas y cuánto quieres pagar al mes. Te arma opciones reales, sin compromiso.</p>
-      <button onClick="{{waEscribir}}" class="btn" style="margin-top:24px;background:var(--color-bg);color:var(--color-accent-700);padding:13px 20px;font-size:14.5px;white-space:nowrap"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.2.2 2.1 3.2 5 4.5.7.3 1.3.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.2-.3-.2-.6-.4z"></path><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2z"></path></svg>Escribir por WhatsApp</button>
-    </div>
-  </section>
-  </sc-if>
+ footerHTML:function(){var s=this.s;
+  return '<footer class="wrap" style="padding-top:36px;padding-bottom:20px"><div class="hr2"></div>'
+  +'<p style="margin:18px 0 0;font-size:11px;line-height:1.6;color:var(--color-neutral-600);max-width:640px">Precios estimados, sujetos a vigencia y a aprobación crediticia. Imágenes ilustrativas. Prime MX es distribuidor autorizado de AT&amp;T México.</p>'
+  +'<button class="btn btn-ghost" style="font-size:12px;margin-top:4px" onclick="APP.tog(\'legal\')">'+(s.legal?'Ocultar información legal':'Ver información legal completa')+'</button>'
+  +(s.legal?('<ul style="margin:8px 0 0;padding-left:16px;font-size:11px;line-height:1.65;color:var(--color-neutral-600);max-width:640px">'
+   +'<li>Los precios incluyen la renta del plan más el financiamiento del equipo. El monto final del pago inicial y de la mensualidad se determina tras la evaluación crediticia.</li>'
+   +'<li>Precios y promociones sujetos a vigencia y disponibilidad de inventario.</li>'
+   +'<li>La contratación está sujeta a la firma del contrato de servicios de AT&amp;T México.</li>'
+   +'<li>Colores y presentación de los equipos pueden variar según disponibilidad.</li>'
+   +'<li>Consulta términos y condiciones en <a href="https://www.att.com.mx" target="_blank" rel="noopener">att.com.mx</a> o con tu asesor.</li></ul>'):'')
+  +'<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;margin-top:20px;font-size:11px;color:var(--color-neutral-600)">'
+  +'<span style="font-family:var(--font-heading);font-weight:800;font-size:12px;letter-spacing:.08em;color:var(--color-text)">PRIME<span style="color:var(--color-accent)">MX</span></span>'
+  +'<span>· Distribuidor autorizado AT&amp;T México · Catálogo del '+esc(this.fecha())+'</span></div></footer>';},
 
-  <sc-if value="{{isCat}}" hint-placeholder-val="{{false}}">
-  <section data-screen-label="Catálogo" style="max-width:1180px;margin:0 auto;padding:0 20px">
-    <div style="display:flex;align-items:baseline;gap:10px;padding:26px 0 4px">
-      <h2 style="margin:0;font-size:clamp(22px,3vw,28px);letter-spacing:-.02em">{{catTitle}}</h2>
-      <span style="font-size:13px;color:var(--color-neutral-600)">{{catCountTxt}}</span>
-    </div>
-    <div class="nsb" style="display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px">
-      <sc-for list="{{marcaChips}}" as="item" hint-placeholder-count="6">
-        <button onClick="{{item.go}}" style="{{item.st}}">{{item.label}}</button>
-      </sc-for>
-    </div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0 16px">
-      <select class="input" value="{{orden}}" onChange="{{onOrden}}" style="width:auto;font-size:13px;min-height:38px">
-        <option value="desde">Menor mensualidad</option>
-        <option value="desdeDesc">Mayor mensualidad</option>
-        <option value="pct">Mayor descuento</option>
-        <option value="contadoDesc">Contado: mayor a menor</option>
-        <option value="nuevo">Novedades primero</option>
-      </select>
-      <select class="input" value="{{banda}}" onChange="{{onBanda}}" style="width:auto;font-size:13px;min-height:38px">
-        <option value="">Mensualidad: todas</option>
-        <option value="0">Hasta $500/mes</option>
-        <option value="1">$501 a $900/mes</option>
-        <option value="2">$901 a $1,500/mes</option>
-        <option value="3">Más de $1,500/mes</option>
-      </select>
-      <select class="input" value="{{gama}}" onChange="{{onGama}}" style="width:auto;font-size:13px;min-height:38px">
-        <option value="">Gama: todas</option>
-        <option value="e">Esencial</option>
-        <option value="m">Media</option>
-        <option value="a">Alta</option>
-        <option value="p">Premium</option>
-      </select>
-      <button onClick="{{togOfertas}}" style="{{ofertasSt}}">Solo ofertas</button>
-      <sc-if value="{{filtering}}" hint-placeholder-val="{{false}}">
-        <button class="btn btn-ghost" onClick="{{clearFilters}}" style="font-size:13px">Limpiar filtros</button>
-      </sc-if>
-    </div>
-    <sc-if value="{{catHas}}" hint-placeholder-val="{{true}}">
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));border-top:1px solid var(--color-neutral-300)">
-      <sc-for list="{{catList}}" as="item" hint-placeholder-count="8">
-        <button onClick="{{item.open}}" style="display:flex;flex-direction:column;align-items:stretch;min-width:0;text-align:left;background:var(--color-bg);border:0;border-right:1px solid var(--color-neutral-300);border-bottom:1px solid var(--color-neutral-300);padding:12px 12px 16px;cursor:pointer;font-family:inherit;color:inherit" style-hover="background:var(--color-neutral-100)">
-          <span style="position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1.06;background:var(--color-surface);overflow:hidden">
-            <sc-if value="{{item.hasImg}}" hint-placeholder-val="{{false}}"><img class="grayscale" src="{{item.img}}" alt="" loading="lazy" style="max-width:64%;max-height:78%;object-fit:contain;mix-blend-mode:multiply"></sc-if>
-            <sc-if value="{{item.noImg}}" hint-placeholder-val="{{false}}"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-400)" stroke-width="1.5" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"></rect><path d="M10 18.5h4"></path></svg></sc-if>
-            <sc-if value="{{item.pctTxt}}" hint-placeholder-val="{{false}}"><span style="position:absolute;top:8px;left:8px;background:var(--color-accent-100);color:var(--color-accent-800);font-size:11px;font-weight:700;padding:3px 8px;white-space:nowrap">{{item.pctTxt}}</span></sc-if>
-            <sc-if value="{{item.nuevo}}" hint-placeholder-val="{{false}}"><span style="position:absolute;top:8px;right:8px;border:1px solid var(--color-accent);color:var(--color-accent-700);background:var(--color-bg);font-size:9.5px;font-weight:700;letter-spacing:.08em;padding:2px 7px">NUEVO</span></sc-if>
-            <sc-if value="{{item.d3}}" hint-placeholder-val="{{false}}"><span style="position:absolute;bottom:8px;right:8px;background:var(--color-text);color:var(--color-bg);font-size:9.5px;font-weight:700;padding:3px 7px;display:flex;align-items:center;gap:4px"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 5v10l-9 5-9-5V7z"></path></svg>3D</span></sc-if>
-          </span>
-          <span style="margin-top:11px;font-size:9.5px;font-weight:600;letter-spacing:.12em;color:var(--color-neutral-600)">{{item.brand}}</span>
-          <span style="margin-top:3px;font-size:15px;font-weight:600;line-height:1.25;letter-spacing:-.01em">{{item.name}}</span>
-          <span style="margin-top:2px;font-size:12px;color:var(--color-neutral-600)">{{item.storage}}</span>
-          <span style="margin-top:11px;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)">Desde</span>
-          <span style="display:flex;align-items:baseline;gap:4px"><span style="font-family:var(--font-heading);font-weight:800;font-size:19px;letter-spacing:-.02em">{{item.desdeTxt}}</span><span style="font-size:11px;color:var(--color-neutral-600)">/mes</span></span>
-          <sc-if value="{{showContado}}" hint-placeholder-val="{{true}}"><span style="margin-top:3px;font-size:11px;color:var(--color-neutral-600)">Contado {{item.contadoTxt}}</span></sc-if>
-        </button>
-      </sc-for>
-    </div>
-    </sc-if>
-    <sc-if value="{{catEmpty}}" hint-placeholder-val="{{false}}">
-      <div style="padding:56px 0 70px">
-        <h3 style="margin:0 0 6px;font-size:21px">Sin resultados</h3>
-        <p style="margin:0;font-size:14px;color:var(--color-neutral-600)">Prueba con otra búsqueda o quita algún filtro.</p>
-        <button class="btn btn-secondary" onClick="{{clearFilters}}" style="margin-top:16px">Quitar filtros</button>
-      </div>
-    </sc-if>
-  </section>
-  </sc-if>
+ barHTML:function(){var A=this.s.asesor;
+  return '<div class="abar"><div class="abar-in">'
+  +(A.foto?('<img class="grayscale" src="'+esc(A.foto)+'" alt="">'):('<span class="ini">'+esc(this.ini(A.nombre))+'</span>'))
+  +'<span class="who"><b>'+esc(A.nombre||'Contactar a tu asesor')+'</b><span>'+esc(A.tienda||'Prime MX · Distribuidor autorizado AT&T')+'</span></span>'
+  +'<button class="btn btn-primary" style="padding:11px 16px;font-size:13.5px;flex:none" onclick="APP.escribir()">'+ICO.wa(16)+'WhatsApp</button>'
+  +'</div></div>';},
 
-  <footer style="max-width:1180px;margin:0 auto;padding:36px 20px 20px">
-    <div style="height:2px;background:var(--color-divider)"></div>
-    <p style="margin:18px 0 0;font-size:11px;line-height:1.6;color:var(--color-neutral-600);max-width:640px">Precios estimados, sujetos a vigencia y a aprobación crediticia. Imágenes ilustrativas. Prime MX es distribuidor autorizado de AT&amp;T México.</p>
-    <button class="btn btn-ghost" onClick="{{togLegal}}" style="font-size:12px;margin-top:4px">{{legalBtnTxt}}</button>
-    <sc-if value="{{legalOpen}}" hint-placeholder-val="{{false}}">
-      <ul style="margin:8px 0 0;padding-left:16px;font-size:11px;line-height:1.65;color:var(--color-neutral-600);max-width:640px">
-        <li>Los precios incluyen la renta del plan más el financiamiento del equipo. El monto final del pago inicial y de la mensualidad se determina tras la evaluación crediticia.</li>
-        <li>Precios y promociones sujetos a vigencia y disponibilidad de inventario.</li>
-        <li>La contratación está sujeta a la firma del contrato de servicios de AT&amp;T México.</li>
-        <li>Colores y presentación de los equipos pueden variar según disponibilidad.</li>
-        <li>Consulta términos y condiciones en <a href="https://www.att.com.mx" target="_blank" rel="noopener">att.com.mx</a> o con tu asesor.</li>
-      </ul>
-    </sc-if>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;margin-top:20px;font-size:11px;color:var(--color-neutral-600)">
-      <span style="font-family:var(--font-heading);font-weight:800;font-size:12px;letter-spacing:.08em;color:var(--color-text)">PRIME<span style="color:var(--color-accent)">MX</span></span>
-      <span>· Distribuidor autorizado AT&amp;T México · Catálogo del {{metaFecha}}</span>
-    </div>
-  </footer>
-  </sc-if>
+ render:function(){var s=this.s;
+  var ae=document.activeElement,qFoc=!!(ae&&ae.id==='q'),qPos=0;
+  if(qFoc){try{qPos=ae.selectionStart;}catch(e){}}
+  var det=el('det'),detTop=det?det.scrollTop:0;
+  var y=window.scrollY;
+  var h=this.headerHTML();
+  if(!this.ready())h+='<div class="wrap" style="padding:60px 20px;font-size:14px;color:var(--color-neutral-600)">Cargando catálogo…</div>';
+  else{h+=(s.view==='home')?this.homeHTML():this.catHTML();h+=this.footerHTML();
+   if(s.dev)h+=this.detHTML();
+   if(s.v3d)h+=this.v3dHTML();}
+  h+=this.barHTML();
+  el('app').innerHTML=h;
+  window.scrollTo(0,y);
+  var d2=el('det');if(d2)d2.scrollTop=detTop;
+  if(qFoc){var q=el('q');if(q){q.focus();try{q.setSelectionRange(qPos,qPos);}catch(e){}}}},
 
-  <sc-if value="{{devOpen}}" hint-placeholder-val="{{false}}">
-  <div ref="{{detRef}}" data-screen-label="Ficha de equipo" style="position:fixed;inset:0;z-index:80;background:var(--color-bg);overflow-y:auto;-webkit-overflow-scrolling:touch">
-    <div style="position:sticky;top:0;z-index:5;background:var(--color-bg);border-bottom:2px solid var(--color-divider)">
-      <div style="max-width:1120px;margin:0 auto;padding:8px 20px;display:flex;align-items:center;gap:12px">
-        <button onClick="{{volver}}" class="btn btn-ghost" style="font-size:14px;padding-left:0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>Volver</button>
-        <span style="margin-left:auto;font-size:10.5px;letter-spacing:.12em;font-weight:700;color:var(--color-neutral-600)">{{dvBrand}}</span>
-      </div>
-    </div>
-    <div style="max-width:1120px;margin:0 auto;padding:22px 20px 160px">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:32px;align-items:start">
-        <div style="position:sticky;top:72px">
-          <div style="position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1.02;background:var(--color-surface);overflow:hidden">
-            {{dvImgEl}}
-            <sc-if value="{{dvNoImg}}" hint-placeholder-val="{{false}}"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-400)" stroke-width="1.5" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"></rect><path d="M10 18.5h4"></path></svg></sc-if>
-            <sc-if value="{{dvPctBadge}}" hint-placeholder-val="{{false}}"><span style="position:absolute;top:12px;left:12px;background:var(--color-accent);color:var(--color-bg);font-size:12px;font-weight:700;padding:5px 10px;white-space:nowrap">{{dvPctBadge}}</span></sc-if>
-            <sc-if value="{{dvNuevo}}" hint-placeholder-val="{{false}}"><span style="position:absolute;top:12px;right:12px;border:1px solid var(--color-accent);color:var(--color-accent-700);background:var(--color-bg);font-size:10px;font-weight:700;letter-spacing:.08em;padding:3px 8px">NUEVO</span></sc-if>
-            <sc-if value="{{dvHas3d}}" hint-placeholder-val="{{false}}">
-              <button onClick="{{open3D}}" style="position:absolute;bottom:12px;right:12px;background:var(--color-text);color:var(--color-bg);border:0;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;padding:9px 13px;display:flex;align-items:center;gap:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 5v10l-9 5-9-5V7z"></path></svg>Verlo en 3D</button>
-            </sc-if>
-          </div>
-          <sc-if value="{{dvYt}}" hint-placeholder-val="{{false}}">
-            <a class="btn btn-ghost" href="{{dvYt}}" target="_blank" rel="noopener" style="margin-top:10px;font-size:13px"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>Ver review en video</a>
-          </sc-if>
-        </div>
-        <div style="min-width:0">
-          <div style="font-size:10.5px;font-weight:600;letter-spacing:.12em;color:var(--color-neutral-600)">{{dvBrand}}</div>
-          <h1 style="margin:6px 0 0;font-size:clamp(27px,4vw,40px);line-height:1.06;letter-spacing:-.025em">{{dvName}}</h1>
-          <sc-if value="{{dvHasVariants}}" hint-placeholder-val="{{false}}">
-            <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
-              <sc-for list="{{dvVariants}}" as="item" hint-placeholder-count="2">
-                <button onClick="{{item.go}}" style="{{item.st}}">{{item.label}}</button>
-              </sc-for>
-            </div>
-          </sc-if>
-          <sc-if value="{{dvNoVariants}}" hint-placeholder-val="{{true}}"><div style="margin-top:6px;font-size:13.5px;color:var(--color-neutral-600)">{{dvStorage}}</div></sc-if>
-          <div style="margin-top:18px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)">Desde</div>
-          <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:2px">
-            <span style="font-family:var(--font-heading);font-weight:800;font-size:33px;letter-spacing:-.03em;white-space:nowrap">{{dvDesdeTxt}}<span style="font-size:15px;font-weight:400;color:var(--color-neutral-600)">/mes</span></span>
-            <sc-if value="{{dvPctTxt}}" hint-placeholder-val="{{false}}"><span class="tag tag-accent" style="font-weight:700;white-space:nowrap">{{dvPctTxt}}</span></sc-if>
-          </div>
-          <div style="margin-top:4px;font-size:13px;color:var(--color-neutral-600)">De contado {{dvContadoTxt}}</div>
-
-          <sc-if value="{{hasSell}}" hint-placeholder-val="{{true}}">
-            <div style="height:2px;background:var(--color-divider);margin:22px 0 16px"></div>
-            <div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase">Por qué este equipo</div>
-            <div style="display:flex;flex-direction:column;gap:9px;margin-top:12px">
-              <sc-for list="{{dvSell}}" as="item" hint-placeholder-count="3">
-                <div style="display:flex;gap:10px"><span style="width:6px;height:6px;background:var(--color-accent);flex:none;margin-top:7px"></span><span style="font-size:14px;line-height:1.5">{{item.t}}</span></div>
-              </sc-for>
-            </div>
-          </sc-if>
-
-          <div style="height:2px;background:var(--color-divider);margin:22px 0 16px"></div>
-          <h3 style="margin:0;font-size:21px;letter-spacing:-.02em">Arma tu pago mensual</h3>
-
-          <div style="margin-top:16px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase">Plan <span style="font-weight:400;color:var(--color-neutral-600);text-transform:none;letter-spacing:0">· comparativa a 36 meses</span></div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:8px;margin-top:10px">
-            <sc-for list="{{planOpts}}" as="item" hint-placeholder-count="4">
-              <button onClick="{{item.go}}" style="{{item.st}}">
-                <span style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;width:100%">
-                  <span style="font-size:15px;font-weight:700">{{item.name}}</span>
-                  <span style="font-family:var(--font-heading);font-weight:800;font-size:15px">{{item.mTxt}}<span style="font-size:10px;font-weight:400;color:var(--color-neutral-600)">/mes</span></span>
-                </span>
-                <span style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px">
-                  <span class="tag tag-neutral">{{item.gbTxt}}</span>
-                  <sc-if value="{{item.free}}" hint-placeholder-val="{{false}}"><span class="tag tag-accent">Equipo incluido</span></sc-if>
-                </span>
-              </button>
-            </sc-for>
-          </div>
-          <sc-if value="{{hasMorePlanes}}" hint-placeholder-val="{{false}}"><button class="btn btn-ghost" onClick="{{verTodosPlanes}}" style="margin-top:8px;font-size:13px">Ver los {{planTotal}} planes</button></sc-if>
-          <div style="margin-top:8px;font-size:10.5px;color:var(--color-neutral-600)">Todos incluyen 6 redes sociales ilimitadas y llamadas sin límite. *Aplica Política de Uso Justo de AT&amp;T.</div>
-
-          <div style="margin-top:20px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase">Plazo</div>
-          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-            <sc-for list="{{plazos}}" as="item" hint-placeholder-count="3">
-              <button onClick="{{item.go}}" style="{{item.st}}">
-                <span style="font-family:var(--font-heading);font-weight:800;font-size:16px">{{item.label}}</span>
-                <span style="font-size:11px;color:var(--color-neutral-600)">{{item.mTxt}}/mes</span>
-              </button>
-            </sc-for>
-          </div>
-
-          <sc-if value="{{showEng}}" hint-placeholder-val="{{false}}">
-            <div style="margin-top:20px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase">Enganche <span style="font-weight:400;color:var(--color-neutral-600);text-transform:none;letter-spacing:0">· opcional, baja tu mensualidad</span></div>
-            <div style="border:1px solid var(--color-divider);padding:14px 16px;margin-top:10px">
-              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;color:var(--color-neutral-600)">Das hoy</span><span style="font-family:var(--font-heading);font-weight:800;font-size:19px">{{engValTxt}}</span></div>
-              <input type="range" min="0" max="{{engMax}}" step="100" value="{{engVal}}" onInput="{{onEng}}" style="width:100%;margin:10px 0 4px">
-              <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--color-neutral-600)"><span>$0</span><span>{{engMaxTxt}}</span></div>
-            </div>
-          </sc-if>
-          <sc-if value="{{esGarSel}}" hint-placeholder-val="{{false}}">
-            <div style="margin-top:20px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase">Rentas de garantía <span style="font-weight:400;color:var(--color-neutral-600);text-transform:none;letter-spacing:0">· depósito, no cambia tu mensualidad</span></div>
-            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-              <sc-for list="{{rentasOpts}}" as="item" hint-placeholder-count="4">
-                <button onClick="{{item.go}}" style="{{item.st}}"><span style="font-family:var(--font-heading);font-weight:800;font-size:16px">{{item.n}}</span><span style="font-size:10.5px;color:var(--color-neutral-600)">{{item.label}}</span></button>
-              </sc-for>
-            </div>
-            <div style="margin-top:8px;font-size:12px;color:var(--color-neutral-600)">Pagas al contratar: <b style="color:var(--color-text)">{{rentasPagoTxt}}</b>. El número final lo define tu evaluación crediticia.</div>
-          </sc-if>
-
-          <div style="margin-top:20px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase">Extras opcionales</div>
-          <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
-            <sc-if value="{{hasSeguro}}" hint-placeholder-val="{{false}}">
-              <button onClick="{{togSeguro}}" style="{{seguroSt}}">
-                <span style="display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left">
-                  <span style="font-size:14px;font-weight:700">Seguro de protección <span style="font-family:var(--font-heading);font-weight:800">{{segPriceTxt}}</span></span>
-                  <span style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.45">Robo y daño fuera de garantía · hasta 2 reemplazos al año. Deducible 30% daño / 40% robo. Póliza Allianz, administra Asurion.</span>
-                </span>
-                <span style="{{seguroBox}}"><sc-if value="{{seguroOn}}" hint-placeholder-val="{{false}}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-bg)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></sc-if></span>
-              </button>
-            </sc-if>
-            <button onClick="{{togControl}}" style="{{controlSt}}">
-              <span style="display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left">
-                <span style="font-size:14px;font-weight:700">Control de datos <span style="font-family:var(--font-heading);font-weight:800">{{ctrlPriceTxt}}</span></span>
-                <span style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.45">Sin cargos sorpresa: al agotar tus datos, el servicio se pausa en lugar de cobrar extra.</span>
-              </span>
-              <span style="{{controlBox}}"><sc-if value="{{controlOn}}" hint-placeholder-val="{{false}}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-bg)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></sc-if></span>
-            </button>
-          </div>
-
-          <div style="border:2px solid var(--color-text);margin-top:22px;padding:18px 18px 16px">
-            <div style="font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600)">Pagarías al mes</div>
-            <div style="font-family:var(--font-heading);font-weight:800;font-size:clamp(36px,6vw,46px);letter-spacing:-.03em;line-height:1.05;margin-top:6px">{{totMensualTxt}}</div>
-            <div style="margin-top:5px;font-size:12.5px;color:var(--color-neutral-600)">{{resumenTxt}}</div>
-            <sc-if value="{{totFree}}" hint-placeholder-val="{{false}}"><div style="margin-top:10px"><span class="tag tag-accent" style="font-weight:700">Equipo incluido en tu plan</span></div></sc-if>
-            <div style="height:1px;background:var(--color-divider);margin:14px 0 10px"></div>
-            <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span style="color:var(--color-neutral-600)">{{inicialLbl}}</span><b>{{totInicialTxt}}</b></div>
-            <button onClick="{{waInteresa}}" class="btn btn-primary btn-block" style="margin-top:14px;padding:14px 16px;font-size:14.5px"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.2.2 2.1 3.2 5 4.5.7.3 1.3.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.2-.3-.2-.6-.4z"></path><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2z"></path></svg>Me interesa, contáctame</button>
-            <div style="margin-top:9px;font-size:10.5px;color:var(--color-neutral-600)">Estimado sin compromiso. Sujeto a evaluación crediticia y vigencia de promociones.</div>
-          </div>
-
-          <div style="height:2px;background:var(--color-divider);margin:26px 0 14px"></div>
-          <h4 style="margin:0;font-size:17px">Ficha técnica</h4>
-          <table class="table" style="margin-top:8px;font-size:13px">
-            <tbody>
-              <sc-for list="{{specRows}}" as="item" hint-placeholder-count="6">
-                <tr><td style="color:var(--color-neutral-600);white-space:nowrap;vertical-align:top">{{item.k}}</td><td>{{item.v}}</td></tr>
-              </sc-for>
-            </tbody>
-          </table>
-          <sc-if value="{{hasSpecsToggle}}" hint-placeholder-val="{{false}}"><button class="btn btn-ghost" onClick="{{togSpecs}}" style="margin-top:6px;font-size:13px">{{specsBtnTxt}}</button></sc-if>
-        </div>
-      </div>
-
-      <sc-if value="{{hasRelated}}" hint-placeholder-val="{{false}}">
-        <div style="height:2px;background:var(--color-divider);margin:34px 0 0"></div>
-        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:20px 0 12px">
-          <h4 style="margin:0;font-size:18px">También te puede gustar</h4>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));border-top:1px solid var(--color-neutral-300)">
-          <sc-for list="{{related}}" as="item" hint-placeholder-count="4">
-            <button onClick="{{item.open}}" style="display:flex;flex-direction:column;align-items:stretch;min-width:0;text-align:left;background:var(--color-bg);border:0;border-right:1px solid var(--color-neutral-300);border-bottom:1px solid var(--color-neutral-300);padding:12px 12px 16px;cursor:pointer;font-family:inherit;color:inherit" style-hover="background:var(--color-neutral-100)">
-              <span style="position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1.06;background:var(--color-surface);overflow:hidden">
-                <sc-if value="{{item.hasImg}}" hint-placeholder-val="{{false}}"><img class="grayscale" src="{{item.img}}" alt="" loading="lazy" style="max-width:64%;max-height:78%;object-fit:contain;mix-blend-mode:multiply"></sc-if>
-                <sc-if value="{{item.noImg}}" hint-placeholder-val="{{false}}"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-400)" stroke-width="1.5" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"></rect><path d="M10 18.5h4"></path></svg></sc-if>
-                <sc-if value="{{item.pctTxt}}" hint-placeholder-val="{{false}}"><span style="position:absolute;top:8px;left:8px;background:var(--color-accent-100);color:var(--color-accent-800);font-size:11px;font-weight:700;padding:3px 8px;white-space:nowrap">{{item.pctTxt}}</span></sc-if>
-              </span>
-              <span style="margin-top:11px;font-size:9.5px;font-weight:600;letter-spacing:.12em;color:var(--color-neutral-600)">{{item.brand}}</span>
-              <span style="margin-top:3px;font-size:15px;font-weight:600;line-height:1.25;letter-spacing:-.01em">{{item.name}}</span>
-              <span style="margin-top:2px;font-size:12px;color:var(--color-neutral-600)">{{item.storage}}</span>
-              <span style="margin-top:11px;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)">Desde</span>
-              <span style="display:flex;align-items:baseline;gap:4px"><span style="font-family:var(--font-heading);font-weight:800;font-size:19px;letter-spacing:-.02em">{{item.desdeTxt}}</span><span style="font-size:11px;color:var(--color-neutral-600)">/mes</span></span>
-            </button>
-          </sc-for>
-        </div>
-      </sc-if>
-    </div>
-  </div>
-  </sc-if>
-
-  <sc-if value="{{v3dOpen}}" hint-placeholder-val="{{false}}">
-  <div style="position:fixed;inset:0;z-index:130;background:var(--color-surface)">
-    <model-viewer src="{{d3src}}" ios-src="{{d3ios}}" alt="{{dvName}}" camera-controls="true" auto-rotate="true" shadow-intensity="1" style="width:100%;height:100%;background:var(--color-surface)"></model-viewer>
-    <button onClick="{{close3D}}" class="btn btn-secondary btn-icon" style="position:absolute;top:14px;right:14px;background:var(--color-bg)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg></button>
-    <sc-if value="{{d3credit}}" hint-placeholder-val="{{false}}"><div style="position:absolute;left:14px;bottom:10px;font-size:10px;color:var(--color-neutral-600)">{{d3credit}}</div></sc-if>
-  </div>
-  </sc-if>
-
-  <div data-screen-label="Barra asesor" style="position:fixed;left:0;right:0;bottom:0;z-index:100;background:var(--color-bg);border-top:2px solid var(--color-divider)">
-    <div style="max-width:1180px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:12px">
-      {{aseFotoEl}}
-      <sc-if value="{{aseNoFoto}}" hint-placeholder-val="{{true}}"><span style="width:40px;height:40px;background:var(--color-text);color:var(--color-bg);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:800;font-size:13px;flex:none">{{aseIni}}</span></sc-if>
-      <span style="flex:1;min-width:0;display:flex;flex-direction:column">
-        <span style="font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{aseNombre}}</span>
-        <span style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{aseTienda}}</span>
-      </span>
-      <button onClick="{{waEscribir}}" class="btn btn-primary" style="padding:11px 16px;font-size:13.5px;flex:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.2.2 2.1 3.2 5 4.5.7.3 1.3.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.2-.3-.2-.6-.4z"></path><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2z"></path></svg>WhatsApp</button>
-    </div>
-  </div>
-
-</div>
-</x-dc>
-<script type="text/x-dc" data-dc-script data-props="{
-  &quot;umbralOferta&quot;: {&quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 45, &quot;min&quot;: 10, &quot;max&quot;: 90, &quot;unit&quot;: &quot;%&quot;, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Comercial&quot;},
-  &quot;mostrarContado&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Comercial&quot;},
-  &quot;heroId&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Comercial&quot;}
-}">
-class Component extends DCLogic {
-  state = { ready:false, view:'home', q:'', marca:'Todas', banda:'', gama:'', orden:'desde', ofertas:false,
-    dev:null, varId:null, plan:null, plazo:null, eng:0, rentas:0, todosPlanes:false, seguro:false, control:false,
-    specsFull:false, legalOpen:false, v3d:false,
-    asesor:{attuid:'',nombre:'',tel:'',tienda:'',foto:''} };
-
-  componentDidMount(){
-    this._poll=setInterval(()=>{ if(window.CAT&&window.PRICES&&window.PLANS_DATA){clearInterval(this._poll);this.setState({ready:true});} },80);
-    /* Watchdog: los scripts del helmet se inyectan async y a veces no ejecutan.
-       Si a los 2.5s faltan los datos o las fotos, se re-inyectan (máx. 3 intentos). */
-    this._retry=0;
-    this._watch=setInterval(()=>{
-      var needData=!window.CAT, needImg=!window.IMG||Object.keys(window.IMG||{}).length===0;
-      if(!needData&&!needImg){ clearInterval(this._watch); return; }
-      if(this._retry>=3){ clearInterval(this._watch); return; }
-      this._retry++;
-      if(needData) this.inject('catalog.js');
-      if(needImg) this.inject('catalog-img.js');
-    },2500);
-    this._imgs=()=>this.forceUpdate();
-    window.addEventListener('cat-imgs',this._imgs);
-    this._pop=()=>{ if(this.state.dev) this.setState({dev:null,v3d:false}); };
-    window.addEventListener('popstate',this._pop);
-    var qs=new URLSearchParams(location.search);
-    var a={attuid:qs.get('a')||'',nombre:qs.get('n')||'',tel:(qs.get('t')||'').replace(/\D/g,''),tienda:qs.get('s')||'',foto:qs.get('f')||''};
-    this.setState({asesor:a});
-    if(a.attuid&&!a.nombre){
-      fetch('https://firestore.googleapis.com/v1/projects/techguide-primemx/databases/(default)/documents/asesores_publicos/'+encodeURIComponent(a.attuid))
-        .then(r=>r.ok?r.json():null).then(j=>{ if(j&&j.fields){ var f=j.fields;
-          this.setState({asesor:{attuid:a.attuid,
-            nombre:(f.nombre&&f.nombre.stringValue)||a.nombre,
-            tel:((f.telefono&&f.telefono.stringValue)||a.tel).replace(/\D/g,''),
-            tienda:(f.tienda&&f.tienda.stringValue)||a.tienda,
-            foto:(f.foto&&f.foto.stringValue)||a.foto}}); } }).catch(()=>{});
-    }
-  }
-  componentWillUnmount(){ clearInterval(this._poll); clearInterval(this._watch); window.removeEventListener('cat-imgs',this._imgs); window.removeEventListener('popstate',this._pop); }
-  inject(src){ var s=document.createElement('script'); s.src=src; document.head.appendChild(s); }
-
-  /* ── lógica de negocio idéntica al catálogo v1.19 ── */
-  get PL(){ return ['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Diamante']; }
-  hoy(){ return new Date().toISOString().slice(0,10); }
-  fmx(n){ return '$'+Math.round(n||0).toLocaleString('es-MX'); }
-  vigente(id){ var v=window.VIGENCY?window.VIGENCY[id]:null; return !v||v==='indefinido'||v>=this.hoy(); }
-  renta(p){ var r=null;(window.PLANS_DATA||[]).forEach(function(x){if(x.name===p)r=x.renta;}); return r; }
-  gbDe(p){ var g=null;(window.PLANS_DATA||[]).forEach(function(x){if(x.name===p)g=x.gb;}); return g; }
-  baseOf(id){ var SV=window.STORAGE_VARIANTS||{}; for(var k in SV){ var l=SV[k]||[]; for(var i=0;i<l.length;i++){ if(l[i][1]===id) return k; } } return id; }
-  img(id){ var T=window.IMG; if(!T)return null; var v=T[id]; if(typeof v==='string'&&v.length<40&&T[v])v=T[v];
-    if(!(typeof v==='string'&&v.length>60)){ var b=this.baseOf(id); if(b!==id){ v=T[b]; if(typeof v==='string'&&v.length<40&&T[v])v=T[v]; } }
-    return (typeof v==='string'&&v.length>60)?v:null; }
-  findDev(id){ var d=null,C=window.CAT||{}; Object.keys(C).forEach(function(c){ (C[c]||[]).forEach(function(x){ if(x.id===id)d=x; }); }); return d; }
-  promoDe(id,plan,plazo){ var pr=window.PRICES[id]; if(!pr||!pr.planes||!pr.planes[plan])return null; var v=pr.planes[plan][String(plazo)]; return (v===null||v===undefined)?null:v; }
-  descuento(id,plan,plazo){ var pr=window.PRICES[id],promo=this.promoDe(id,plan,plazo); if(!pr||!pr.contado||promo===null)return 0; return Math.floor((pr.contado-promo)/pr.contado*100); }
-  esGarF(id,plan,plazo){ return this.descuento(id,plan,plazo)>=70; }
-  tope(id,plan,plazo){ var promo=this.promoDe(id,plan,plazo); if(promo===null||promo<=0)return 0; if(this.esGarF(id,plan,plazo))return 0; return Math.floor(Math.min(promo*0.70,promo)/100)*100; }
-  mensual(id,plan,plazo,eng){ var promo=this.promoDe(id,plan,plazo); if(promo===null)return null; var r=this.renta(plan); if(r===null||r===undefined)return null;
-    var fin=this.esGarF(id,plan,plazo)?promo:Math.max(0,promo-(eng||0)); return r+Math.round(fin/plazo); }
-  desdeGlobal(id){ var min=null,self=this; this.PL.forEach(function(p){ [24,30,36].forEach(function(z){ var m=self.mensual(id,p,z,0); if(m!==null&&(min===null||m<min))min=m; }); }); return min; }
-  descMax(id){ var m=0,self=this; this.PL.forEach(function(p){ [24,30,36].forEach(function(z){ var d=self.descuento(id,p,z); if(d>m)m=d; }); }); return m; }
-  planTieneFree(id,p){ var self=this; return [24,30,36].some(function(z){ return self.promoDe(id,p,z)===0; }); }
-  planConPrecio(id,p){ var self=this; return [24,30,36].some(function(z){ return self.mensual(id,p,z,0)!==null; }); }
-  refMensual(id,p){ var zs=[36,30,24]; for(var i=0;i<zs.length;i++){ var m=this.mensual(id,p,zs[i],0); if(m!==null)return m; } return null; }
-  sugeridos(d){ var PL=this.PL,c=window.PRICES[d.id]?window.PRICES[d.id].contado:0;
-    if(d.brand==='APPLE')return PL.slice(PL.indexOf('Plata'));
-    if(c<5000)return PL.slice(0,PL.indexOf('Plata')+1);
-    if(c<10000)return PL.slice(PL.indexOf('Azul 2'),PL.indexOf('Oro')+1);
-    if(c<15000)return PL.slice(PL.indexOf('Azul 3'),PL.indexOf('Black')+1);
-    return PL.slice(PL.indexOf('Plata'),PL.indexOf('Platino')+1); }
-  poliza(id){ var c=window.PRICES[id]?window.PRICES[id].contado:0,t=window.SEGURO_TIERS||[];
-    for(var i=0;i<t.length;i++){ if(c>=t[i].min&&c<=t[i].max)return t[i]; } return null; }
-  model3d(id){ var M=window.MODEL3D||{},m=M[id]||M[this.baseOf(id)]; if(typeof m==='string')m=M[m]; return (m&&m.src)?m:null; }
-  equipos(){ var out=[],self=this,C=window.CAT||{};
-    Object.keys(C).forEach(function(c){ (C[c]||[]).forEach(function(d){
-      if(self.baseOf(d.id)!==d.id)return;
-      if(!self.vigente(d.id))return;
-      if(!window.PRICES[d.id]||!window.PRICES[d.id].contado)return;
-      if(self.desdeGlobal(d.id)===null)return;
-      out.push(d); }); });
-    return out; }
-  umbral(){ return this.props.umbralOferta ?? 45; }
-  cap(s){ return s.charAt(0)+s.slice(1).toLowerCase(); }
-  fecha(){ var M=window.CATALOG_META; if(!M||!M.catalog_date)return '';
-    var p=M.catalog_date.split('-');
-    var mes=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][Number(p[1])-1]||'';
-    return Number(p[2])+' '+mes+' '+p[0]; }
-  ini(s){ var p=String(s||'').trim().split(/\s+/); return (((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase(); }
-
-  card(d){ var self=this,id=d.id,pct=this.descMax(id),im=this.img(id);
-    return { id:id, brand:d.brand, name:d.name, storage:d.storage,
-      img:im, hasImg:!!im, noImg:!im,
-      pctTxt:pct>=this.umbral()?(pct>=100?'Incluido':('-'+pct+'%')):null,
-      nuevo:d.status==='NPI', d3:!!this.model3d(id),
-      desdeTxt:this.fmx(this.desdeGlobal(id)),
-      contadoTxt:this.fmx(window.PRICES[id].contado),
-      open:function(){ self.openDev(id); } }; }
-
-  /* estilos de estado (solo lo que varía con la interacción) */
-  chipSt(on){ var b='border:1px solid var(--color-divider);background:transparent;color:inherit;font-family:inherit;font-size:13px;padding:9px 15px;cursor:pointer;white-space:nowrap;min-height:38px;';
-    return on? b+'background:var(--color-text);color:var(--color-bg);border-color:var(--color-text);font-weight:600':b; }
-  optSt(on){ var b='display:flex;flex-direction:column;align-items:stretch;padding:13px 14px;cursor:pointer;text-align:left;font-family:inherit;color:inherit;min-width:0;';
-    return on? b+'border:1px solid var(--color-text);box-shadow:inset 0 0 0 1px var(--color-text);background:var(--color-surface)':b+'border:1px solid var(--color-divider);background:var(--color-bg)'; }
-  boxSt(on){ var b='display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:10px 18px;cursor:pointer;font-family:inherit;color:inherit;';
-    return on? b+'border:1px solid var(--color-text);box-shadow:inset 0 0 0 1px var(--color-text);background:var(--color-surface)':b+'border:1px solid var(--color-divider);background:var(--color-bg)'; }
-  extraSt(on){ var b='display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 15px;cursor:pointer;font-family:inherit;color:inherit;width:100%;';
-    return on? b+'border:1px solid var(--color-text);box-shadow:inset 0 0 0 1px var(--color-text);background:var(--color-surface)':b+'border:1px solid var(--color-divider);background:var(--color-bg)'; }
-  checkSt(on){ var b='width:18px;height:18px;flex:none;margin-top:2px;display:flex;align-items:center;justify-content:center;';
-    return on? b+'background:var(--color-accent);border:1px solid var(--color-accent)':b+'border:1px solid var(--color-neutral-500);background:var(--color-bg)'; }
-
-  /* navegación */
-  goHome(){ this.setState({view:'home',dev:null,q:''},function(){window.scrollTo(0,0);}); }
-  goCat(extra){ this.setState(Object.assign({view:'cat',dev:null},extra||{}),function(){window.scrollTo(0,0);}); }
-  defPlazo(id,plan){ if(!plan)return null; var zs=[36,30,24]; for(var i=0;i<zs.length;i++){ if(this.mensual(id,plan,zs[i],0)!==null)return zs[i]; } return null; }
-  defaults(id){ var d=this.findDev(id),self=this;
-    var con=this.PL.filter(function(p){ return self.planConPrecio(id,p); });
-    var sug=d?this.sugeridos(d).filter(function(p){ return con.indexOf(p)>=0; }):[];
-    var lista=sug.length?sug:con;
-    var fp=(window.FIRST_PLAN||{})[id];
-    var plan=(fp&&con.indexOf(fp)>=0)?fp:(lista[0]||null);
-    return { plan:plan, plazo:this.defPlazo(id,plan), eng:0, rentas:0 }; }
-  openDev(id){ var d=this.findDev(id); if(!d)return;
-    var st=Object.assign({dev:id,varId:id,todosPlanes:false,seguro:false,control:false,specsFull:false,v3d:false},this.defaults(id));
-    this.setState(st,()=>{ if(this._det)this._det.scrollTop=0; });
-    try{ history.pushState({d:1},'','#'+id); }catch(e){} }
-  closeDev(){ this.setState({dev:null,v3d:false});
-    if(location.hash){ try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} } }
-  setVar(id){ var s=this.state,st={varId:id,eng:0,rentas:0};
-    if(!s.plan||!this.planConPrecio(id,s.plan)){ Object.assign(st,this.defaults(id)); }
-    else if(this.mensual(id,s.plan,s.plazo,0)===null){ st.plazo=this.defPlazo(id,s.plan); }
-    this.setState(st); }
-  setPlan(p){ var s=this.state,z=(this.mensual(s.varId,p,s.plazo,0)!==null)?s.plazo:this.defPlazo(s.varId,p);
-    this.setState({plan:p,plazo:z,eng:0,rentas:0}); }
-
-  /* WhatsApp */
-  compartir(texto){ var A=this.state.asesor;
-    if(!A.tel){ if(navigator.share){ navigator.share({text:texto}).catch(function(){}); return; }
-      window.open('https://wa.me/?text='+encodeURIComponent(texto),'_blank','noopener'); return; }
-    var txt=encodeURIComponent(texto), respaldo='https://wa.me/'+A.tel+'?text='+txt;
-    var esMovil=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'');
-    if(!esMovil){ window.open(respaldo,'_blank','noopener'); return; }
-    var salio=false; function seFue(){salio=true;}
-    document.addEventListener('visibilitychange',seFue,{once:true});
-    window.addEventListener('pagehide',seFue,{once:true});
-    window.addEventListener('blur',seFue,{once:true});
-    location.href='whatsapp://send?phone='+A.tel+'&text='+txt;
-    setTimeout(function(){ document.removeEventListener('visibilitychange',seFue);
-      if(!salio&&!document.hidden) window.open(respaldo,'_blank','noopener'); },1200); }
-  escribir(){ var A=this.state.asesor;
-    this.compartir('Hola'+(A.nombre?' '+A.nombre.split(' ')[0]:'')+', vi el catálogo y me interesa conocer más opciones.'); }
-  interesa(){ var s=this.state,d=this.findDev(s.varId); if(!d||!s.plan||!s.plazo)return;
-    var pol=this.poliza(s.varId);
-    var m=this.mensual(s.varId,s.plan,s.plazo,s.eng);
-    if(m!==null){ if(s.seguro&&pol)m+=pol.price; if(s.control)m+=(window.CONTROL_PRICE||50); }
-    var gar=this.esGarF(s.varId,s.plan,s.plazo);
-    var inicial=gar?(s.rentas*this.renta(s.plan)):s.eng;
-    var extras='';
-    if(s.seguro&&pol)extras+='\nSeguro de protección +'+this.fmx(pol.price);
-    if(s.control)extras+='\nControl de datos +'+this.fmx(window.CONTROL_PRICE||50);
-    var A=s.asesor;
-    this.compartir('Hola'+(A.nombre?' '+A.nombre.split(' ')[0]:'')+', me interesa esta opción:\n\n'
-      +d.name+' '+d.storage+'\n\nPlan AT&T '+s.plan+' · '+s.plazo+' meses\n'
-      +(gar?(s.rentas+' '+(s.rentas===1?'renta':'rentas')+' de garantía ('+this.fmx(inicial)+')')
-           :('Enganche estimado '+this.fmx(inicial)))
-      +extras+'\nMensualidad estimada '+this.fmx(m)+'\n\n¿Cómo seguimos?'); }
-  open3D(){ if(!this._mv){ var sc=document.createElement('script'); sc.type='module';
-      sc.src='https://unpkg.com/@google/model-viewer@3.4.0/dist/model-viewer.min.js';
-      document.head.appendChild(sc); this._mv=true; }
-    this.setState({v3d:true}); }
-
-  renderVals(){
-    var self=this, s=this.state;
-    var ready=s.ready&&!!window.CAT;
-    var showContado=this.props.mostrarContado ?? true;
-    var A=s.asesor;
-    var vals={
-      ready:ready, notReady:!ready,
-      isHome:s.view==='home', isCat:s.view==='cat',
-      q:s.q, hasQ:!!s.q,
-      onQ:(e)=>{ var q=e.target.value,st={q:q}; if(q&&s.view!=='cat')st.view='cat'; if(s.dev){st.dev=null;st.v3d=false;} this.setState(st); },
-      clearQ:()=>this.setState({q:''}),
-      goHome:()=>this.goHome(),
-      goCatAll:()=>this.goCat({marca:'Todas',banda:'',gama:'',ofertas:false,q:''}),
-      goOfertas:()=>this.goCat({marca:'Todas',banda:'',gama:'',ofertas:true,q:''}),
-      showContado:showContado,
-      metaFecha:ready?this.fecha():'',
-      offers:[], news:[], hasNews:false, brands:[], bands:[], catList:[], marcaChips:[],
-      aseNombre:A.nombre||'Contactar a tu asesor',
-      aseTienda:A.tienda||'Prime MX · Distribuidor autorizado AT&T',
-      aseIni:this.ini(A.nombre)||'MX', aseFoto:A.foto, aseHasFoto:!!A.foto, aseNoFoto:!A.foto,
-      waEscribir:()=>this.escribir(),
-      legalOpen:s.legalOpen, togLegal:()=>this.setState({legalOpen:!s.legalOpen}),
-      legalBtnTxt:s.legalOpen?'Ocultar información legal':'Ver información legal completa',
-      devOpen:!!s.dev, v3dOpen:s.v3d,
-      heroImgEl:null, dvImgEl:null,
-      aseFotoEl:A.foto?React.createElement('img',{className:'grayscale',src:A.foto,alt:'',style:{width:40,height:40,objectFit:'cover',flex:'none'}}):null,
-      detRef:(el)=>{ this._det=el; },
-      volver:()=>this.closeDev(),
-      close3D:()=>this.setState({v3d:false})
-    };
-    if(!ready) return vals;
-
-    var devs=this.equipos();
-    var info={}; devs.forEach(function(d){ info[d.id]={desde:self.desdeGlobal(d.id),pct:self.descMax(d.id),contado:window.PRICES[d.id].contado}; });
-
-    /* home */
-    var heroDev=null,hid=this.props.heroId;
-    if(hid) heroDev=devs.find(function(d){return d.id===hid;})||null;
-    if(!heroDev){ var cands=devs.filter(function(d){ return self.img(d.id)&&info[d.id].contado>=12000; });
-      cands.sort(function(a,b){ return info[b.id].pct-info[a.id].pct; });
-      heroDev=cands[0]||devs[0]||null; }
-    if(heroDev){ var hc=this.card(heroDev),hp=info[heroDev.id].pct;
-      vals.hasHero=true; vals.heroOpen=hc.open;
-      vals.heroImgEl=hc.img?React.createElement('img',{className:'grayscale',src:hc.img,alt:heroDev.name,style:{maxWidth:'58%',maxHeight:'80%',objectFit:'contain',mixBlendMode:'multiply'}}):null;
-      vals.heroBrand=hc.brand; vals.heroName=heroDev.name; vals.heroDesdeTxt=hc.desdeTxt;
-      vals.heroPctTxt=hp>=100?'Incluido con plan':(hp>=10?('-'+hp+'% con plan'):null);
-    } else vals.hasHero=false;
-    vals.statEquipos=devs.length;
-    var bset={}; devs.forEach(function(d){ bset[d.brand]=(bset[d.brand]||0)+1; });
-    vals.statMarcas=Object.keys(bset).length;
-    var ordPct=devs.slice().sort(function(a,b){return info[b.id].pct-info[a.id].pct;});
-    var perB={},sel=[];
-    ordPct.forEach(function(d){ if(sel.length>=6)return; var n=perB[d.brand]||0; if(n>=2)return; perB[d.brand]=n+1; sel.push(d); });
-    vals.offers=sel.map(function(d){return self.card(d);});
-    var news=devs.filter(function(d){return d.status==='NPI';});
-    vals.hasNews=news.length>0;
-    vals.news=news.slice(0,6).map(function(d){return self.card(d);});
-    vals.brands=Object.keys(bset).sort(function(a,b){return bset[b]-bset[a];}).map(function(b){
-      return {label:self.cap(b),countTxt:bset[b]+(bset[b]===1?' equipo':' equipos'),
-        go:function(){ self.goCat({marca:b,banda:'',gama:'',ofertas:false,q:''}); }}; });
-    var BANDS=[[0,500],[501,900],[901,1500],[1501,Infinity]];
-    var BLBL=['Hasta $500/mes','$501 a $900/mes','$901 a $1,500/mes','Más de $1,500/mes'];
-    vals.bands=BANDS.map(function(B,i){ var n=devs.filter(function(d){var v=info[d.id].desde;return v>=B[0]&&v<=B[1];}).length;
-      return {label:BLBL[i],countTxt:n+(n===1?' equipo':' equipos'),
-        go:function(){ self.goCat({banda:String(i),marca:'Todas',gama:'',ofertas:false,q:''}); }}; });
-
-    /* catálogo */
-    var list=devs.slice();
-    if(s.marca!=='Todas')list=list.filter(function(d){return d.brand===s.marca;});
-    var q=s.q.toLowerCase().trim();
-    if(q)list=list.filter(function(d){return (d.name+' '+d.brand+' '+d.storage).toLowerCase().indexOf(q)>=0;});
-    if(s.banda!==''){ var B=BANDS[Number(s.banda)]; list=list.filter(function(d){var v=info[d.id].desde;return v>=B[0]&&v<=B[1];}); }
-    var GAMAS={e:[0,5999],m:[6000,11999],a:[12000,19999],p:[20000,Infinity]};
-    if(s.gama){ var G=GAMAS[s.gama]; list=list.filter(function(d){var c=info[d.id].contado;return c>=G[0]&&c<=G[1];}); }
-    if(s.ofertas)list=list.filter(function(d){return info[d.id].pct>=self.umbral();});
-    if(s.orden==='desde')list.sort(function(a,b){return info[a.id].desde-info[b.id].desde;});
-    else if(s.orden==='desdeDesc')list.sort(function(a,b){return info[b.id].desde-info[a.id].desde;});
-    else if(s.orden==='pct')list.sort(function(a,b){return info[b.id].pct-info[a.id].pct;});
-    else if(s.orden==='contadoDesc')list.sort(function(a,b){return info[b.id].contado-info[a.id].contado;});
-    else if(s.orden==='nuevo')list.sort(function(a,b){return (b.status==='NPI'?1:0)-(a.status==='NPI'?1:0)||info[a.id].desde-info[b.id].desde;});
-    vals.catList=list.map(function(d){return self.card(d);});
-    vals.catHas=list.length>0; vals.catEmpty=list.length===0;
-    vals.catCountTxt=list.length+(list.length===1?' equipo':' equipos');
-    vals.catTitle=s.ofertas?'Ofertas':(s.marca!=='Todas'?this.cap(s.marca):(q?'Resultados':'Todos los equipos'));
-    vals.marcaChips=['Todas'].concat(Object.keys(bset).sort(function(a,b){return bset[b]-bset[a];})).map(function(b){
-      var on=s.marca===b; return {label:b==='Todas'?'Todas':self.cap(b),st:self.chipSt(on),
-        go:function(){ self.setState({marca:b}); }}; });
-    vals.orden=s.orden; vals.onOrden=(e)=>this.setState({orden:e.target.value});
-    vals.banda=s.banda; vals.onBanda=(e)=>this.setState({banda:e.target.value});
-    vals.gama=s.gama; vals.onGama=(e)=>this.setState({gama:e.target.value});
-    vals.ofertasSt=this.chipSt(s.ofertas);
-    vals.togOfertas=()=>this.setState({ofertas:!s.ofertas});
-    vals.filtering=(s.marca!=='Todas'||s.banda!==''||!!s.gama||s.ofertas||!!q);
-    vals.clearFilters=()=>this.setState({marca:'Todas',banda:'',gama:'',ofertas:false,q:''});
-
-    /* ficha */
-    if(s.dev){
-      var dv=this.findDev(s.varId)||this.findDev(s.dev);
-      if(dv){
-        var id=dv.id, pct=this.descMax(id), im=this.img(id);
-        vals.dvBrand=dv.brand; vals.dvName=dv.name; vals.dvStorage=dv.storage;
-        vals.dvImgEl=im?React.createElement('img',{className:'grayscale',src:im,alt:dv.name,style:{maxWidth:'56%',maxHeight:'82%',objectFit:'contain',mixBlendMode:'multiply'}}):null; vals.dvNoImg=!im;
-        vals.dvNuevo=dv.status==='NPI';
-        vals.dvDesdeTxt=this.fmx(this.desdeGlobal(id));
-        vals.dvContadoTxt=this.fmx(window.PRICES[id].contado);
-        vals.dvPctTxt=pct>=100?'Equipo incluido con plan':(pct>=10?('hasta -'+pct+'% con plan'):null);
-        vals.dvPctBadge=pct>=this.umbral()?(pct>=100?'Incluido con plan':('-'+pct+'%')):null;
-        var m3=this.model3d(id);
-        vals.dvHas3d=!!m3; vals.open3D=()=>this.open3D();
-        vals.d3src=m3?m3.src:''; vals.d3ios=m3?(m3.ios||null):null;
-        vals.d3credit=(m3&&m3.by)?('Modelo 3D: '+m3.by+' · '+(m3.lic||'')):null;
-        vals.dvYt=(window.YT&&(window.YT[id]||window.YT[this.baseOf(id)]))||null;
-        var SV=window.STORAGE_VARIANTS||{}, base=this.baseOf(s.dev), vlist=SV[base];
-        var variants=vlist?vlist.filter(function(v){return v[1];}).map(function(v){
-          return {label:v[0],st:self.chipSt(v[1]===s.varId),go:function(){ self.setVar(v[1]); }}; }):[];
-        vals.dvVariants=variants; vals.dvHasVariants=variants.length>1; vals.dvNoVariants=variants.length<=1;
-        /* sell[] viene de la herramienta de asesores: se filtra el lenguaje interno de venta */
-        var INTERNO=/(en piso|urgencia|liquidaci|inventari|resurtib|comisi|demostrab|argumento|cierre|objeci|migraci)/i;
-        var sellPub=(dv.sell||[]).filter(function(t){return !INTERNO.test(t);}).slice(0,3);
-        vals.dvSell=sellPub.map(function(t){return {t:t};});
-        vals.hasSell=sellPub.length>0;
-        var con=this.PL.filter(function(p){return self.planConPrecio(id,p);});
-        var sug=this.sugeridos(dv).filter(function(p){return con.indexOf(p)>=0;});
-        var lista=s.todosPlanes?con:(sug.length?sug:con);
-        if(s.plan&&lista.indexOf(s.plan)<0)lista=lista.concat([s.plan]);
-        vals.planOpts=lista.map(function(p){ var rm=self.refMensual(id,p);
-          return {name:p,gbTxt:(self.gbDe(p)||'—')+' GB',mTxt:rm===null?'—':self.fmx(rm),
-            free:self.planTieneFree(id,p),st:self.optSt(s.plan===p),
-            go:function(){ self.setPlan(p); }}; });
-        vals.hasMorePlanes=!s.todosPlanes&&lista.length<con.length;
-        vals.planTotal=con.length;
-        vals.verTodosPlanes=()=>this.setState({todosPlanes:true});
-        vals.plazos=[24,30,36].filter(function(z){return self.mensual(id,s.plan,z,0)!==null;}).map(function(z){
-          return {label:z+' meses',mTxt:self.fmx(self.mensual(id,s.plan,z,s.eng)),st:self.boxSt(s.plazo===z),
-            go:function(){ self.setState({plazo:z,eng:0,rentas:0}); }}; });
-        var gar=(s.plan&&s.plazo)?this.esGarF(id,s.plan,s.plazo):false;
-        var engMax=(s.plan&&s.plazo)?this.tope(id,s.plan,s.plazo):0;
-        vals.esGarSel=gar; vals.showEng=!gar&&engMax>0;
-        vals.engMax=engMax; vals.engMaxTxt=this.fmx(engMax);
-        vals.engVal=s.eng; vals.engValTxt=this.fmx(s.eng);
-        vals.onEng=(e)=>this.setState({eng:Number(e.target.value)});
-        vals.rentasOpts=[0,1,2,3].map(function(n){ return {n:n,label:n===1?'renta':'rentas',st:self.boxSt(s.rentas===n),
-          go:function(){ self.setState({rentas:n}); }}; });
-        vals.rentasPagoTxt=this.fmx(s.rentas*(this.renta(s.plan)||0));
-        var pol=this.poliza(id);
-        vals.hasSeguro=!!pol;
-        vals.segPriceTxt=pol?('+'+this.fmx(pol.price)+'/mes'):'';
-        vals.seguroOn=s.seguro; vals.togSeguro=()=>this.setState({seguro:!s.seguro});
-        vals.seguroSt=this.extraSt(s.seguro); vals.seguroBox=this.checkSt(s.seguro);
-        var ctrl=window.CONTROL_PRICE||50;
-        vals.ctrlPriceTxt='+'+this.fmx(ctrl)+'/mes';
-        vals.controlOn=s.control; vals.togControl=()=>this.setState({control:!s.control});
-        vals.controlSt=this.extraSt(s.control); vals.controlBox=this.checkSt(s.control);
-        var tot=(s.plan&&s.plazo)?this.mensual(id,s.plan,s.plazo,s.eng):null;
-        if(tot!==null){ if(s.seguro&&pol)tot+=pol.price; if(s.control)tot+=ctrl; }
-        vals.totMensualTxt=tot===null?'—':this.fmx(tot);
-        vals.resumenTxt=(s.plan&&s.plazo)?('Plan '+s.plan+' · '+(this.gbDe(s.plan)||'—')+' GB · '+s.plazo+' meses · equipo incluido en el cálculo'):'Elige plan y plazo';
-        vals.totFree=(s.plan&&s.plazo)?this.promoDe(id,s.plan,s.plazo)===0:false;
-        var inicial=gar?(s.rentas*(this.renta(s.plan)||0)):s.eng;
-        vals.inicialLbl=gar?('Pagas al contratar ('+s.rentas+' '+(s.rentas===1?'renta':'rentas')+')'):'Enganche · pagas hoy';
-        vals.totInicialTxt=this.fmx(inicial);
-        vals.waInteresa=()=>this.interesa();
-        var entries=Object.keys(dv.specs||{}).map(function(k){return {k:k,v:dv.specs[k]};});
-        vals.specRows=s.specsFull?entries:entries.slice(0,7);
-        vals.hasSpecsToggle=entries.length>7;
-        vals.specsBtnTxt=s.specsFull?'Ver menos':('Ver ficha completa ('+entries.length+')');
-        vals.togSpecs=()=>this.setState({specsFull:!s.specsFull});
-        var others=devs.filter(function(d){return d.id!==s.dev&&d.id!==base;});
-        var mismos=others.filter(function(d){return d.brand===dv.brand;})
-          .sort(function(a,b){return Math.abs(info[a.id].contado-window.PRICES[id].contado)-Math.abs(info[b.id].contado-window.PRICES[id].contado);});
-        var resto=others.filter(function(d){return d.brand!==dv.brand;})
-          .sort(function(a,b){return Math.abs(info[a.id].contado-window.PRICES[id].contado)-Math.abs(info[b.id].contado-window.PRICES[id].contado);});
-        var rel=mismos.slice(0,2).concat(resto).slice(0,4);
-        vals.related=rel.map(function(d){return self.card(d);});
-        vals.hasRelated=rel.length>0;
-      }
-    }
-    return vals;
-  }
-}
+ init:function(){var self=this;
+  var qs=new URLSearchParams(location.search);
+  this.s.asesor={attuid:qs.get('a')||'',nombre:qs.get('n')||'',tel:(qs.get('t')||'').replace(/\D/g,''),tienda:qs.get('s')||'',foto:qs.get('f')||''};
+  var A=this.s.asesor;
+  if(A.attuid&&!A.nombre){
+   fetch('https://firestore.googleapis.com/v1/projects/techguide-primemx/databases/(default)/documents/asesores_publicos/'+encodeURIComponent(A.attuid))
+    .then(function(r){return r.ok?r.json():null;}).then(function(j){if(j&&j.fields){var f=j.fields;
+     self.s.asesor={attuid:A.attuid,
+      nombre:(f.nombre&&f.nombre.stringValue)||A.nombre,
+      tel:((f.telefono&&f.telefono.stringValue)||A.tel).replace(/\D/g,''),
+      tienda:(f.tienda&&f.tienda.stringValue)||A.tienda,
+      foto:(f.foto&&f.foto.stringValue)||A.foto};
+     self.render();}}).catch(function(){});}
+  window.addEventListener('cat-imgs',function(){self.render();});
+  window.addEventListener('popstate',function(){if(self.s.dev){self.s.dev=null;self.s.v3d=false;self.render();}});
+  this.render();
+  if(!this.ready()){var poll=setInterval(function(){if(self.ready()){clearInterval(poll);self.render();}},80);}
+  var retry=0;
+  var watch=setInterval(function(){
+   var needData=!window.CAT,needImg=!window.IMG||Object.keys(window.IMG||{}).length===0;
+   if(!needData&&!needImg){clearInterval(watch);return;}
+   if(retry>=3){clearInterval(watch);return;}
+   retry++;
+   if(needData){var s1=document.createElement('script');s1.src='catalog.js';document.head.appendChild(s1);}
+   if(needImg){var s2=document.createElement('script');s2.src='catalog-img.js';document.head.appendChild(s2);}
+  },2500);}
+};
+APP.init();
 </script>
 </body>
 </html>
