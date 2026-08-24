@@ -12026,7 +12026,19 @@ function urlMiCatalogo(){
   var attuid = (asesorData && asesorData.attuid) || '';
   var u = new URL(location.href);
   var dir = u.pathname.replace(/[^/]*$/, '');   /* deja la carpeta, quita el archivo */
-  return u.origin + dir + 'catalogo.html' + (attuid ? '?a='+encodeURIComponent(attuid) : '');
+  var q = attuid ? '?a='+encodeURIComponent(attuid) : '';
+
+  /* [v1.29] El TELÉFONO viaja en el enlace, no solo en Firestore. Son doce
+     dígitos —el enlace sigue siendo corto— y elimina el punto de falla:
+     si la tarjeta de Firestore no se guardó o quedó incompleta, el cliente
+     igual puede llamar y escribir. Nombre, tienda y foto sí pueden venir de
+     Firestore porque son cosméticos; el contacto no. */
+  var p = (typeof getPerfilEfectivo==='function') ? getPerfilEfectivo() : {};
+  var tel = String(p.phone||'').replace(/\D/g,'');
+  if(tel.length===10) tel = '52'+tel;
+  if(q && tel) q += '&t='+tel.slice(0,15);
+
+  return u.origin + dir + 'catalogo.html' + q;
 }
 
 /* Recomprime la foto del perfil a 200px cuadrados (~12 KB), bien por debajo

@@ -946,14 +946,20 @@ var APP={
   var qs=new URLSearchParams(location.search);
   this.s.asesor={attuid:qs.get('a')||'',nombre:qs.get('n')||'',tel:(qs.get('t')||'').replace(/\D/g,''),tienda:qs.get('s')||'',foto:qs.get('f')||''};
   var A=this.s.asesor;
-  if(A.attuid&&!A.nombre){
+  /* [v1.29] Se consulta la tarjeta siempre que haya ATTUID, aunque el enlace
+     ya traiga nombre o teléfono: de ahí vienen la foto y la tienda. Lo que
+     venga en el enlace MANDA sobre Firestore, porque es lo que el asesor
+     tenía al compartir. */
+  if(A.attuid){
    fetch('https://firestore.googleapis.com/v1/projects/techguide-primemx/databases/(default)/documents/asesores_publicos/'+encodeURIComponent(A.attuid))
     .then(function(r){return r.ok?r.json():null;}).then(function(j){if(j&&j.fields){var f=j.fields;
+     /* Lo del enlace gana: es lo que el asesor tenía al compartir. Firestore
+        solo rellena lo que falte. */
      self.s.asesor={attuid:A.attuid,
-      nombre:(f.nombre&&f.nombre.stringValue)||A.nombre,
-      tel:((f.telefono&&f.telefono.stringValue)||A.tel).replace(/\D/g,''),
-      tienda:(f.tienda&&f.tienda.stringValue)||A.tienda,
-      foto:(f.foto&&f.foto.stringValue)||A.foto};
+      nombre:A.nombre||((f.nombre&&f.nombre.stringValue)||''),
+      tel:(A.tel||((f.telefono&&f.telefono.stringValue)||'')).replace(/\D/g,''),
+      tienda:A.tienda||((f.tienda&&f.tienda.stringValue)||''),
+      foto:A.foto||((f.foto&&f.foto.stringValue)||'')};
      self.render();}}).catch(function(){});}
   window.addEventListener('cat-imgs',function(){self.render();});
   window.addEventListener('popstate',function(){if(self.s.dev){self.s.dev=null;self.s.v3d=false;self.render();}});
