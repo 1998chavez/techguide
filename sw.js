@@ -9,7 +9,7 @@
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v1262-seguro-final-ago24';
+const CACHE_NAME = 'techguide-v1270-frescura-ago24';
 // [v1.11.103] Caché SEPARADO y ESTABLE para los pesados que NO cambian entre
 // versiones: vendors.js (999KB, html2canvas+jsPDF) y catalog-img.js (866KB,
 // las fotos del catálogo). Antes vivían en CACHE_NAME, así que CADA bump
@@ -21,7 +21,7 @@ const SCOPE = '/techguide/';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1788500067';
+const BUILD_ID = '1788500068';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la
@@ -267,6 +267,32 @@ self.addEventListener('fetch', function(event){
                      url.pathname === SCOPE + '';
 
   var esCatalogo = /\/catalogo\.html$/i.test(url.pathname);
+  /* [v1.27] El catálogo público y sus datos van SIEMPRE a red primero.
+     Con stale-while-revalidate el cliente que abría un enlace compartido veía
+     la versión anterior —y peor, precios anteriores— hasta que recargaba.
+     Para un enlace que se manda por WhatsApp eso no sirve: se prefiere
+     esperar medio segundo a mostrar datos viejos. La caché queda solo como
+     respaldo si no hay red. */
+  var esDatosCatalogo = /\/(catalog|catalog-img)\.js$/i.test(url.pathname);
+
+  if(esCatalogo || esDatosCatalogo){
+    event.respondWith(
+      fetch(req).then(function(response){
+        if(response && response.status === 200 && response.type === 'basic'){
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(function(cache){ return cache.put(req, clone); })
+            .catch(function(){});
+        }
+        return response;
+      }).catch(function(){
+        /* Sin red: se sirve lo último que se guardó. */
+        return caches.match(req).then(function(c){
+          return c || caches.match(SCOPE + 'catalogo.html');
+        });
+      })
+    );
+    return;
+  }
 
   if(isAppAsset){
     // [v1.11.56] Stale-while-revalidate: sirve caché al instante y revalida en

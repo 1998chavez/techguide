@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0060a0">
+<meta name="robots" content="noindex">
+<!-- [v1.27] El cliente que abre el enlace no tiene service worker: es su
+     navegador quien decide cachear. Estas cabeceras le piden revalidar
+     siempre, para que un enlace compartido hace días muestre los precios
+     de hoy. -->
+<meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <title>Equipos · PRIMEMX</title>
 <style>
 /* Modernist — tokens retuned for PRIMEMX: identidad azul tecnológica-comercial propia
@@ -410,8 +417,16 @@ input[type=range]{accent-color:var(--color-accent);width:100%;height:26px;margin
 #v3d{position:fixed;inset:0;z-index:130;background:var(--color-surface)}
 </style>
 <script>window._onCatalogImgReady=function(){try{window.dispatchEvent(new CustomEvent('cat-imgs'))}catch(e){}};</script>
-<script src="catalog.js"></script>
-<script src="catalog-img.js"></script>
+<script>
+/* [v1.27] Los datos se piden con la fecha del día: aunque el HTML llegue de
+   caché del navegador, los precios se traen frescos. Se sella por día y no
+   por milisegundo para que la caché siga sirviendo dentro de la jornada. */
+(function(){
+  var f = new Date(), d = f.getFullYear()+'-'+(f.getMonth()+1)+'-'+f.getDate();
+  document.write('<scr'+'ipt src="catalog.js?d='+d+'"></scr'+'ipt>');
+  document.write('<scr'+'ipt src="catalog-img.js?d='+d+'"></scr'+'ipt>');
+})();
+</script>
 </head>
 <body>
 <div id="app" style="min-height:100vh;padding-bottom:96px"></div>
