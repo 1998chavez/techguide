@@ -666,10 +666,16 @@ var APP={
   /* [v1.24] Fuera el contador "N equipos · N marcas": es dato interno, no
      ayuda a decidir y roba peso al llamado a la acción. */
   +'</div>';
-  var hero=null;
-  var cands=devs.filter(function(d){return self.img(d.id)&&info[d.id].contado>=12000;});
-  cands.sort(function(a,b){return info[b.id].pct-info[a.id].pct;});
-  hero=cands[0]||devs[0]||null;
+  /* [v1.30] El destacado se fija a mano: es una decisión comercial, no un
+     cálculo. Si ese equipo deja de estar vigente, cae al criterio anterior
+     (mayor descuento sobre $12,000) para que el home nunca quede sin héroe. */
+  var HERO_ID='opreno16f';
+  var hero=devs.filter(function(d){return d.id===HERO_ID;})[0]||null;
+  if(!hero){
+    var cands=devs.filter(function(d){return self.img(d.id)&&info[d.id].contado>=12000;});
+    cands.sort(function(a,b){return info[b.id].pct-info[a.id].pct;});
+    hero=cands[0]||devs[0]||null;
+  }
   if(hero){var hid=hero.id,him=this.img(hid),hp=info[hid].pct;
    h+='<button class="hcard" onclick="APP.openDev(\''+hid+'\')"><span class="himg">'
    +(him?('<img class="grayscale" src="'+him+'" alt="'+esc(hero.name)+'">'):ICO.ph(44))
@@ -681,7 +687,29 @@ var APP={
    +'<span style="font-family:var(--font-heading);font-weight:800;font-size:22px;letter-spacing:-.02em">'+this.fmx(info[hid].desde)+'<span style="font-size:12px;font-weight:400;color:var(--color-neutral-600)"> /mes</span></span></span>'
    +'</span></button>';}
   h+='</div></section>';
-  var offers=devs.slice().sort(function(a,b){return info[b.id].pct-info[a.id].pct;}).slice(0,6);
+  /* [v1.30] Las ofertas se acotan a las marcas que se empujan esta semana.
+     Dentro de ellas manda el descuento; si faltaran equipos se completa con
+     el resto del catálogo para no dejar la fila corta. */
+  var MARCAS_OFERTA=['MOTOROLA','OPPO'];
+  /* Se alternan las marcas para que ambas se vean. Ordenar solo por descuento
+     llenaba la fila con una sola: Motorola tiene mejores porcentajes y se
+     comía los seis lugares. Dentro de cada marca sí manda el descuento. */
+  var porMarca=MARCAS_OFERTA.map(function(mk){
+    return devs.filter(function(d){ return d.brand===mk && d.id!==HERO_ID; })
+      .sort(function(a,b){ return info[b.id].pct-info[a.id].pct; });
+  });
+  var offers=[];
+  for(var vuelta=0; offers.length<6 && vuelta<12; vuelta++){
+    for(var mi=0; mi<porMarca.length && offers.length<6; mi++){
+      if(porMarca[mi][vuelta]) offers.push(porMarca[mi][vuelta]);
+    }
+  }
+  if(offers.length<6){
+    var relleno=devs.filter(function(d){
+      return MARCAS_OFERTA.indexOf(d.brand)<0 && d.id!==HERO_ID;
+    }).sort(function(a,b){ return info[b.id].pct-info[a.id].pct; });
+    offers=offers.concat(relleno).slice(0,6);
+  }
   h+='<section class="wrap"><div class="hr2"></div><div class="sechead" style="padding-top:24px"><h2>Ofertas de la semana</h2>'
   +'<button class="btn btn-ghost" style="font-size:13px" onclick="APP.goOfertas()">Ver todas</button></div>'+this.filaHTML(offers)+'</section>';
   var news=devs.filter(function(d){return d.status==='NPI';}).slice(0,6);
