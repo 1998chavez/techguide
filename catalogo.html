@@ -498,7 +498,32 @@ var APP={
  tope:function(id,plan,plazo){var promo=this.promoDe(id,plan,plazo);if(promo===null||promo<=0)return 0;if(this.esGarF(id,plan,plazo))return 0;return Math.floor(Math.min(promo*0.70,promo)/100)*100;},
  mensual:function(id,plan,plazo,eng){var promo=this.promoDe(id,plan,plazo);if(promo===null)return null;var r=this.renta(plan);if(r===null||r===undefined)return null;
   var fin=this.esGarF(id,plan,plazo)?promo:Math.max(0,promo-(eng||0));return r+Math.round(fin/plazo);},
- desdeGlobal:function(id){var min=null,self=this;this.PL.forEach(function(p){[24,30,36].forEach(function(z){var m=self.mensual(id,p,z,0);if(m!==null&&(min===null||m<min))min=m;});});return min;},
+ /* [v1.31] El "desde" es el PLAN MÁS BAJO DE SU RANGO a 36 meses, no el
+   mínimo de todo el catálogo. El rango lo fija el precio de lista:
+   hasta $5K Azul 1–Plata · hasta $10K Azul 2–Oro · hasta $15K Azul 3–Black ·
+   arriba de $15K Plata–Platino · iPhone siempre de Plata para arriba.
+   Antes se anunciaba un precio de un plan que a ese equipo ni se le ofrece:
+   un teléfono de $20,000 salía con tarifa de Azul 1. */
+ desdeGlobal:function(id){
+  var d=this.findDev(id); if(!d) return null;
+  var rango=this.sugeridos(d), self=this;
+  /* Recorre el rango de abajo hacia arriba: el primero con precio a 36
+     meses es el que se anuncia. */
+  for(var i=0;i<rango.length;i++){
+   var m=self.mensual(id,rango[i],36,0);
+   if(m!==null) return m;
+  }
+  /* Si ninguno de su rango cotiza a 36 meses, se busca en 30 y 24 dentro
+     del mismo rango antes de rendirse. */
+  for(var z=0;z<2;z++){
+   var plazo=[30,24][z];
+   for(var j=0;j<rango.length;j++){
+    var mm=self.mensual(id,rango[j],plazo,0);
+    if(mm!==null) return mm;
+   }
+  }
+  return null;
+ },
  descMax:function(id){var m=0,self=this;this.PL.forEach(function(p){[24,30,36].forEach(function(z){var d=self.descuento(id,p,z);if(d>m)m=d;});});return m;},
  planTieneFree:function(id,p){var self=this;return [24,30,36].some(function(z){return self.promoDe(id,p,z)===0;});},
  planConPrecio:function(id,p){var self=this;return [24,30,36].some(function(z){return self.mensual(id,p,z,0)!==null;});},
