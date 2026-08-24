@@ -1970,7 +1970,7 @@ textarea.input { min-height: 90px; resize: vertical; }
         const Cls = evalDcLogic(src);
         if (r.jsSeq !== seq) return;
         if (typeof Cls !== "function") {
-          r.logicError = name + ".dc.html: <script data-dc-script> must define `class Component extends DCLogic`";
+          r.logicError = name + ".dc.html: <scr"+"ipt data-dc-script> must define `class Component extends DCLogic`";
         } else {
           r.logicError = null;
           r.Logic = Cls;
