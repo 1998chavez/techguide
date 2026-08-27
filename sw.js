@@ -9,7 +9,7 @@
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v1322-resurtible-ago27';
+const CACHE_NAME = 'techguide-v1330-frescura-ago27';
 // [v1.11.103] Caché SEPARADO y ESTABLE para los pesados que NO cambian entre
 // versiones: vendors.js (999KB, html2canvas+jsPDF) y catalog-img.js (866KB,
 // las fotos del catálogo). Antes vivían en CACHE_NAME, así que CADA bump
@@ -21,7 +21,7 @@ const SCOPE = '/techguide/';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1788500076';
+const BUILD_ID = '1788500077';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la
@@ -241,6 +241,28 @@ self.addEventListener('fetch', function(event){
     const esEstable = /\/(vendors|catalog-img)\.js/i.test(url.pathname);
     const destino = esEstable ? CACHE_ESTABLE : CACHE_NAME;
     const clave = esEstable ? (url.origin + url.pathname) : req;
+
+    /* [v1.33] catalog.js pedido por el CATÁLOGO PÚBLICO (lleva ?d=fecha) va a
+       RED PRIMERO. Antes caía en cache-first como cualquier bundle: el cliente
+       que abría un enlace compartido veía los precios de la última vez que su
+       teléfono descargó el archivo. Un enlace que se manda por WhatsApp tiene
+       que mostrar los precios de hoy, aunque tarde medio segundo más.
+       La app (?v=BUILD_ID) sigue con caché: ahí el bump ya invalida la clave. */
+    const esDatosPublicos = /[?&]d=/.test(url.search) && /\/catalog(-img)?\.js$/i.test(url.pathname);
+    if(esDatosPublicos){
+      event.respondWith(
+        fetch(req).then(function(response){
+          if(response && response.status === 200 && response.type === 'basic'){
+            const clone = response.clone();
+            caches.open(destino).then(function(cache){ return cache.put(clave, clone); })
+              .catch(function(){});
+          }
+          return response;
+        }).catch(function(){ return caches.match(clave); })
+      );
+      return;
+    }
+
     event.respondWith(
       caches.match(clave).then(function(cached){
         if(cached) return cached; // hit: instantáneo
@@ -273,26 +295,6 @@ self.addEventListener('fetch', function(event){
      Para un enlace que se manda por WhatsApp eso no sirve: se prefiere
      esperar medio segundo a mostrar datos viejos. La caché queda solo como
      respaldo si no hay red. */
-  var esDatosCatalogo = /\/(catalog|catalog-img)\.js$/i.test(url.pathname);
-
-  if(esCatalogo || esDatosCatalogo){
-    event.respondWith(
-      fetch(req).then(function(response){
-        if(response && response.status === 200 && response.type === 'basic'){
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(function(cache){ return cache.put(req, clone); })
-            .catch(function(){});
-        }
-        return response;
-      }).catch(function(){
-        /* Sin red: se sirve lo último que se guardó. */
-        return caches.match(req).then(function(c){
-          return c || caches.match(SCOPE + 'catalogo.html');
-        });
-      })
-    );
-    return;
-  }
 
   if(isAppAsset){
     // [v1.11.56] Stale-while-revalidate: sirve caché al instante y revalida en

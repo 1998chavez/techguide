@@ -11776,10 +11776,18 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/techguide/sw.js')
     .then(function(reg){
       console.log('SW registered');
-      // [v1.9.19] Buscar actualizaciones cada 30 min con la app abierta.
+      /* [v1.33] Sondeo cada 5 minutos, no cada 30. Con precios que cambian a
+         media jornada media hora es demasiado: el asesor cotizaba con datos
+         viejos sin saberlo. Un reg.update() es una petición condicional de
+         unos bytes, no pesa. */
       setInterval(function(){
         try{ reg.update(); }catch(e){ /* ignore */ }
-      }, 30 * 60 * 1000);
+      }, 5 * 60 * 1000);
+      /* Y al volver del segundo plano: es cuando el asesor retoma la app y
+         el momento natural para enterarse de que hay versión nueva. */
+      document.addEventListener('visibilitychange', function(){
+        if(!document.hidden){ try{ reg.update(); }catch(e){ /* ignore */ } }
+      });
     })
     .catch(e=>console.log('SW error:',e));
   
