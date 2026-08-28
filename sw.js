@@ -9,7 +9,7 @@
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v1340-piel-ago27';
+const CACHE_NAME = 'techguide-v1350-velocidad-ago27';
 // [v1.11.103] Caché SEPARADO y ESTABLE para los pesados que NO cambian entre
 // versiones: vendors.js (999KB, html2canvas+jsPDF) y catalog-img.js (866KB,
 // las fotos del catálogo). Antes vivían en CACHE_NAME, así que CADA bump
@@ -21,7 +21,7 @@ const SCOPE = '/techguide/';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1788500078';
+const BUILD_ID = '1788500079';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la
@@ -29,26 +29,21 @@ const BUILD_ID = '1788500078';
 // acertaría (la app pide ?v=123, el caché tendría la URL pelona) y se bajarían
 // de la red en cada arranque — justo el bug de lentitud que esto corrige.
 const OFFLINE_ASSETS = [
+  /* [v1.35] Las pantallas de Comisiones salieron del precache: están ocultas
+     (COMISIONES_OFF=true) y sumaban 302 KB que se bajaban en CADA bump sin que
+     nadie las abriera. Siguen en el repo y se cachean solas la primera vez que
+     alguien las visite, cuando se reactive el módulo. */
   SCOPE,
   SCOPE + 'index.html',
   // [v1.13] Catálogo público para clientes. Va al precache para que el asesor
   // pueda abrirlo y verificarlo aunque esté sin señal en la tienda.
   SCOPE + 'catalogo.html',
-  SCOPE + 'comisiones-ejecutivo.html',
-  SCOPE + 'comisiones-gerente.html',
-  SCOPE + 'comisiones-regional.html',
-  SCOPE + 'comisiones-director.html',
-  SCOPE + 'comisiones-dn.html',
   // [v1.12.0] Esquema 2026: motor, captura de venta y captura de cuotas.
-  SCOPE + 'comisiones2026.js?v=' + BUILD_ID,
-  SCOPE + 'comisiones-captura.html',
-  SCOPE + 'comisiones-cuotas.html',
   // [v1.11.62] incentivos.js va SIN ?v=: es chico y se sirve stale-while-revalidate
   // para que los tableros (que no tienen BUILD_ID propio) puedan pedirlo igual.
   SCOPE + 'incentivos.js',
   // [v1.12.3] UI compartida de los tableros de comisiones (drawer). Sin ?v=:
   // igual que incentivos.js, stale-while-revalidate.
-  SCOPE + 'comisiones-ui.css',
   SCOPE + 'app.js?v=' + BUILD_ID,
   SCOPE + 'catalog.js?v=' + BUILD_ID,
   // vendors.js y catalog-img.js viven en CACHE_ESTABLE (ver abajo): no se
@@ -248,7 +243,11 @@ self.addEventListener('fetch', function(event){
        teléfono descargó el archivo. Un enlace que se manda por WhatsApp tiene
        que mostrar los precios de hoy, aunque tarde medio segundo más.
        La app (?v=BUILD_ID) sigue con caché: ahí el bump ya invalida la clave. */
-    const esDatosPublicos = /[?&]d=/.test(url.search) && /\/catalog(-img)?\.js$/i.test(url.pathname);
+    /* [v1.35] SOLO catalog.js, NUNCA catalog-img.js. Las fotos pesan 876 KB y
+       NO cambian cuando cambian los precios: mandarlas a red en cada apertura
+       hacía que el catálogo tardara de 1 a 2 minutos en red móvil. Los precios
+       (162 KB) sí valen la pena traerlos frescos. */
+    const esDatosPublicos = /[?&]d=/.test(url.search) && /\/catalog\.js$/i.test(url.pathname);
     if(esDatosPublicos){
       event.respondWith(
         fetch(req).then(function(response){

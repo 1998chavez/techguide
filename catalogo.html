@@ -459,7 +459,11 @@ input[type=range]{accent-color:var(--color-accent);width:100%;height:26px;margin
 (function(){
   var f = new Date(), d = f.getFullYear()+'-'+(f.getMonth()+1)+'-'+f.getDate();
   document.write('<scr'+'ipt src="catalog.js?d='+d+'"></scr'+'ipt>');
-  document.write('<scr'+'ipt src="catalog-img.js?d='+d+'"></scr'+'ipt>');
+  /* [v1.35] Las fotos SIN sello de fecha: pesan 876 KB y no cambian con los
+     precios. Con ?d= se re-descargaban cada día y el catálogo tardaba
+     minutos en abrir. Se sirven de caché; si algún día cambian, el bump del
+     BUILD_ID invalida el caché entero. */
+  document.write('<scr'+'ipt src="catalog-img.js"></scr'+'ipt>');
 })();
 </script>
 </head>
