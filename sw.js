@@ -9,7 +9,7 @@
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v1350-velocidad-ago27';
+const CACHE_NAME = 'techguide-v1362-precios-ago29';
 // [v1.11.103] Caché SEPARADO y ESTABLE para los pesados que NO cambian entre
 // versiones: vendors.js (999KB, html2canvas+jsPDF) y catalog-img.js (866KB,
 // las fotos del catálogo). Antes vivían en CACHE_NAME, así que CADA bump
@@ -18,10 +18,19 @@ const CACHE_NAME = 'techguide-v1350-velocidad-ago27';
 // solo se invalida cuando su propia versión cambia, no en cada release.
 const CACHE_ESTABLE = 'techguide-estable-v1';
 const SCOPE = '/techguide/';
+// [v1.36] IMG_BUILD — sello propio de catalog-img.js. El archivo vive en
+// CACHE_ESTABLE SIN ?v= (v1.11.103) para que un bump normal no lo re-baje:
+// pesa 886 KB y ponerlo en cada release tardaba minutos en red movil.
+// El efecto colateral: una foto NUEVA nunca llegaba a quien ya lo tenia
+// cacheado — el install hacia `if(hit) return` y se quedaba con la copia
+// vieja para siempre. Ahora se compara este sello: solo cuando cambian las
+// FOTOS se vuelve a bajar catalog-img.js. vendors.js sigue intacto.
+// Subir SOLO al agregar o reemplazar imagenes en catalog-img.js.
+const IMG_BUILD = '2026-08-29-redmi17';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1788500079';
+const BUILD_ID = '1788609600';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la
@@ -71,16 +80,31 @@ self.addEventListener('install', function(event){
       // Si ya estaban (versión anterior), no se vuelven a pedir.
       caches.open(CACHE_ESTABLE).then(function(ce){
         // Se guardan SIN ?v= para que la clave coincida con la del fetch.
-        ['vendors.js','catalog-img.js'].forEach(function(f){
+        var bajarEstable = function(f){
           var url = SCOPE + f;
-          ce.match(url).then(function(hit){
-            if(hit) return;   // ya lo tenemos de una versión anterior
-            fetch(url).then(function(r){
-              if(r && r.status === 200) return ce.put(url, r);
-            }).catch(function(err){
-              console.warn('[SW] estable falló', f, err && err.message);
-            });
+          return fetch(url).then(function(r){
+            if(r && r.status === 200) return ce.put(url, r);
+          }).catch(function(err){
+            console.warn('[SW] estable falló', f, err && err.message);
           });
+        };
+        // vendors.js: no cambia entre versiones. Si ya está, no se toca.
+        ce.match(SCOPE + 'vendors.js').then(function(hit){
+          if(!hit) bajarEstable('vendors.js');
+        });
+        // [v1.36] catalog-img.js: se re-baja solo si IMG_BUILD cambió.
+        var sello = SCOPE + '__img_build';
+        ce.match(sello).then(function(hit){
+          return hit ? hit.text() : null;
+        }).then(function(prev){
+          if(prev === IMG_BUILD) return;   // fotos al día, no se re-descarga
+          return bajarEstable('catalog-img.js').then(function(){
+            return ce.put(sello, new Response(IMG_BUILD, {
+              headers: {'Content-Type': 'text/plain'}
+            }));
+          });
+        }).catch(function(err){
+          console.warn('[SW] sello de imágenes falló', err && err.message);
         });
       });
       return self.skipWaiting();
