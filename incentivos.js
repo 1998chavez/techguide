@@ -1,5 +1,5 @@
 // =============================================================================
-// TechGuide — incentivos.js  [v1.11.62]
+// TechGuide — incentivos.js  [v1.37 · flyers al 01-sep-2026]
 // FUENTE ÚNICA de los incentivos de equipo (bonos de marca, nivel EJECUTIVO).
 //
 // POR QUÉ EXISTE: antes esta información vivía duplicada en 6 archivos —
@@ -19,36 +19,45 @@
 // constantes en vez de 4).
 //
 // REGLA VIGENTE: solo se modelan los incentivos de nivel EJECUTIVO. Los montos
-// de gerente que traen los flyers (p.ej. Honor 600 $85, Reno 16F $50) NO se
+// de gerente que traen los flyers (p.ej. Honor 600 $68, Xiaomi 17T $30) NO se
 // capturan aquí por decisión de negocio (v1.10.78).
+//
+// REGLA DE VIGENCIA (Diego, 01-sep-2026): si un flyer venció y no llegó uno
+// nuevo, el bono está VENCIDO hasta nuevo aviso. Ya no se dejan pagando bonos
+// sin respaldo: al vencer sin reemplazo, el modelo se BORRA de este archivo.
+// Solo regresa con flyer en mano.
 // =============================================================================
 
 // ── Monto fijo por equipo ───────────────────────────────────────────────────
 window.EQUIP_INC = {
+  // ── HONOR — flyer 13-ago a 27-sep (sin cambios de monto) ─────────────────
   'Honor Magic 7 Pro': 300,
   'Honor Magic 8 Lite 5G': 170,
   'Honor Magic 8 Lite 5G + Jersey': 170,
   'Honor X8D': 130,
+  // ── MOTOROLA — flyer 03-ago a 04-oct ("extendemos la vigencia") ──────────
   'Moto Edge 70 Pro + Watch': 450,
   'Moto Edge 70 Pro + Watch + Chamarra': 450,
+  'Moto Edge 70 Fusión': 200,          // [01-sep] alta: el flyer lo suma
   'Moto G77': 195,
-  'Pixel 10': 250,
-  'Pixel 10 Pro': 400,
-  'Pixel 10 Pro XL': 400,
-  'Xiaomi 15T': 250,
-  'Xiaomi 17T': 220,
-  'Xiaomi 17T Pro': 220,
-  'Redmi Note 15 Pro 5G': 210,
-  'Redmi Note 15': 120,
-  'Oppo Find X9 Pro': 310,
-  'Oppo Reno 14F': 155,
-  'Oppo Reno 13 5G': 85,
-  'Oppo A6k': 85,
-  'Oppo A5 Pro 5G': 85
+  // ── XIAOMI — flyer 31-ago a 04-oct. Bajaron 15T y 17T ───────────────────
+  'Xiaomi 15T': 180,                   // [01-sep] 250 -> 180
+  'Xiaomi 17T': 190,                   // [01-sep] 220 -> 190
+  'Redmi Note 17 + Sound Pocket': 100, // [01-sep] alta ("Redmi Note 17" en el flyer)
+  'Redmi Note 17 Pro 5G': 180,         // [01-sep] alta. OJO: sin ficha en el catálogo
+  // [01-sep] BAJA de 11 bonos cuyo flyer venció el 30-ago sin reemplazo:
+  // Pixel 10 / Pro / Pro XL, Xiaomi 17T Pro, Redmi Note 15 y Note 15 Pro 5G,
+  // Oppo Find X9 Pro, Reno 14F, Reno 13 5G, A6k y A5 Pro 5G.
+  // Regla de negocio de Diego (01-sep): si un flyer venció y no llegó uno
+  // nuevo, el bono está vencido hasta nuevo aviso. Vuelven a entrar solo con
+  // flyer en mano. Esto reemplaza la nota de v1.11.62 que los dejaba pagando.
 };
 // ── Monto por plan (gana sobre EQUIP_INC cuando el flyer diferencia) ────────
 window.EQUIP_INC_BY_PLAN = {
-  'Honor 600': {"Black":680,"Platino":680,"Diamante":680}
+  // [01-sep] Flyer Honor 600 del 27-ago al 11-oct: 425 ejecutivo (antes 680).
+  // "Aplica en Plan Black, Platino y Diamante" — por eso va aquí y no en
+  // EQUIP_INC: BY_PLAN paga SOLO en los planes listados, $0 en el resto.
+  'Honor 600': {"Black":425,"Platino":425,"Diamante":425}
 };
 // ── Unidades mínimas del mismo modelo para que el bono aplique ──────────────
 window.EQUIP_INC_MIN_UNITS = {
@@ -56,36 +65,30 @@ window.EQUIP_INC_MIN_UNITS = {
 };
 
 // ── Vigencia declarada de cada flyer ────────────────────────────────────────
-// [v1.11.62] IMPORTANTE — HOY ESTO ES SOLO INFORMATIVO: alimenta el panel de
-// Vigencias para avisar qué bonos están por vencer o ya vencieron. NO apaga el
-// bono automáticamente: un bono vencido SIGUE pagando hasta que se edite este
-// archivo. Apagarlo solo es una decisión de negocio (afecta dinero de la gente)
-// y está pendiente de confirmación explícita de Diego.
+// [01-sep] Sigue alimentando el panel de Vigencias (avisa qué está por vencer),
+// pero ya no hay bonos vencidos aquí: la regla de Diego es que al vencer sin
+// flyer nuevo el modelo SALE del archivo. Así que este bloque y EQUIP_INC de
+// arriba tienen exactamente las mismas llaves, y el panel sirve para avisar
+// ANTES del vencimiento, no para reportar deuda vieja.
 //
-// Las fechas de fin vienen de los flyers. Las de inicio de los flyers del 06-jul
-// son inferidas de la fecha del flyer, no de una vigencia impresa.
+// Las fechas vienen de los flyers.
 window.EQUIP_INC_VIGENCY = {
+  // ── VIGENTES ────────────────────────────────────────────────────────────
   'Honor Magic 7 Pro': {start:'2026-08-13', end:'2026-09-27'},
   'Honor Magic 8 Lite 5G': {start:'2026-08-13', end:'2026-09-27'},
   'Honor Magic 8 Lite 5G + Jersey': {start:'2026-08-13', end:'2026-09-27'},
   'Honor X8D': {start:'2026-08-13', end:'2026-09-27'},
-  'Moto Edge 70 Pro + Watch': {start:'2026-08-03', end:'2026-08-30'},
-  'Moto Edge 70 Pro + Watch + Chamarra': {start:'2026-08-03', end:'2026-08-30'},
-  'Moto G77': {start:'2026-08-03', end:'2026-08-30'},
-  'Pixel 10': {start:'2026-08-03', end:'2026-08-30'},
-  'Pixel 10 Pro': {start:'2026-08-03', end:'2026-08-30'},
-  'Pixel 10 Pro XL': {start:'2026-08-03', end:'2026-08-30'},
-  'Xiaomi 15T': {start:'2026-08-03', end:'2026-08-30'},
-  'Xiaomi 17T': {start:'2026-08-03', end:'2026-08-30'},
-  'Xiaomi 17T Pro': {start:'2026-08-03', end:'2026-08-30'},
-  'Redmi Note 15 Pro 5G': {start:'2026-08-03', end:'2026-08-30'},
-  'Redmi Note 15': {start:'2026-08-03', end:'2026-08-30'},
-  'Oppo Find X9 Pro': {start:'2026-08-03', end:'2026-08-30'},
-  'Oppo Reno 14F': {start:'2026-08-03', end:'2026-08-30'},
-  'Oppo Reno 13 5G': {start:'2026-08-03', end:'2026-08-30'},
-  'Oppo A6k': {start:'2026-08-03', end:'2026-08-30'},
-  'Oppo A5 Pro 5G': {start:'2026-08-03', end:'2026-08-30'},
-  'Honor 600': {start:'2026-07-13', end:'2026-08-23'}
+  'Honor 600': {start:'2026-08-27', end:'2026-10-11'},
+  'Moto Edge 70 Pro + Watch': {start:'2026-08-03', end:'2026-10-04'},
+  'Moto Edge 70 Pro + Watch + Chamarra': {start:'2026-08-03', end:'2026-10-04'},
+  'Moto Edge 70 Fusión': {start:'2026-08-03', end:'2026-10-04'},
+  'Moto G77': {start:'2026-08-03', end:'2026-10-04'},
+  'Xiaomi 15T': {start:'2026-08-31', end:'2026-10-04'},
+  'Xiaomi 17T': {start:'2026-08-31', end:'2026-10-04'},
+  'Redmi Note 17 + Sound Pocket': {start:'2026-08-31', end:'2026-10-04'},
+  'Redmi Note 17 Pro 5G': {start:'2026-08-31', end:'2026-10-04'}
+  // Los 11 bonos vencidos el 30-ago salieron del archivo el 01-sep junto con
+  // sus montos. Aquí solo viven los flyers que están en mano.
 };
 
 // ── [v1.11.64] RENTA MENSUAL POR PLAN — insumo del ARPU de los tableros ─────
