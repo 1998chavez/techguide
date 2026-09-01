@@ -9,7 +9,7 @@
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v1362-precios-ago29';
+const CACHE_NAME = 'techguide-v1370-fix-arranque-sep1';
 // [v1.11.103] Caché SEPARADO y ESTABLE para los pesados que NO cambian entre
 // versiones: vendors.js (999KB, html2canvas+jsPDF) y catalog-img.js (866KB,
 // las fotos del catálogo). Antes vivían en CACHE_NAME, así que CADA bump
@@ -30,7 +30,7 @@ const IMG_BUILD = '2026-08-29-redmi17';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1788609600';
+const BUILD_ID = '1788868800';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la
@@ -73,19 +73,51 @@ self.addEventListener('install', function(event){
         return cache.add(url).catch(function(err){
           console.warn('[SW] Failed to pre-cache', url, err);
         });
-      }));
+      })).then(function(){
+        /* [v1.37] Segunda mitad del bug de "no abre". Los .catch de arriba se
+           tragan los fallos, asi que con red floja el SW se instalaba con el
+           precache INCOMPLETO, hacia skipWaiting, y activate borraba el cache
+           anterior: el equipo se quedaba sin app.js viejo Y sin app.js nuevo.
+           Ahora se verifican los criticos; si falta alguno se reintenta una vez
+           y, si sigue faltando, el install FALLA a proposito. El SW anterior
+           sigue sirviendo la app y el navegador reintenta despues. Es preferible
+           quedarse una version atras que quedarse en blanco. */
+        var CRITICOS = [
+          SCOPE + 'index.html',
+          SCOPE + 'app.js?v=' + BUILD_ID,
+          SCOPE + 'catalog.js?v=' + BUILD_ID
+        ];
+        return Promise.all(CRITICOS.map(function(u){
+          return cache.match(u).then(function(hit){
+            if(hit) return true;
+            return cache.add(u).then(function(){ return true; })
+                        .catch(function(){ return u; });
+          });
+        })).then(function(res){
+          var faltan = res.filter(function(x){ return x !== true; });
+          if(faltan.length){
+            throw new Error('[SW] install abortado, faltan criticos: ' + faltan.join(', '));
+          }
+        });
+      });
     }).then(function(){
       // [v1.11.103] Los pesados se guardan en su propio caché y NO se esperan:
       // la app queda usable de inmediato y estos llegan en segundo plano.
       // Si ya estaban (versión anterior), no se vuelven a pedir.
       caches.open(CACHE_ESTABLE).then(function(ce){
         // Se guardan SIN ?v= para que la clave coincida con la del fetch.
+        // [v1.37] Devuelve true SOLO si el archivo quedo guardado. Antes se
+        // tragaba el error y devolvia undefined, asi que el sello de imagenes
+        // se marcaba como al dia aunque la descarga hubiera fallado: las fotos
+        // nuevas no llegaban nunca y no habia forma de reintentar.
         var bajarEstable = function(f){
           var url = SCOPE + f;
           return fetch(url).then(function(r){
-            if(r && r.status === 200) return ce.put(url, r);
+            if(r && r.status === 200) return ce.put(url, r).then(function(){ return true; });
+            return false;
           }).catch(function(err){
             console.warn('[SW] estable falló', f, err && err.message);
+            return false;
           });
         };
         // vendors.js: no cambia entre versiones. Si ya está, no se toca.
@@ -98,7 +130,8 @@ self.addEventListener('install', function(event){
           return hit ? hit.text() : null;
         }).then(function(prev){
           if(prev === IMG_BUILD) return;   // fotos al día, no se re-descarga
-          return bajarEstable('catalog-img.js').then(function(){
+          return bajarEstable('catalog-img.js').then(function(ok){
+            if(!ok) return;   // fallo la descarga: NO sellar, se reintenta luego
             return ce.put(sello, new Response(IMG_BUILD, {
               headers: {'Content-Type': 'text/plain'}
             }));
@@ -301,7 +334,34 @@ self.addEventListener('fetch', function(event){
           return response;
         });
       }).catch(function(){
-        return caches.match(clave);
+        /* [v1.37] CAUSA RAIZ DE "LA APP NO ABRE".
+           Antes esto era `return caches.match(clave)` a secas. Si el equipo no
+           estaba en cache Y la red fallaba, caches.match resuelve a UNDEFINED,
+           y respondWith(undefined) lanza TypeError: la peticion muere y el
+           <script src="app.js?v=..."> NUNCA carga. Pantalla en blanco.
+           La ventana en que pasa es justo despues de un bump: la clave lleva
+           ?v=BUILD_ID nuevo, el precache pudo fallar en silencio (su .catch se
+           traga el error) y activate ya borro el cache anterior.
+           Ahora: caida escalonada y SIEMPRE una Response valida al final. */
+        return caches.match(clave).then(function(c){
+          if(c) return c;
+          // 2o intento: la version anterior del mismo archivo, ignorando ?v=.
+          // Servir un app.js de hace un build es infinitamente mejor que una
+          // pantalla en blanco; el handshake GET_BUILD_ID recarga solo cuando
+          // vuelva la red.
+          return caches.match(url.origin + url.pathname, {ignoreSearch: true});
+        }).then(function(c){
+          if(c) return c;
+          return fetch(req).catch(function(){
+            // Ultimo recurso: una Response REAL de error. Deja que el navegador
+            // dispare onerror en vez de romper el service worker.
+            return new Response('/* bundle no disponible */', {
+              status: 503,
+              statusText: 'Bundle no disponible',
+              headers: {'Content-Type': 'application/javascript'}
+            });
+          });
+        });
       })
     );
     return;
