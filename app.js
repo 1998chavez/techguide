@@ -11168,7 +11168,33 @@ async function admSheetMigrarPacifico(){
       var nue=porRegional[rg].slice().sort();
       if(JSON.stringify(act)!==JSON.stringify(nue)) regAjuste.push({id:hit.id,nombre:rg,de:act.length,a:nue.length,tiendas:nue});
     });
-    _migPlan={mueve:mueve, regAjuste:regAjuste};
+
+    // [v1.39.3] REGIONALES QUE YA NO LLEVAN ESTAS TIENDAS.
+    // Faltaba esto y era el hueco grande: solo se ajustaban los 9 regionales
+    // QUE VIENEN en el archivo. Quien ya era regional en TechGuide y no aparece
+    // en la estructura nueva (Juan Manuel Barajas, por ejemplo) se quedaba con
+    // sus tiendasAsignadas intactas, asi que el arbol seguia colgando esas
+    // sucursales de el Y del regional nuevo al mismo tiempo.
+    // Ahora se le QUITAN solo las tiendas que la estructura reasigno. Si lleva
+    // tiendas de otra region, esas no se tocan: no es una baja, es dejar de
+    // llevar Pacifico.
+    var tiendasEstructura={};
+    Object.keys(window.PAC_TIENDAS).forEach(function(t){ tiendasEstructura[t]=true; });
+    var nuevosDuenos={};
+    regAjuste.forEach(function(r){ nuevosDuenos[r.id]=true; });
+    Object.keys(porRegional).forEach(function(rg){ if(padron[rg]) nuevosDuenos[padron[rg].id]=true; });
+    var regPierde=[];
+    qs.forEach(function(sn){
+      var d=sn.data()||{};
+      if(!Array.isArray(d.tiendasAsignadas) || !d.tiendasAsignadas.length) return;
+      if(nuevosDuenos[sn.id]) return;                       // ya se le fija su lista nueva
+      var quedan=d.tiendasAsignadas.filter(function(t){ return !tiendasEstructura[String(t)]; });
+      if(quedan.length===d.tiendasAsignadas.length) return; // no lleva ninguna de estas
+      regPierde.push({id:sn.id, nombre:String(d.nombre||sn.id),
+                      pierde:d.tiendasAsignadas.length-quedan.length,
+                      quedan:quedan});
+    });
+    _migPlan={mueve:mueve, regAjuste:regAjuste, regPierde:regPierde};
     var dudosos=mueve.filter(function(m){return m.colision;});
     var h='<div class="adm-sheet-h">Estructura Pacífico</div>'
       +'<div class="adm-sheet-sub">'+window.PAC_META.gente+' personas · '+window.PAC_META.tiendas+' tiendas · 9 regionales</div>'
@@ -11178,6 +11204,8 @@ async function admSheetMigrarPacifico(){
       +'<div class="adm-msg"><b>'+regAjuste.length+'</b> regionales con tiendas a ajustar</div>'
       +'<div class="adm-msg" style="color:var(--hv2-ink3)"><b>'+sinCuenta.length+'</b> del archivo SIN cuenta en TechGuide — no se crean, se listan abajo</div>'
       +(regSinCuenta.length?('<div class="adm-msg" style="color:var(--hv2-bad)"><b>'+regSinCuenta.length+'</b> regionales del archivo sin cuenta: '+regSinCuenta.map(_admEsc).join(', ')+'</div>'):'')
+      +(regPierde.length?('<div class="adm-msg" style="color:var(--hv2-bad)"><b>'+regPierde.length+'</b> regional(es) dejan de llevar tiendas de Pacífico: '
+          +regPierde.map(function(r){ return _admEsc(r.nombre)+' (−'+r.pierde+(r.quedan.length?(', le quedan '+r.quedan.length+' de otra región'):', se queda sin tiendas')+')'; }).join(' · ')+'</div>'):'')
       +(rolMal.length?('<div class="adm-msg" style="color:var(--hv2-bad)"><b>'+rolMal.length+'</b> con rol distinto al archivo — NO se corrige desde aquí (las reglas no dejan tocar rol)</div>'):'')
       +(dudosos.length?('<div class="adm-msg" style="color:var(--hv2-bad)">⚠ <b>'+dudosos.length+'</b> con nombre repetido en el padrón: revísalos a mano antes de aplicar</div>'):'');
     h+='<div class="adm-msg" style="margin-top:8px;font-weight:700;color:var(--hv2-ink2)">Se reacomodan</div>';
@@ -11194,8 +11222,8 @@ async function admSheetMigrarPacifico(){
       if(sinCuenta.length>30) h+='<div class="adm-msg">…y '+(sinCuenta.length-30)+' más.</div>';
     }
     h+='</div>'+_admCampoPass()
-      +'<button class="adm-sheet-cta" id="adm-cta"'+((mueve.length||regAjuste.length)?'':' disabled')
-      +' onclick="admConfirmMigrarPacifico()">Aplicar a '+(mueve.length+regAjuste.length)+' documento(s)</button>';
+      +'<button class="adm-sheet-cta" id="adm-cta"'+((mueve.length||regAjuste.length||regPierde.length)?'':' disabled')
+      +' onclick="admConfirmMigrarPacifico()">Aplicar a '+(mueve.length+regAjuste.length+regPierde.length)+' documento(s)</button>';
     admAbrirSheet(h);
   }catch(e){
     admAbrirSheet('<div class="adm-sheet-h">Estructura Pacífico</div><div class="adm-msg adm-err">'
@@ -11224,13 +11252,16 @@ async function admConfirmMigrarPacifico(){
       });
       await b.commit(); hechos+=Math.min(400,todos.length-i);
     }
-    if(regs.length){
+    var pierde=(_migPlan.regPierde||[]);
+    if(regs.length || pierde.length){
       var b3=firestoreFns.writeBatch(firestoreDB);
       regs.forEach(function(r){ b3.update(firestoreFns.doc(firestoreDB,'empleados',r.id), {tiendasAsignadas:r.tiendas}); });
+      // Al regional saliente se le deja SOLO lo que no reasigno la estructura.
+      pierde.forEach(function(r){ b3.update(firestoreFns.doc(firestoreDB,'empleados',r.id), {tiendasAsignadas:r.quedan}); });
       await b3.commit();
     }
     admCerrarSheet();
-    admToast('Estructura aplicada: '+hechos+' personas y '+regs.length+' regionales.','ok');
+    admToast('Estructura aplicada: '+hechos+' personas, '+regs.length+' regionales y '+pierde.length+' liberados.','ok');
     _migPlan=null;
     if(typeof adminCargarEquipo==='function') adminCargarEquipo();
   }catch(e){

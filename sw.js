@@ -9,7 +9,7 @@
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v1392-fix-permiso-tienda';
+const CACHE_NAME = 'techguide-v1393-fix-appjs-regionales';
 // [v1.11.103] Caché SEPARADO y ESTABLE para los pesados que NO cambian entre
 // versiones: vendors.js (999KB, html2canvas+jsPDF) y catalog-img.js (866KB,
 // las fotos del catálogo). Antes vivían en CACHE_NAME, así que CADA bump
@@ -36,11 +36,11 @@ const IMG_BUILD = '2026-08-29-redmi17';
 // cuando app.js cambia de verdad.
 // DEBE coincidir con window.APP_JS_V del index.html. Al editar app.js hay que
 // subir este valor en LOS DOS archivos.
-const APP_JS_V = '032bf94d83';
+const APP_JS_V = '738c2d40e3';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1789934400';
+const BUILD_ID = '1789938000';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la
@@ -319,7 +319,14 @@ self.addEventListener('fetch', function(event){
     // buscan SIN querystring: su contenido no depende del BUILD_ID, así que un
     // bump ya no los invalida. app.js y catalog.js siguen con ?v= porque sí
     // cambian en cada versión.
-    const esEstable = /\/(vendors|catalog-img)\.js/i.test(url.pathname);
+    // [v1.39.3] app.js ENTRA AQUI. En v1.38 lo mande a CACHE_ESTABLE sellado
+    // por contenido (APP_JS_V) y lo saque de OFFLINE_ASSETS, pero olvide
+    // agregarlo a esta lista. Resultado: el fetch lo buscaba en CACHE_NAME con
+    // la clave 'app.js?v=<hash>' — que ya no existe ahi — y caia a red en cada
+    // arranque; y si la red fallaba, el respaldo con ignoreSearch encontraba la
+    // copia VIEJA guardada en CACHE_ESTABLE y servia esa. Por eso una version
+    // nueva de app.js podia no llegar nunca.
+    const esEstable = /\/(app|vendors|catalog-img)\.js/i.test(url.pathname);
     const destino = esEstable ? CACHE_ESTABLE : CACHE_NAME;
     const clave = esEstable ? (url.origin + url.pathname) : req;
 
