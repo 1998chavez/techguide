@@ -10117,8 +10117,6 @@ function _admTarjeta(attuid, d){
   }
   if(perm.mover) b += '<button class="adm-action adm-action-move" onclick="admSheetMover(\''+attuid+'\')">Mover de tienda</button>';
   if(perm.moverRegion) b += '<button class="adm-action adm-action-move" onclick="admSheetMoverRegion(\''+attuid+'\')">Mover de región</button>';
-  // [v1.39] Aplicar un archivo de estructura completo. Solo direccion nacional.
-  if(_meEsGlobal()) b += '<button class="adm-action" onclick="admSheetMigrarPacifico()">Aplicar estructura Pacifico</button>';
   if(perm.tiendas) b += '<button class="adm-action adm-action-ghost" onclick="admSheetTiendas(\''+attuid+'\')">Editar tiendas</button>';
   if(perm.moverTienda) b += '<button class="adm-action adm-action-move" onclick="admSheetMoverTienda(\''+attuid+'\')">Mover tienda</button>';
   if(perm.editar) b += '<button class="adm-action adm-action-ghost" onclick="admSheetEditar(\''+attuid+'\')">Editar nombre</button>';
@@ -10187,16 +10185,22 @@ function _admConstruirArbol(docs){
   //     del asesor (que en muchos registros viene vacío o desfasado y partía una
   //     misma sucursal entre dos grupos / la mandaba a "Sin regional").
   //  3) Solo personal ACTIVO; el buscador alcanza a cualquiera para casos puntuales.
-  // [v1.39] CENTRO 1/2 siguen aceptandose como entrada y se canonizan a CENTRO,
-  // para que el arbol no pierda gente que todavia tenga la region vieja.
-  const CANON = {'BAJIO':1,'CENTRO':1,'NOROESTE 1':1,'NORTE 1':1,'NORTE 2':1,'PACIFICO':1,'SUR PENINSULA':1,'CENTRO 1':1,'CENTRO 2':1};
+  // [v1.39] CENTRO 1 y CENTRO 2 se aceptan como ENTRADA pero se canonizan a
+  // CENTRO con regionCanon() ANTES de agrupar. Sin esto el arbol seguia
+  // pintando dos renglones separados aunque REGIONES_MX ya tuviera una sola
+  // direccion: el mapa toleraba las viejas y se agrupaba por el valor crudo.
+  const CANON = {'BAJIO':1,'CENTRO':1,'NOROESTE 1':1,'NORTE 1':1,'NORTE 2':1,'PACIFICO':1,'SUR PENINSULA':1};
+  function _canonR(v){
+    const c = (typeof regionCanon === 'function') ? regionCanon(v) : String(v||'').trim().toUpperCase();
+    return CANON[c] ? c : null;
+  }
 
   // tienda -> región canónica (referencia de toda la colección)
   const _t2r = {};
   docs.forEach(function(x){
     const t = String((x.d.tienda||'')).trim();
-    const r = String((x.d.region||'')).trim();
-    if(t && CANON[r]){ _t2r[t] = _t2r[t] || {}; _t2r[t][r] = (_t2r[t][r]||0)+1; }
+    const r = _canonR(x.d.region);
+    if(t && r){ _t2r[t] = _t2r[t] || {}; _t2r[t][r] = (_t2r[t][r]||0)+1; }
   });
   const _canonTienda = {};
   Object.keys(_t2r).forEach(function(t){
@@ -10205,9 +10209,7 @@ function _admConstruirArbol(docs){
   function _regionEf(d){
     const t = String((d.tienda||'')).trim();
     if(t && _canonTienda[t]) return _canonTienda[t];
-    const r = String((d.region||'')).trim();
-    if(CANON[r]) return r;
-    return 'Sin región';
+    return _canonR(d.region) || 'Sin región';
   }
 
   // Regionales activos: nombre -> { regDoc, tiendas{}, region }
@@ -10359,7 +10361,22 @@ async function adminCargarEquipo(){
     const _usarEquipo = _meTiendas().length>0 || (_meRol()==='director' && (_meRegion() || _misRegiones().length>0));
     if(_meEsGlobal() && !_usarEquipo){
       // Dirección nacional: árbol Región › Regional › Tienda › Asesor.
-      if(listLabel) listLabel.textContent = 'Estructura nacional';
+      if(listLabel){
+        listLabel.textContent = 'Estructura nacional';
+        // [v1.39] Accion global: aplicar un archivo de estructura. Va aqui, en
+        // el encabezado, no en la ficha de cada persona (ahi se repetia 2,941
+        // veces y no es una accion sobre un colaborador).
+        var _host = listLabel.parentElement || listLabel;
+        if(_host && !document.getElementById('adm-btn-estructura')){
+          var _b = document.createElement('button');
+          _b.id = 'adm-btn-estructura';
+          _b.className = 'adm-action';
+          _b.style.cssText = 'margin-left:10px;font-size:12px;padding:5px 10px';
+          _b.textContent = 'Aplicar estructura Pacífico';
+          _b.onclick = function(){ admSheetMigrarPacifico(); };
+          _host.appendChild(_b);
+        }
+      }
       const qs = await firestoreFns.getDocs(col);
       const docs = []; qs.forEach(function(s){ docs.push({id:s.id,d:s.data()||{}}); });
       _admGente = {}; docs.forEach(function(x){ _admGente[x.id]=x.d; });
