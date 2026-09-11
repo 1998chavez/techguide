@@ -3569,6 +3569,20 @@ const FIREBASE_CFG={
 };
 
 // Cargar Firebase SDK desde gstatic.com (CDN de Google, no bloqueado por Edge)
+// [v1.39.4] PRECARGA DEL SDK. loadFirebase() se llamaba hasta que el asesor
+// presionaba "Entrar", asi que los dos modulos de Firebase (~400 KB desde
+// gstatic) se bajaban CON EL BOTON YA PRESIONADO. En red de tienda eso son
+// varios segundos mirando "Verificando...".
+// Ahora se dispara en cuanto aparece la pantalla de login: mientras el asesor
+// escribe su ATTUID y contrasena, el SDK ya viene en camino y al presionar
+// Entrar loadFirebase() regresa de inmediato.
+// Es idempotente: si ya esta cargado no hace nada, y si falla se ignora — el
+// login lo vuelve a intentar y ahi si reporta el error.
+function precargarFirebase(){
+  try{ loadFirebase().catch(function(){}); }catch(e){}
+}
+window.precargarFirebase = precargarFirebase;
+
 async function loadFirebase(){
   if(firestoreDB) return firestoreDB;
   try{
@@ -3955,6 +3969,13 @@ function updateAsesorChip(){
       chip.style.display='none';
     }
   }
+  // [v1.39.4] REFRESCAR EL SIDEBAR. pmdFill() —que pinta nombre, rol y region
+  // en el menu lateral— solo corria en window.load y al ABRIR el drawer. En
+  // escritorio la barra esta fija y nunca se abre, asi que al cambiar de
+  // usuario seguia mostrando al anterior: el saludo decia "Diego" y la barra
+  // "PEDRO MARQUEZ - DN". Colgarlo aqui lo cubre todo de una vez, porque
+  // updateAsesorChip ya se llama en login, logout y refresco de sesion.
+  if(typeof window.pmdFill === 'function') window.pmdFill();
   // [v1.9.23] Actualizar saludo (nombre del asesor)
   if(typeof updateGreeting === 'function') updateGreeting();
   // [v1.10.0] Mostrar/ocultar burbuja IA según ATTUID
@@ -10367,11 +10388,19 @@ async function adminCargarEquipo(){
         // el encabezado, no en la ficha de cada persona (ahi se repetia 2,941
         // veces y no es una accion sobre un colaborador).
         var _host = listLabel.parentElement || listLabel;
-        if(_host && !document.getElementById('adm-btn-estructura')){
+        // [v1.39.4] Se oculta una vez aplicada. La marca lleva la version de la
+        // estructura: si llega un archivo nuevo se sube PAC_VER y el boton
+        // reaparece solo. Asi no hay que acordarse de nada.
+        var _yaAplicada = false;
+        try{ _yaAplicada = localStorage.getItem('pmx_estructura_aplicada') === PAC_VER_ESPERADA; }catch(e){}
+        if(_host && !_yaAplicada && !document.getElementById('adm-btn-estructura')){
           var _b = document.createElement('button');
           _b.id = 'adm-btn-estructura';
           _b.className = 'adm-action';
-          _b.style.cssText = 'margin-left:10px;font-size:12px;padding:5px 10px';
+          // Ancho al contenido: con adm-action a secas se estiraba como barra
+          // gris de lado a lado del encabezado.
+          _b.style.cssText = 'margin-left:10px;font-size:12px;padding:5px 10px;'
+            + 'display:inline-block;width:auto;flex:0 0 auto;vertical-align:middle';
           _b.textContent = 'Aplicar estructura Pacífico';
           _b.onclick = function(){ admSheetMigrarPacifico(); };
           _host.appendChild(_b);
@@ -11111,6 +11140,9 @@ async function admConfirmBorrarTienda(){
 // si el archivo dice GERENTE y la cuenta dice asesor, se reporta pero no se
 // corrige desde aqui. Hay que hacerlo en la consola.
 var _migPlan=null;
+// Version de la estructura cargada. Subirla cuando llegue un archivo nuevo
+// hace que el boton de aplicar reaparezca para todos.
+var PAC_VER_ESPERADA='pacifico-septiembre-2026';
 
 function _migNorm(s){
   s=String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -11261,6 +11293,8 @@ async function admConfirmMigrarPacifico(){
       await b3.commit();
     }
     admCerrarSheet();
+    try{ localStorage.setItem('pmx_estructura_aplicada', PAC_VER_ESPERADA); }catch(e){}
+    var _bt=document.getElementById('adm-btn-estructura'); if(_bt) _bt.remove();
     admToast('Estructura aplicada: '+hechos+' personas, '+regs.length+' regionales y '+pierde.length+' liberados.','ok');
     _migPlan=null;
     if(typeof adminCargarEquipo==='function') adminCargarEquipo();

@@ -11,10 +11,10 @@
      otro script, porque catalog.js/vendors.js la usan para el cache-busting y
      el registro del SW la compara. Si HTML y SW no coinciden → recarga forzada.
      Al empacar cada versión, este número se actualiza igual que el cache del SW. -->
-<script>window.BUILD_ID = '1789938000';
+<script>window.BUILD_ID = '1789941600';
 // [v1.11.61] APP_VERSION vive aquí desde que el bloque principal salió a app.js.
 // El ritual de release NO cambia: 2 constantes aquí + 2 en sw.js.
-const APP_VERSION = 'v1.39.3';</script>
+const APP_VERSION = 'v1.39.4';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -5305,7 +5305,7 @@ window._onCatalogImgReady=function(){
 // [v1.38] app.js se versiona por CONTENIDO, no por BUILD_ID: si el archivo no
 // cambio, el navegador y el service worker reusan la copia que ya tienen en vez
 // de re-bajar 579 KB en cada release. DEBE coincidir con APP_JS_V en sw.js.
-window.APP_JS_V = '738c2d40e3';
+window.APP_JS_V = '5ce2d95927';
 document.write('<scr'+'ipt src="app.js?v='+window.APP_JS_V+'"></scr'+'ipt>');
 </script>
 
@@ -5725,7 +5725,7 @@ document.write('<scr'+'ipt src="app.js?v='+window.APP_JS_V+'"></scr'+'ipt>');
 (function(){
   var d=document.getElementById('pmd-drawer'), ov=document.getElementById('pmd-overlay');
   if(!d||!ov) return;
-  function pmdFill(){
+  window.pmdFill=function pmdFill(){
     try{
       if(typeof asesorData!=='undefined' && asesorData && asesorData.attuid){
         var nm=asesorData.name||'Asesor';
@@ -5738,7 +5738,19 @@ document.write('<scr'+'ipt src="app.js?v='+window.APP_JS_V+'"></scr'+'ipt>');
     }catch(e){}
   }
   // Sidebar fija en escritorio: poblar nombre/rol sin esperar a que se abra el drawer.
-  window.addEventListener('load',function(){ setTimeout(pmdFill,900); setTimeout(pmdFill,3200); });
+  window.addEventListener('load',function(){
+    setTimeout(pmdFill,900); setTimeout(pmdFill,3200);
+    // [v1.39.4] Si la pantalla de login esta visible, ir bajando el SDK de
+    // Firebase mientras el asesor escribe, en vez de esperar al boton Entrar.
+    setTimeout(function(){
+      try{
+        var ov=document.getElementById('asesor-overlay');
+        if(ov && ov.classList.contains('show') && typeof window.precargarFirebase==='function'){
+          window.precargarFirebase();
+        }
+      }catch(e){}
+    },300);
+  });
   window.pmdOpen=function(){
     pmdFill();
     if(window.pmdSyncTheme)pmdSyncTheme(); if(window.pmdSyncDesktop)pmdSyncDesktop();
