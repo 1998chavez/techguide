@@ -7372,7 +7372,18 @@ function updateDashHomeCard(){
 }
 
 // Lista de regiones únicas, ya conocida por el catálogo de empleados
-const REGIONES_MX=['BAJIO','CENTRO 1','CENTRO 2','NOROESTE 1','NORTE 1','NORTE 2','PACIFICO','SUR PENINSULA'];
+// [v1.39] CENTRO 1 y CENTRO 2 se fusionaron en una sola direccion: CENTRO,
+// a cargo de ARIVAS (Arnold Rivas). Quedan 7 regiones.
+const REGIONES_MX=['BAJIO','CENTRO','NOROESTE 1','NORTE 1','NORTE 2','PACIFICO','SUR PENINSULA'];
+// Mientras queden documentos en /empleados con la region vieja, se resuelven
+// aqui. NO se borra este mapa al terminar la migracion: si alguien captura
+// "CENTRO 1" a mano o llega un archivo viejo, sigue cayendo donde debe.
+const REGION_ALIAS={'CENTRO 1':'CENTRO','CENTRO 2':'CENTRO'};
+function regionCanon(r){
+  var x=String(r||'').trim().toUpperCase();
+  return REGION_ALIAS[x] || x;
+}
+window.regionCanon = regionCanon;
 
 function poblarRegionSelect(lista){
   const sel=document.getElementById('dash-region');
@@ -9940,10 +9951,11 @@ function _admEsMando(d){ return ADM_ROLES_MANDO.indexOf(_admRol(d)) >= 0; }
 
 function _meAttuid(){ return (asesorData && asesorData.attuid) ? String(asesorData.attuid).toUpperCase() : ''; }
 function _meRol(){ return String((asesorData && asesorData.rol) || '').trim().toLowerCase(); }
-function _meRegion(){ return String((asesorData && asesorData.region) || ''); }
+function _meRegion(){ var r=String((asesorData && asesorData.region) || '');
+  return (typeof regionCanon==='function') ? (r?regionCanon(r):'') : r; }
 function _meTiendas(){ return Array.isArray(asesorData && asesorData.tiendasAsignadas) ? asesorData.tiendasAsignadas.map(String) : []; }
 // [v1.11.32] Regiones que cubre un director: regionesAsignadas (varias) o su region unica.
-function _misRegiones(){ const a=(asesorData && Array.isArray(asesorData.regionesAsignadas))?asesorData.regionesAsignadas.map(String).filter(Boolean):[]; const u=[]; a.forEach(function(x){ if(u.indexOf(x)<0) u.push(x); }); if(u.length) return u; const r=_meRegion(); return r?[r]:[]; }
+function _misRegiones(){ const a=(asesorData && Array.isArray(asesorData.regionesAsignadas))?asesorData.regionesAsignadas.map(String).filter(Boolean):[]; const u=[]; a.forEach(function(x){ var c=(typeof regionCanon==='function')?regionCanon(x):x; if(c && u.indexOf(c)<0) u.push(c); }); if(u.length) return u; const r=_meRegion(); return r?[r]:[]; }
 function _meEsSuper(){ return _meAttuid() === SUPER_ADMIN_ATTUID; }
 function _meEsGlobal(){ return _meEsSuper() || _meRol() === 'director_nacional'; }
 
@@ -10105,6 +10117,8 @@ function _admTarjeta(attuid, d){
   }
   if(perm.mover) b += '<button class="adm-action adm-action-move" onclick="admSheetMover(\''+attuid+'\')">Mover de tienda</button>';
   if(perm.moverRegion) b += '<button class="adm-action adm-action-move" onclick="admSheetMoverRegion(\''+attuid+'\')">Mover de región</button>';
+  // [v1.39] Aplicar un archivo de estructura completo. Solo direccion nacional.
+  if(_meEsGlobal()) b += '<button class="adm-action" onclick="admSheetMigrarPacifico()">Aplicar estructura Pacifico</button>';
   if(perm.tiendas) b += '<button class="adm-action adm-action-ghost" onclick="admSheetTiendas(\''+attuid+'\')">Editar tiendas</button>';
   if(perm.moverTienda) b += '<button class="adm-action adm-action-move" onclick="admSheetMoverTienda(\''+attuid+'\')">Mover tienda</button>';
   if(perm.editar) b += '<button class="adm-action adm-action-ghost" onclick="admSheetEditar(\''+attuid+'\')">Editar nombre</button>';
@@ -10173,7 +10187,9 @@ function _admConstruirArbol(docs){
   //     del asesor (que en muchos registros viene vacío o desfasado y partía una
   //     misma sucursal entre dos grupos / la mandaba a "Sin regional").
   //  3) Solo personal ACTIVO; el buscador alcanza a cualquiera para casos puntuales.
-  const CANON = {'BAJIO':1,'CENTRO 1':1,'CENTRO 2':1,'NOROESTE 1':1,'NORTE 1':1,'NORTE 2':1,'PACIFICO':1,'SUR PENINSULA':1};
+  // [v1.39] CENTRO 1/2 siguen aceptandose como entrada y se canonizan a CENTRO,
+  // para que el arbol no pierda gente que todavia tenga la region vieja.
+  const CANON = {'BAJIO':1,'CENTRO':1,'NOROESTE 1':1,'NORTE 1':1,'NORTE 2':1,'PACIFICO':1,'SUR PENINSULA':1,'CENTRO 1':1,'CENTRO 2':1};
 
   // tienda -> región canónica (referencia de toda la colección)
   const _t2r = {};
@@ -11061,6 +11077,150 @@ async function admConfirmBorrarTienda(){
     var msg=(e&&e.message)?e.message:'Error';
     admToast(/permission|insufficient/i.test(msg)?'Sin permiso para eliminar (revisa las reglas de Firestore).':msg,'err');
     if(cta){ cta.disabled=false; cta.textContent='Eliminar definitivamente'; }
+  }
+}
+
+// ══ [v1.39] MIGRACION DE ESTRUCTURA ═══════════════════════════════════════
+// Reacomoda a quien YA existe en /empleados segun un archivo de estructura.
+// NUNCA da de alta a nadie: quien viene en el archivo sin cuenta se LISTA para
+// que se cree a mano. Quien tiene cuenta y ya no viene en el archivo NO se
+// toca — puede ser de otra region o una baja que se maneja aparte.
+//
+// La llave es el NOMBRE normalizado. Es la unica que comparten los dos
+// sistemas: el HC identifica por Nº de empleado y TechGuide por ATTUID, y no
+// hay columna que los una. Por eso SIEMPRE hay vista previa antes de aplicar.
+//
+// LIMITE CONOCIDO: las reglas de Firestore no permiten cambiar `rol`, asi que
+// si el archivo dice GERENTE y la cuenta dice asesor, se reporta pero no se
+// corrige desde aqui. Hay que hacerlo en la consola.
+var _migPlan=null;
+
+function _migNorm(s){
+  s=String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  return s.toUpperCase().replace(/\s+/g,' ').trim();
+}
+
+async function admSheetMigrarPacifico(){
+  if(!_meEsGlobal()){ admToast('Solo dirección nacional puede aplicar una estructura.','err'); return; }
+  admAbrirSheet('<div class="adm-sheet-h">Estructura Pacífico</div><div class="adm-msg">Cargando…</div>');
+  try{
+    if(typeof window.PAC_GENTE==='undefined'){
+      await new Promise(function(res,rej){
+        var sc=document.createElement('script');
+        sc.src='estructura-pacifico.js?v='+(window.BUILD_ID||'0');
+        sc.onload=res; sc.onerror=function(){ rej(new Error('No se pudo cargar estructura-pacifico.js')); };
+        document.head.appendChild(sc);
+      });
+    }
+    await loadFirebase();
+    var col=firestoreFns.collection(firestoreDB,'empleados');
+    var qs=await firestoreFns.getDocs(col);
+    var padron={};           // nombre normalizado -> {id, d}
+    var colisiones={};
+    qs.forEach(function(sn){
+      var d=sn.data()||{};
+      var k=_migNorm(d.nombre);
+      if(!k) return;
+      if(padron[k]) colisiones[k]=true;
+      padron[k]={id:sn.id, d:d};
+    });
+    var mueve=[], sinCuenta=[], rolMal=[], igual=0;
+    window.PAC_GENTE.forEach(function(g){
+      var hit=padron[g.n];
+      if(!hit){ sinCuenta.push(g); return; }
+      var rolArchivo=(g.p==='G')?'gerente':'asesor';
+      var rolCuenta=String(hit.d.rol||'asesor').toLowerCase();
+      if(rolCuenta!==rolArchivo && (rolCuenta==='asesor'||rolCuenta==='gerente')) rolMal.push({g:g,id:hit.id,de:rolCuenta,a:rolArchivo});
+      var cambiaT=String(hit.d.tienda||'')!==g.t;
+      var cambiaR=regionCanon(hit.d.region)!=='PACIFICO';
+      if(cambiaT||cambiaR) mueve.push({id:hit.id, nombre:g.n, deT:String(hit.d.tienda||'—'), aT:g.t,
+                                        deR:String(hit.d.region||'—'), aR:'PACIFICO', colision:!!colisiones[g.n]});
+      else igual++;
+    });
+    // tiendasAsignadas de cada regional, segun el archivo
+    var porRegional={};
+    Object.keys(window.PAC_TIENDAS).forEach(function(t){
+      var rg=window.PAC_TIENDAS[t];
+      (porRegional[rg]=porRegional[rg]||[]).push(t);
+    });
+    var regAjuste=[], regSinCuenta=[];
+    Object.keys(porRegional).forEach(function(rg){
+      var hit=padron[rg];
+      if(!hit){ regSinCuenta.push(rg); return; }
+      var act=Array.isArray(hit.d.tiendasAsignadas)?hit.d.tiendasAsignadas.slice().sort():[];
+      var nue=porRegional[rg].slice().sort();
+      if(JSON.stringify(act)!==JSON.stringify(nue)) regAjuste.push({id:hit.id,nombre:rg,de:act.length,a:nue.length,tiendas:nue});
+    });
+    _migPlan={mueve:mueve, regAjuste:regAjuste};
+    var dudosos=mueve.filter(function(m){return m.colision;});
+    var h='<div class="adm-sheet-h">Estructura Pacífico</div>'
+      +'<div class="adm-sheet-sub">'+window.PAC_META.gente+' personas · '+window.PAC_META.tiendas+' tiendas · 9 regionales</div>'
+      +'<div class="adm-sheet-scroll">'
+      +'<div class="adm-msg"><b>'+mueve.length+'</b> se reacomodan (tienda o región)</div>'
+      +'<div class="adm-msg"><b>'+igual+'</b> ya están donde deben</div>'
+      +'<div class="adm-msg"><b>'+regAjuste.length+'</b> regionales con tiendas a ajustar</div>'
+      +'<div class="adm-msg" style="color:var(--hv2-ink3)"><b>'+sinCuenta.length+'</b> del archivo SIN cuenta en TechGuide — no se crean, se listan abajo</div>'
+      +(regSinCuenta.length?('<div class="adm-msg" style="color:var(--hv2-bad)"><b>'+regSinCuenta.length+'</b> regionales del archivo sin cuenta: '+regSinCuenta.map(_admEsc).join(', ')+'</div>'):'')
+      +(rolMal.length?('<div class="adm-msg" style="color:var(--hv2-bad)"><b>'+rolMal.length+'</b> con rol distinto al archivo — NO se corrige desde aquí (las reglas no dejan tocar rol)</div>'):'')
+      +(dudosos.length?('<div class="adm-msg" style="color:var(--hv2-bad)">⚠ <b>'+dudosos.length+'</b> con nombre repetido en el padrón: revísalos a mano antes de aplicar</div>'):'');
+    h+='<div class="adm-msg" style="margin-top:8px;font-weight:700;color:var(--hv2-ink2)">Se reacomodan</div>';
+    mueve.slice(0,40).forEach(function(m){
+      h+='<div class="adm-opt"><span class="adm-opt-name">'+_admEsc(m.nombre)+'<br><span style="font-size:11px;color:var(--hv2-ink3)">'
+        +_admEsc(m.deT)+' → '+_admEsc(m.aT)+'</span></span><span class="adm-opt-cur" style="background:none;color:var(--hv2-ink3)">'+_admEsc(m.id)+'</span></div>';
+    });
+    if(mueve.length>40) h+='<div class="adm-msg">…y '+(mueve.length-40)+' más.</div>';
+    if(sinCuenta.length){
+      h+='<div class="adm-msg" style="margin-top:8px;font-weight:700;color:var(--hv2-ink2)">Sin cuenta — créalos a mano si los necesitas</div>';
+      sinCuenta.slice(0,30).forEach(function(g){
+        h+='<div class="adm-opt"><span class="adm-opt-name">'+_admEsc(g.n)+'<br><span style="font-size:11px;color:var(--hv2-ink3)">'+_admEsc(g.t)+'</span></span></div>';
+      });
+      if(sinCuenta.length>30) h+='<div class="adm-msg">…y '+(sinCuenta.length-30)+' más.</div>';
+    }
+    h+='</div>'+_admCampoPass()
+      +'<button class="adm-sheet-cta" id="adm-cta"'+((mueve.length||regAjuste.length)?'':' disabled')
+      +' onclick="admConfirmMigrarPacifico()">Aplicar a '+(mueve.length+regAjuste.length)+' documento(s)</button>';
+    admAbrirSheet(h);
+  }catch(e){
+    admAbrirSheet('<div class="adm-sheet-h">Estructura Pacífico</div><div class="adm-msg adm-err">'
+      +_admEsc((e&&e.message)||'Error')+'</div><button class="adm-sheet-cta" onclick="admCerrarSheet()">Cerrar</button>');
+  }
+}
+
+async function admConfirmMigrarPacifico(){
+  if(!_migPlan){ admToast('Vuelve a abrir la vista previa.','err'); return; }
+  var cta=document.getElementById('adm-cta');
+  if(cta){ cta.disabled=true; cta.textContent='Aplicando…'; }
+  try{
+    await loadFirebase();
+    var todos=_migPlan.mueve.slice(), regs=_migPlan.regAjuste.slice(), hechos=0;
+    // Firestore topa el batch en 500 escrituras: se parte en tandas.
+    for(var i=0;i<todos.length;i+=400){
+      var b=firestoreFns.writeBatch(firestoreDB);
+      todos.slice(i,i+400).forEach(function(m){
+        b.update(firestoreFns.doc(firestoreDB,'empleados',m.id), {tienda:m.aT});
+      });
+      await b.commit(); hechos+=Math.min(400,todos.length-i);
+    }
+    for(var j=0;j<todos.length;j+=400){
+      var b2=firestoreFns.writeBatch(firestoreDB);
+      todos.slice(j,j+400).forEach(function(m){
+        b2.update(firestoreFns.doc(firestoreDB,'empleados',m.id), {region:'PACIFICO'});
+      });
+      await b2.commit();
+    }
+    if(regs.length){
+      var b3=firestoreFns.writeBatch(firestoreDB);
+      regs.forEach(function(r){ b3.update(firestoreFns.doc(firestoreDB,'empleados',r.id), {tiendasAsignadas:r.tiendas}); });
+      await b3.commit();
+    }
+    admCerrarSheet();
+    admToast('Estructura aplicada: '+hechos+' personas y '+regs.length+' regionales.','ok');
+    _migPlan=null;
+    if(typeof adminCargarEquipo==='function') adminCargarEquipo();
+  }catch(e){
+    var msg=(e&&e.message)?e.message:'Error';
+    admToast(/permission|insufficient/i.test(msg)?'Sin permiso (revisa las reglas de Firestore).':msg,'err');
+    if(cta){ cta.disabled=false; cta.textContent='Reintentar'; }
   }
 }
 
