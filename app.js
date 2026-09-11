@@ -3243,6 +3243,13 @@ function calculateFlashByBrand(){
       all.forEach(function(d){
         if(String(d.brand||'').toUpperCase() !== B) return;
         if(typeof UPCOMING_ONLY !== 'undefined' && UPCOMING_ONLY.indexOf(d.id) >= 0) return;
+        // [v1.38] FILTRO DE VIGENCIA. Faltaba: Ofertas Flash recorria TODO el
+        // catalogo y solo excluia UPCOMING_ONLY, asi que un equipo vencido
+        // seguia anunciandose en el home con precio y enganche. No se notaba
+        // porque hoy no hay Motorola ni Honor vencido, pero en cuanto uno de
+        // esas marcas caiga se anuncia una promocion que ya no existe.
+        // initMomento y renderDevs si filtran; esta era la unica vista que no.
+        if(typeof isVigent === 'function' && !isVigent(d.id)) return;
         const opt = flashBestOption(d, false);
         if(opt) offers.push(opt);
       });
