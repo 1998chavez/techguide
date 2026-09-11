@@ -11210,20 +11210,19 @@ async function admConfirmMigrarPacifico(){
   try{
     await loadFirebase();
     var todos=_migPlan.mueve.slice(), regs=_migPlan.regAjuste.slice(), hechos=0;
-    // Firestore topa el batch en 500 escrituras: se parte en tandas.
+    // [v1.39] Antes esto eran DOS pasadas: una escribiendo {tienda} y otra
+    // {region}, o sea el doble de escrituras sobre el mismo documento. Ahora
+    // va en un solo update por persona, y la regla (4) de Firestore acepta los
+    // dos campos juntos. Firestore topa el batch en 500: se parte en tandas.
     for(var i=0;i<todos.length;i+=400){
       var b=firestoreFns.writeBatch(firestoreDB);
       todos.slice(i,i+400).forEach(function(m){
-        b.update(firestoreFns.doc(firestoreDB,'empleados',m.id), {tienda:m.aT});
+        var cambio={};
+        if(String(m.deT)!==String(m.aT)) cambio.tienda=m.aT;
+        if(regionCanon(m.deR)!=='PACIFICO') cambio.region='PACIFICO';
+        if(Object.keys(cambio).length) b.update(firestoreFns.doc(firestoreDB,'empleados',m.id), cambio);
       });
       await b.commit(); hechos+=Math.min(400,todos.length-i);
-    }
-    for(var j=0;j<todos.length;j+=400){
-      var b2=firestoreFns.writeBatch(firestoreDB);
-      todos.slice(j,j+400).forEach(function(m){
-        b2.update(firestoreFns.doc(firestoreDB,'empleados',m.id), {region:'PACIFICO'});
-      });
-      await b2.commit();
     }
     if(regs.length){
       var b3=firestoreFns.writeBatch(firestoreDB);
