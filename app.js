@@ -10146,7 +10146,11 @@ function _admGrupoHTML(gid, titulo, lista, tiendaNombre, tiendaRegion){
     +   '<svg class="adm-group-chev" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
     +   '<span class="adm-group-name">'+_admEsc(titulo)+'</span>'
     +   '<span class="adm-group-count">'+act+'/'+g.length+'</span>'
-    + '</div><div class="adm-group-body">'+cards+(tiendaNombre?('<button class="adm-add-btn" onclick="admSheetCrear('+_admJsStr(tiendaNombre)+','+_admJsStr(tiendaRegion||_meRegion())+')"><span class="adm-add-ic">+</span>Crear usuario</button>'):'')+'</div></div>';
+    + '</div><div class="adm-group-body">'+cards
+    + (tiendaNombre?('<button class="adm-add-btn" onclick="admSheetCrear('+_admJsStr(tiendaNombre)+','+_admJsStr(tiendaRegion||_meRegion())+')"><span class="adm-add-ic">+</span>Crear usuario</button>'):'')
+    // [v1.38] Borrar tienda de raiz. Solo mando, y solo sobre tiendas de su alcance.
+    + ((tiendaNombre && esAdminAccesos())?('<button class="adm-add-btn" style="color:var(--hv2-bad);border-color:var(--hv2-bad)" onclick="admSheetBorrarTienda('+_admJsStr(tiendaNombre)+')">Eliminar tienda y su personal</button>'):'')
+    + '</div></div>';
 }
 function _admChev(){ return '<svg class="adm-group-chev" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'; }
 
@@ -10834,30 +10838,225 @@ async function admConfirmMoverTienda(){
     if(cta){cta.disabled=false;cta.textContent=lbl||'Mover tienda';}
   }
 }
+// ── [v1.38] ALCANCE DE TIENDAS ───────────────────────────────────────────
+// Devuelve [{tienda, region, personas}] SOLO de lo que le toca a quien esta
+// logueado. Antes admSheetMover pintaba una lista plana: para un regional sus
+// tiendas, y para director / DN TODAS las del padron cargado, sin buscador.
+// Con cobertura nacional eso era una lista de cientos, imposible de usar.
+//
+// Reglas de alcance, en el mismo orden de confianza que el resto de Accesos:
+//   • regional  → sus tiendasAsignadas, y nada mas.
+//   • director  → las tiendas que viven en SUS regiones (_misRegiones()).
+//   • DN/super  → todo lo que haya en el padron cargado.
+// La region de cada tienda se deduce de la gente que trabaja ahi, que es la
+// misma fuente que usa _admConstruirArbol: si un documento trae una region
+// vieja, la tienda cae donde vive la mayoria, no donde diga un campo suelto.
+function _admTiendasEnAlcance(){
+  var rol=_meRol(), esGlobal=_meEsGlobal();
+  var misRegs=_misRegiones().map(function(r){ return String(r).toUpperCase(); });
+  var acc={};
+  Object.keys(_admGente).forEach(function(id){
+    var d=_admGente[id]||{};
+    var t=String(d.tienda||'').trim(); if(!t) return;
+    var rg=String(d.region||'').trim();
+    if(!acc[t]) acc[t]={tienda:t, regiones:{}, personas:0};
+    acc[t].personas++;
+    if(rg) acc[t].regiones[rg]=(acc[t].regiones[rg]||0)+1;
+  });
+  // El regional puede tener tiendas asignadas sin gente cargada todavia:
+  // se agregan para que pueda mover a alguien hacia una tienda vacia.
+  if(rol==='regional'){
+    _meTiendas().forEach(function(t){
+      t=String(t).trim(); if(!t) return;
+      if(!acc[t]) acc[t]={tienda:t, regiones:{}, personas:0};
+    });
+  }
+  var out=[];
+  Object.keys(acc).forEach(function(t){
+    var o=acc[t];
+    var rg=''; var max=-1;
+    Object.keys(o.regiones).forEach(function(r){ if(o.regiones[r]>max){max=o.regiones[r];rg=r;} });
+    out.push({tienda:t, region:rg||_meRegion()||'', personas:o.personas});
+  });
+  if(rol==='regional'){
+    var mias={}; _meTiendas().forEach(function(t){ mias[String(t).trim()]=true; });
+    out=out.filter(function(o){ return mias[o.tienda]; });
+  } else if(!esGlobal && misRegs.length){
+    out=out.filter(function(o){ return misRegs.indexOf(String(o.region).toUpperCase())>=0; });
+  }
+  out.sort(function(a,b){
+    return String(a.region).localeCompare(String(b.region))
+        || String(a.tienda).localeCompare(String(b.tienda));
+  });
+  return out;
+}
+
+// Estado del buscador de la hoja abierta.
+var _admPickTiendas=[], _admPickActual='';
+
+function _admPickHTML(filtro){
+  var q=String(filtro||'').trim().toLowerCase();
+  var lista=_admPickTiendas.filter(function(o){
+    if(o.tienda===_admPickActual) return false;          // la tienda actual no es destino
+    if(!q) return true;
+    return o.tienda.toLowerCase().indexOf(q)>=0 || String(o.region).toLowerCase().indexOf(q)>=0;
+  });
+  if(!lista.length){
+    return '<div class="adm-msg">'+(q
+      ? 'Ninguna sucursal coincide con <b>'+_admEsc(filtro)+'</b>.'
+      : 'No hay otras tiendas en tu alcance.')+'</div>';
+  }
+  // Agrupar por region solo cuando el alcance abarca mas de una: para un
+  // regional los encabezados serian ruido.
+  var regiones=[]; lista.forEach(function(o){ if(regiones.indexOf(o.region)<0) regiones.push(o.region); });
+  var agrupar=regiones.length>1;
+  var h='', ultima=null;
+  lista.forEach(function(o){
+    if(agrupar && o.region!==ultima){
+      ultima=o.region;
+      h+='<div class="adm-msg" style="padding:10px 2px 4px;font-weight:700;color:var(--hv2-ink2)">'+_admEsc(o.region||'Sin región')+'</div>';
+    }
+    h+='<div class="adm-opt" data-v="'+_admEsc(o.tienda)+'" onclick="admSelUnico(this)">'
+      +'<span class="adm-opt-tick"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
+      +'<span class="adm-opt-name">'+_admEsc(o.tienda)
+      + (agrupar?'':'')+'</span>'
+      +'<span class="adm-opt-cur" style="background:none;color:var(--hv2-ink3);font-weight:600">'+o.personas+'</span>'
+      +'</div>';
+  });
+  return h;
+}
+
+function admPickFiltrar(v){
+  var box=document.getElementById('adm-pick-list');
+  if(box) box.innerHTML=_admPickHTML(v);
+  _admSel=null;
+  var cta=document.getElementById('adm-cta'); if(cta) cta.disabled=true;
+}
+
 function admSheetMover(attuid){
   const d=_admGente[String(attuid).toUpperCase()]||{};
   const actual=String(d.tienda||'');
-  let destinos=[];
-  if(_meRol()==='regional'){ destinos=_meTiendas().slice(); }
-  else { const set={}; Object.keys(_admGente).forEach(function(id){ const t=String(_admGente[id].tienda||''); if(t)set[t]=true; }); destinos=Object.keys(set).sort(); }
-  let opts='';
-  destinos.forEach(function(t){
-    const cur=(t===actual);
-    opts+='<div class="adm-opt" data-v="'+_admEsc(t)+'" onclick="admSelUnico(this)">'
-      +'<span class="adm-opt-tick"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
-      +'<span class="adm-opt-name">'+_admEsc(t)+'</span>'
-      +(cur?'<span class="adm-opt-cur">Actual</span>':'')
-      +'</div>';
-  });
-  if(!opts) opts='<div class="adm-msg">No hay otras tiendas en tu alcance.</div>';
+  _admPickTiendas=_admTiendasEnAlcance();
+  _admPickActual=actual;
+  const n=_admPickTiendas.filter(function(o){return o.tienda!==actual;}).length;
   admAbrirSheet(
     '<div class="adm-sheet-h">Mover de tienda</div>'
     +'<div class="adm-sheet-sub"><b>'+_admEsc(d.nombre||attuid)+'</b> · ahora en '+_admEsc(actual||'—')+'</div>'
-    +'<div class="adm-sheet-scroll">'+opts+'</div>'
+    +'<div style="margin:10px 0 8px"><input id="adm-pick-q" class="adm-input" type="text" autocomplete="off" '
+    +'placeholder="Buscar sucursal o región… ('+n+' disponibles)" oninput="admPickFiltrar(this.value)"></div>'
+    +'<div class="adm-sheet-scroll" id="adm-pick-list">'+_admPickHTML('')+'</div>'
     +_admCampoPass()
     +'<button class="adm-sheet-cta" id="adm-cta" disabled onclick="admConfirmMover(\''+attuid+'\')">Mover aquí</button>'
   );
 }
+// ── [v1.38] BORRAR UNA TIENDA DE RAIZ ────────────────────────────────────
+// Borra TODOS los documentos de /empleados cuya tienda coincide, y quita la
+// tienda de las tiendasAsignadas del regional que la llevaba.
+//
+// ES IRREVERSIBLE Y NO HAY PAPELERA. Por eso:
+//   • Se lista a cada persona que se va a borrar, con nombre y ATTUID.
+//   • Hay que ESCRIBIR el nombre de la tienda para habilitar el boton. Un
+//     "estas seguro?" se acepta por reflejo; escribir el nombre no.
+//   • Solo se borra a rol asesor / gerente. Si en la tienda hay un mando, se
+//     aborta ANTES de tocar nada y se dice quien es: las reglas de Firestore
+//     tampoco lo permitirian y un batch a medias es peor que no empezar.
+//   • DC499W nunca se borra, ni por error.
+// El batch es atomico: o se va la tienda completa o no se va nada.
+var _admDelTienda=null, _admDelVictimas=[];
+
+function admSheetBorrarTienda(tienda){
+  tienda=String(tienda||'');
+  _admDelTienda=tienda;
+  _admDelVictimas=[];
+  var mandos=[];
+  Object.keys(_admGente).forEach(function(id){
+    var d=_admGente[id]||{};
+    if(String(d.tienda||'')!==tienda) return;
+    var rol=String(d.rol||'asesor').toLowerCase();
+    if(id===SUPER_ADMIN_ATTUID){ mandos.push({id:id,d:d}); return; }
+    if(rol!=='asesor' && rol!=='gerente'){ mandos.push({id:id,d:d}); return; }
+    _admDelVictimas.push({id:id,d:d});
+  });
+  if(mandos.length){
+    admAbrirSheet(
+      '<div class="adm-sheet-h">No se puede eliminar</div>'
+      +'<div class="adm-sheet-sub"><b>'+_admEsc(tienda)+'</b></div>'
+      +'<div class="adm-msg">Hay '+mandos.length+' persona(s) de mando asignada(s) a esta tienda. '
+      +'Muévelas o cámbiales el rol antes de eliminarla:</div>'
+      +'<div class="adm-sheet-scroll">'+mandos.map(function(m){
+          return '<div class="adm-opt"><span class="adm-opt-name">'+_admEsc(m.d.nombre||m.id)
+            +' · '+_admEsc(String(m.d.rol||'').toUpperCase())+'</span></div>'; }).join('')+'</div>'
+      +'<button class="adm-sheet-cta" onclick="admCerrarSheet()">Entendido</button>'
+    );
+    return;
+  }
+  if(!_admDelVictimas.length){
+    admToast('Esa tienda ya no tiene personal asignado.','err');
+    return;
+  }
+  var lista=_admDelVictimas.map(function(v){
+    return '<div class="adm-opt"><span class="adm-opt-name">'+_admEsc(v.d.nombre||v.id)
+      +'</span><span class="adm-opt-cur" style="background:none;color:var(--hv2-ink3)">'+_admEsc(v.id)+'</span></div>';
+  }).join('');
+  admAbrirSheet(
+    '<div class="adm-sheet-h">Eliminar tienda</div>'
+    +'<div class="adm-sheet-sub">Se borrarán <b>'+_admDelVictimas.length+'</b> colaborador(es) de <b>'+_admEsc(tienda)+'</b>. No se puede deshacer.</div>'
+    +'<div class="adm-sheet-scroll">'+lista+'</div>'
+    +'<div style="margin:10px 0 6px"><input id="adm-del-confirm" class="adm-input" type="text" autocomplete="off" '
+    +'placeholder="Escribe el nombre de la tienda" oninput="admDelValidar()"></div>'
+    +_admCampoPass()
+    +'<button class="adm-sheet-cta" id="adm-cta" disabled onclick="admConfirmBorrarTienda()" '
+    +'style="background:var(--hv2-bad)">Eliminar definitivamente</button>'
+  );
+}
+
+function admDelValidar(){
+  var el=document.getElementById('adm-del-confirm');
+  var cta=document.getElementById('adm-cta');
+  if(!el||!cta) return;
+  var ok=String(el.value||'').trim().toUpperCase()===String(_admDelTienda||'').trim().toUpperCase();
+  cta.disabled=!ok;
+}
+
+async function admConfirmBorrarTienda(){
+  var tienda=_admDelTienda, victimas=_admDelVictimas.slice();
+  if(!tienda||!victimas.length){ admToast('Nada que eliminar.','err'); return; }
+  var cta=document.getElementById('adm-cta');
+  if(cta){ cta.disabled=true; cta.textContent='Eliminando…'; }
+  try{
+    await loadFirebase();
+    var batch=firestoreFns.writeBatch(firestoreDB);
+    victimas.forEach(function(v){
+      batch.delete(firestoreFns.doc(firestoreDB,'empleados',v.id));
+    });
+    // Quitar la tienda de las tiendasAsignadas de quien la llevaba.
+    var regionales=[];
+    Object.keys(_admGente).forEach(function(id){
+      var d=_admGente[id]||{};
+      if(!Array.isArray(d.tiendasAsignadas)) return;
+      if(d.tiendasAsignadas.indexOf(tienda)<0) return;
+      regionales.push(id);
+      var resto=d.tiendasAsignadas.filter(function(t){ return t!==tienda; });
+      batch.update(firestoreFns.doc(firestoreDB,'empleados',id), {tiendasAsignadas:resto});
+    });
+    await batch.commit();
+    victimas.forEach(function(v){ delete _admGente[v.id]; });
+    regionales.forEach(function(id){
+      if(_admGente[id] && Array.isArray(_admGente[id].tiendasAsignadas)){
+        _admGente[id].tiendasAsignadas=_admGente[id].tiendasAsignadas.filter(function(t){ return t!==tienda; });
+      }
+    });
+    admCerrarSheet();
+    admToast('Tienda eliminada: '+victimas.length+' colaborador(es).','ok');
+    _admDelTienda=null; _admDelVictimas=[];
+    if(typeof adminCargarEquipo==='function') adminCargarEquipo();
+  }catch(e){
+    var msg=(e&&e.message)?e.message:'Error';
+    admToast(/permission|insufficient/i.test(msg)?'Sin permiso para eliminar (revisa las reglas de Firestore).':msg,'err');
+    if(cta){ cta.disabled=false; cta.textContent='Eliminar definitivamente'; }
+  }
+}
+
 function admSelUnico(el){
   const box=el.parentElement;
   Array.prototype.forEach.call(box.querySelectorAll('.adm-opt'), function(o){ o.classList.remove('sel'); });
