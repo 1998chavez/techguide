@@ -680,11 +680,37 @@ function toggleView(){
 }
 function dc(s){return s==='RESURTIBLE'?'dot-r':s==='INV. LIMITADO EN CANAL'?'dot-l':'dot-n'}
 function bs(s){const m={RESURTIBLE:'bs-r Resurtible','INV. LIMITADO EN CANAL':'bs-l Inv. limitado',NPI:'bs-n NPI','NO RESURTIBLE':'bs-nr No resurtible'};const[c,...t]=(m[s]||'bs-r Resurtible').split(' ');return`<span class="bs ${c}">${t.join(' ')}</span>`}
+// [v1.38] CACHE DE OBJECT URLs — arreglo de la lentitud del cotizador.
+// IMG[id] guarda una data-URI de ~11 KB. imgI() la metia COMPLETA dentro del
+// string de innerHTML, asi que el grid del catalogo pesaba 828 KB por render
+// (795 KB de puro base64) y renderDevs() corre en CADA TECLA del buscador:
+// escribir "samsung" armaba y parseaba 5.7 MB de HTML y re-decodificaba 490
+// data-URI. Con object URL el mismo <img> mide ~60 caracteres, el navegador
+// decodifica cada foto UNA sola vez y la reutiliza en todos los renders.
+// Si Blob/URL fallan por cualquier razon, se cae a la data-URI de siempre.
+var _imgURL = {};
+function imgSrc(id){
+  if(typeof IMG==='undefined' || !IMG[id]) return '';
+  if(_imgURL[id]) return _imgURL[id];
+  try{
+    var s = IMG[id], i = s.indexOf(',');
+    var mime = (s.slice(0,i).match(/data:([^;]+)/)||[null,'image/jpeg'])[1];
+    var bin = atob(s.slice(i+1));
+    var buf = new Uint8Array(bin.length);
+    for(var n=0;n<bin.length;n++) buf[n] = bin.charCodeAt(n);
+    _imgURL[id] = URL.createObjectURL(new Blob([buf],{type:mime}));
+  }catch(e){
+    _imgURL[id] = IMG[id];
+  }
+  return _imgURL[id];
+}
+window.imgSrc = imgSrc;
+
 function imgI(id,cls){
   // Use base64 image if available
   if(IMG[id]){
     const clsAttr=cls?(' class="'+cls+'"'):'';
-    return '<img'+clsAttr+' src="'+IMG[id]+'" alt="" style="width:100%;height:100%;object-fit:contain">';
+    return '<img'+clsAttr+' src="'+imgSrc(id)+'" alt="" style="width:100%;height:100%;object-fit:contain">';
   }
   const all=[...CAT.ios,...CAT.android];
   const dev=all.find(d=>d.id===id);
@@ -709,6 +735,17 @@ function imgI(id,cls){
     icon:`<rect x="14" y="7" width="20" height="34" rx="4" stroke="#8E8E93" stroke-width="1.5" fill="none"/><rect x="17" y="11" width="14" height="22" rx="1" fill="#8E8E9322"/><circle cx="24" cy="37" r="1.5" fill="#8E8E93"/>`};
   return `<svg width="100%" height="100%" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="background:${c.bg}">${c.icon}</svg>`;
 }
+
+// [v1.38] El buscador llamaba renderDevs() en cada pulsacion. Aun con el fix
+// de object URLs, re-armar el grid completo por tecla es trabajo de mas en
+// gama baja. 180 ms es imperceptible al escribir y colapsa una palabra de 7
+// letras en un solo render.
+var _searchT = null;
+function renderDevsDebounced(){
+  clearTimeout(_searchT);
+  _searchT = setTimeout(renderDevs, 180);
+}
+window.renderDevsDebounced = renderDevsDebounced;
 
 function renderDevs(){
   const q=document.getElementById('search-in').value.toLowerCase();

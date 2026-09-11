@@ -11,10 +11,10 @@
      otro script, porque catalog.js/vendors.js la usan para el cache-busting y
      el registro del SW la compara. Si HTML y SW no coinciden → recarga forzada.
      Al empacar cada versión, este número se actualiza igual que el cache del SW. -->
-<script>window.BUILD_ID = '1789560000';
+<script>window.BUILD_ID = '1789603200';
 // [v1.11.61] APP_VERSION vive aquí desde que el bloque principal salió a app.js.
 // El ritual de release NO cambia: 2 constantes aquí + 2 en sw.js.
-const APP_VERSION = 'v1.37.4';</script>
+const APP_VERSION = 'v1.38.0';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -5139,7 +5139,7 @@ html.con-upd body{padding-top:52px}
   <div class="sticky-search">
     <div class="search-box">
       <svg viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13 13l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      <input id="search-in" placeholder="Buscar equipo o marca..." oninput="renderDevs()">
+      <input id="search-in" placeholder="Buscar equipo o marca..." oninput="renderDevsDebounced()">
     </div>
   </div>
   <div class="filter-scroll" id="fbar"></div>
@@ -5292,7 +5292,7 @@ window._onCatalogImgReady=function(){
     var pendientes=document.querySelectorAll('img[data-img-id]');
     pendientes.forEach(function(el){
       var id=el.getAttribute('data-img-id');
-      if(window.IMG && window.IMG[id]){ el.src=window.IMG[id]; }
+      if(window.IMG && window.IMG[id]){ el.src = window.imgSrc ? window.imgSrc(id) : window.IMG[id]; }
     });
   }catch(e){ console.warn('[catalog-img] refresh:', e && e.message); }
 };
