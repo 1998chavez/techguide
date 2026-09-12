@@ -11587,7 +11587,9 @@ async function preRefrescarTarjeta(){
   // DN no capturan: para ellos el CONTADOR es el que abre el concentrado.
   if(cta) cta.style.display = captura ? '' : 'none';
   item.style.cursor = preVeConcentrado() ? 'pointer' : '';
-  item.onclick = preVeConcentrado() ? showPrerregistro : null;
+  // OJO: no pasar showPrerregistro directo — el onclick le manda el MouseEvent
+  // como primer argumento y caeria en soloPeriodo=true, sin releer la estructura.
+  item.onclick = preVeConcentrado() ? function(){ showPrerregistro(); } : null;
   var lbl=document.getElementById('hv2-pre-lbl');
   if(lbl) lbl.textContent = (rol==='asesor') ? 'pre-registraste hoy' : 'pre-registros de hoy';
   var n=await preContarAlcance();
@@ -11713,8 +11715,15 @@ function _preDiasPeriodo(p){
   return dias.length?dias:[fechaToISO(new Date())];
 }
 
-async function showPrerregistro(){
+// [v1.54] La estructura se relee AL ABRIR LA PANTALLA, igual que hace
+// reloadDashboard() con invalidarDashCache() + leerRegionales(). Asi, si mueves
+// una tienda de regional o un asesor de tienda en Accesos, al entrar aqui ya
+// esta reflejado sin tener que recargar la app.
+// Al cambiar solo el periodo NO se relee: la estructura no cambio en esos dos
+// segundos y son ~2,900 lecturas que no hacen falta.
+async function showPrerregistro(soloPeriodo){
   if(!preVeConcentrado()) return;
+  if(!soloPeriodo){ _preJerarquia=null; _preJerarquiaDe=null; }
   _preRuta=[]; _preVerTodos=false;
   show('s-prerregistro');
   var c=document.getElementById('pre-cuerpo');
@@ -11863,6 +11872,14 @@ function _preRender(){
     // [v1.49] Ya NO se filtran los de cero: los activos van primero por volumen
     // y los que no han capturado al final, en gris con SIN ACTIVIDAD — misma
     // convencion que la lista de asesores y que el tablero de cotizaciones.
+    // [v1.54] "Sin region" solo aparece si TIENE registros. En cero es puro
+    // ruido —son tiendas cuyo personal trae la region mal escrita— y ya se
+    // atiende desde Accesos. Si algun dia carga pre-registros, se muestra:
+    // esconder datos reales seria peor que la fila de mas.
+    var _sinReg=_kResumen('Sin región');
+    if(mapa[_sinReg]!==undefined && mapa[_sinReg]<=0) delete mapa[_sinReg];
+    var _sinRegl=_kResumen('Sin regional');
+    if(mapa[_sinRegl]!==undefined && mapa[_sinRegl]<=0) delete mapa[_sinRegl];
     var ks=Object.keys(mapa).sort(function(x,y){
       if((mapa[x]>0)!==(mapa[y]>0)) return mapa[x]>0?-1:1;
       if(mapa[x]!==mapa[y]) return mapa[y]-mapa[x];
