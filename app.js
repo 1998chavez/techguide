@@ -11398,7 +11398,14 @@ async function preLeerIndice(){
 //                                bajar al nivel de asesores.
 //
 // La tarjeta del home lee SOLO el ligero. El concentrado lee el pesado al abrir.
-var PRE_DOC_ASE = 'prerregistro_ip18_asesores';
+var PRE_DOC_ASE = 'prerregistro_ip18_asesores';   // [v1.48] retirado, ver abajo
+// [v1.48] PERIODOS — mismo modelo que el tablero de cotizaciones.
+// Un documento por dia en /resumenes, leido con getDateRange() + lectura en
+// paralelo, igual que leerResumenes(). Dentro de cada dia el resumen sigue
+// siendo ABSOLUTO por asesor: el asesor reescribe su entrada de ESE dia a
+// partir de su propia lista. Nada de sumar o restar deltas.
+var PRE_INICIO = '2026-09-12';                    // arranque de la campana
+function preDocDia(fecha){ return 'prerregistro_' + fecha; }
 var _preAse=null, _preRuta=[];
 
 function _preNivelesDe(rol){
@@ -11453,17 +11460,47 @@ function _preMisTiendas(){
 // [v1.47] Totales del ambito, sumando los resumenes de los asesores que caen
 // dentro. Cero aritmetica incremental: se suma lo que cada asesor reporta.
 function _preTotales(tiendas){
-  var ase=_preAse||{}, out={total:0, tienda:{}, region:{}, mod:{}, col:{}};
+  var ase=_preAse||{}, out={total:0, pos:0, ren:0, tienda:{}, tiendaPos:{}, tiendaRen:{}, region:{}, mod:{}, col:{}};
   Object.keys(ase).forEach(function(att){
     var d=ase[att]||{}, n=Number(d.n)||0;
     if(n<=0) return;
     var t=_kResumen(d.t||'');
     if(tiendas.indexOf(t)<0) return;
-    out.total += n;
+    out.total += n; out.pos += (Number(d.pos)||0); out.ren += (Number(d.ren)||0);
     out.tienda[t]=(out.tienda[t]||0)+n;
+    out.tiendaPos[t]=(out.tiendaPos[t]||0)+(Number(d.pos)||0);
+    out.tiendaRen[t]=(out.tiendaRen[t]||0)+(Number(d.ren)||0);
     var r=_kResumen(d.r||''); if(r) out.region[r]=(out.region[r]||0)+n;
     Object.keys(d.mod||{}).forEach(function(k){ out.mod[k]=(out.mod[k]||0)+(d.mod[k]||0); });
     Object.keys(d.col||{}).forEach(function(k){ out.col[k]=(out.col[k]||0)+(d.col[k]||0); });
+  });
+  return out;
+}
+
+// [v1.48] Padron del ambito: quien PUEDE capturar, tenga o no registros. De
+// aqui salen los SIN ACTIVIDAD, igual que calcularActividadRegionales().
+function _prePadronEn(tiendas){
+  var ros=(_preJerarquia&&_preJerarquia.roster)||{}, ase=_preAse||{}, out=[];
+  Object.keys(ros).forEach(function(att){
+    var p=ros[att]||{};
+    if(tiendas.indexOf(p.t)<0) return;
+    var d=ase[att]||{};
+    out.push({attuid:att, nom:p.nom||att, t:p.t, rol:p.rol,
+              n:Number(d.n)||0, pos:Number(d.pos)||0, ren:Number(d.ren)||0});
+  });
+  // Quien capturo pero no esta en el padron (cambio de tienda, baja): igual sale.
+  Object.keys(ase).forEach(function(att){
+    if(ros[att]) return;
+    var d=ase[att]||{};
+    if(tiendas.indexOf(_kResumen(d.t||''))<0 || (Number(d.n)||0)<=0) return;
+    out.push({attuid:att, nom:d.nom||att, t:_kResumen(d.t||''), rol:'asesor',
+              n:Number(d.n)||0, pos:Number(d.pos)||0, ren:Number(d.ren)||0});
+  });
+  // Activos primero por volumen, inactivos al final por nombre. Igual que el tablero.
+  out.sort(function(a,b){
+    if((a.n>0)!==(b.n>0)) return a.n>0?-1:1;
+    if(a.n!==b.n) return b.n-a.n;
+    return String(a.nom).localeCompare(String(b.nom));
   });
   return out;
 }
@@ -11513,13 +11550,17 @@ async function preRefrescarTarjeta(){
 // La jerarquia tienda -> regional -> region se resuelve del PADRON, no de un
 // campo escrito al capturar. Asi funciona con los registros que ya existen y
 // no depende de que el asesor traiga datos que su documento no tiene.
-var _preJerarquia=null;
+var _preJerarquia=null, _preVerTodos=false;
+function preToggleVerTodos(){ _preVerTodos=!_preVerTodos; _preRender(); }
 
 function _preNom(k){ return String(k||'').replace(/_/g,' '); }
 
 async function _preCargarJerarquia(){
   if(_preJerarquia) return _preJerarquia;
-  var mapa={tienda_region:{}, tienda_regional:{}};
+  // [v1.48] Ademas de la jerarquia, se arma el PADRON de quien puede capturar
+  // (asesor y gerente). De ahi salen los que llevan cero: el tablero hace lo
+  // mismo en calcularActividadRegionales para marcar SIN ACTIVIDAD.
+  var mapa={tienda_region:{}, tienda_regional:{}, roster:{}};
   try{
     // Si Accesos ya cargo el padron, se reutiliza: cero lecturas extra.
     var fuente=(_admGente && Object.keys(_admGente).length) ? _admGente : null;
@@ -11534,6 +11575,10 @@ async function _preCargarJerarquia(){
       var t=_kResumen(String(d.tienda||'').trim()); if(!t) return;
       var rg=(typeof regionCanon==='function')?regionCanon(d.region):String(d.region||'');
       if(rg){ votos[t]=votos[t]||{}; votos[t][rg]=(votos[t][rg]||0)+1; }
+      var rol=String(d.rol||'asesor').toLowerCase();
+      if((rol==='asesor'||rol==='gerente') && d.activo!==false){
+        mapa.roster[String(id).toUpperCase()]={nom:String(d.nombre||id), t:t, r:_kResumen(rg||''), rol:rol};
+      }
     });
     Object.keys(votos).forEach(function(t){
       var o=votos[t], mx=-1, g='';
@@ -11586,17 +11631,30 @@ function preRutaBajar(tipo,valor,etiqueta){
   catch(e){ _preRuta=respaldo; console.warn('[pre] bajar', e && e.message); admToast('No se pudo abrir ese nivel.','err'); }
 }
 
+// [v1.48] Dias del periodo. Reusa getDateRange() del tablero tal cual; el unico
+// caso propio es "todo", que va del arranque de la campana a hoy.
+function _preDiasPeriodo(p){
+  if(p!=='todo'){
+    var r=(typeof getDateRange==='function')?getDateRange(p):null;
+    return (r&&r.dias)?r.dias:[new Date().toISOString().slice(0,10)];
+  }
+  var dias=[], cur=new Date(PRE_INICIO+'T12:00:00'), fin=new Date();
+  while(cur<=fin && dias.length<120){
+    dias.push(fechaToISO(cur)); cur.setDate(cur.getDate()+1);
+  }
+  return dias.length?dias:[fechaToISO(new Date())];
+}
+
 async function showPrerregistro(){
   if(!preVeConcentrado()) return;
-  _preRuta=[];
+  _preRuta=[]; _preVerTodos=false;
   show('s-prerregistro');
   var c=document.getElementById('pre-cuerpo');
   if(c) c.innerHTML='<div class="adm-msg">Cargando…</div>';
   try{
-    await loadFirebase();
-    // [v1.47] Una sola lectura de contadores: el resumen por asesor.
-    var b=await firestoreFns.getDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC_ASE));
-    _preAse=(b&&b.exists())?((b.data()||{}).asesor||{}):{};
+    var sel=document.getElementById('pre-periodo');
+    var periodo=sel?sel.value:'semana';
+    _preAse=await preLeerPeriodo(_preDiasPeriodo(periodo));
     await _preCargarJerarquia();
     _preRender();
   }catch(e){
@@ -11625,15 +11683,6 @@ function _preBarra(lbl,n,max,click){
 // en cero al mostrarlos. El dato crudo sigue en Firestore para poder auditarlo.
 function _preNoNeg(n){ n=Number(n)||0; return n<0?0:n; }
 
-// Asesores con al menos un pre-registro vivo dentro del ambito. Unica fuente
-// de verdad: la usan el contador de arriba y la lista de abajo.
-function _preAsesoresEn(tiendas){
-  var ase=_preAse||{};
-  return Object.keys(ase).filter(function(att){
-    var d=ase[att]||{};
-    return tiendas.indexOf(_kResumen(d.t||''))>=0 && (Number(d.n)||0)>0;
-  });
-}
 
 // [v1.47] El desglose sale de los totales ya sumados, no de llaves compuestas.
 function _preDesglose(tot, campo){
@@ -11665,17 +11714,15 @@ function _preRender(){
 
   // Resumen de alcance, mismo componente que usa Accesos.
   var mod=_preDesglose(tot,'modelo'), col=_preDesglose(tot,'color');
+  // [v1.48] Pospago | Renovacion | Total, que es la division que pediste.
   var sc=document.getElementById('pre-scope');
   if(sc){
     sc.style.display='';
-    sc.innerHTML='<div class="adm-scope-cell"><div class="adm-scope-num is-accent">'+total+'</div><div class="adm-scope-lbl">Pre-registros</div></div>'
+    sc.innerHTML='<div class="adm-scope-cell"><div class="adm-scope-num">'+_preNoNeg(tot.pos)+'</div><div class="adm-scope-lbl">Pospago</div></div>'
       +'<div class="adm-scope-div"></div>'
-      +'<div class="adm-scope-cell"><div class="adm-scope-num">'+tiendas.length+'</div><div class="adm-scope-lbl">Tiendas</div></div>'
+      +'<div class="adm-scope-cell"><div class="adm-scope-num">'+_preNoNeg(tot.ren)+'</div><div class="adm-scope-lbl">Renovación</div></div>'
       +'<div class="adm-scope-div"></div>'
-      // [v1.46] MISMO filtro que la lista de abajo. Antes el numero contaba a
-      // todos los asesores del ambito y la lista solo a los que tienen n>0:
-      // decia "1 asesor" y debajo "nadie ha capturado".
-      +'<div class="adm-scope-cell"><div class="adm-scope-num">'+_preAsesoresEn(tiendas).length+'</div><div class="adm-scope-lbl">Asesores</div></div>';
+      +'<div class="adm-scope-cell"><div class="adm-scope-num is-accent">'+total+'</div><div class="adm-scope-lbl">Total</div></div>';
   }
 
   var mg=document.getElementById('pre-ruta');
@@ -11701,26 +11748,64 @@ function _preRender(){
     +'</div>';
 
   if(nivel==='asesor'){
-    var filas=_preAsesoresEn(tiendas).sort(function(x,y){ return (ase[y].n||0)-(ase[x].n||0); });
-    var mx=filas.length?(ase[filas[0]].n||0):0;
-    h+='<div class="adm-label" style="margin-top:18px">Por asesor</div>'
-      + (filas.length ? filas.map(function(att){ return _preBarra((ase[att].nom||att)+' · '+att, ase[att].n||0, mx, ''); }).join('')
-                      : '<div class="adm-msg">Nadie ha capturado en este alcance todavía.</div>');
+    // [v1.48] Padron completo: quien capturo y quien NO. Los inactivos van al
+    // final, en gris y con la etiqueta SIN ACTIVIDAD — misma convencion que el
+    // tablero usa con los regionales. La lista arranca colapsada a 8 y se abre
+    // con "Ver todos", igual que Top asesores.
+    var padron=_prePadronEn(tiendas);
+    var conCaptura=padron.filter(function(x){ return x.n>0; });
+    var mx=conCaptura.length?conCaptura[0].n:0;
+    var visibles=_preVerTodos?padron:padron.slice(0,8);
+    h+='<div class="adm-label" style="margin-top:18px;display:flex;justify-content:space-between;align-items:baseline">'
+      +'<span>Por asesor</span>'
+      +'<span style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--hv2-ink3)">'
+      + conCaptura.length+' de '+padron.length+' han capturado</span></div>';
+    if(!padron.length){
+      h+='<div class="adm-msg">No hay personal en este alcance.</div>';
+    } else {
+      visibles.forEach(function(x){
+        var inactivo=(x.n<=0);
+        h+='<div class="adm-opt'+(inactivo?' dash-row-inactive':'')+'" style="padding:11px 13px;margin-bottom:7px">'
+          +'<span class="adm-opt-name" style="flex:1">'+_admEsc(x.nom)+' · '+_admEsc(x.attuid)
+          + (x.rol==='gerente'?' <span class="adm-role is-mando">GERENTE</span>':'')+'</span>'
+          + (inactivo
+              ? '<span class="dash-row-badge-inactive">SIN ACTIVIDAD</span>'
+              : ('<span style="font-size:11px;color:var(--hv2-ink3);width:78px;text-align:right;flex-shrink:0">'
+                 +x.pos+' pos · '+x.ren+' ren</span>'
+                 +'<span style="width:64px;height:6px;background:var(--hv2-card-soft);border-radius:3px;overflow:hidden;flex-shrink:0">'
+                 +'<span style="display:block;height:100%;width:'+(mx?Math.round(x.n/mx*100):0)+'%;background:var(--hv2-accent)"></span></span>'))
+          +'<span style="width:30px;text-align:right;font-weight:800;color:var(--hv2-ink);flex-shrink:0">'+x.n+'</span>'
+          +'</div>';
+      });
+      if(padron.length>8){
+        h+='<div class="dash-expand-btn" onclick="preToggleVerTodos()">'
+          +(_preVerTodos?'Mostrar menos':('Ver todos ('+padron.length+')'))+'</div>';
+      }
+    }
   } else {
-    var mapa={};
+    var mapa={}, mapaPos={}, mapaRen={};
     tiendas.forEach(function(t){
       var k = (nivel==='region')   ? _kResumen(t2r[t]||_preRegionDe(t)||'Sin región')
             : (nivel==='regional') ? _kResumen(t2g[t]||'Sin regional')
             : t;
       mapa[k]=(mapa[k]||0)+(porT[t]||0);
+      mapaPos[k]=(mapaPos[k]||0)+((tot.tiendaPos||{})[t]||0);
+      mapaRen[k]=(mapaRen[k]||0)+((tot.tiendaRen||{})[t]||0);
     });
     var ks=Object.keys(mapa).filter(function(k){ return mapa[k]>0; }).sort(function(x,y){ return mapa[y]-mapa[x]; });
     var mx2=ks.length?mapa[ks[0]]:0;
     var titulo = nivel==='region'?'Por región':(nivel==='regional'?'Por regional':'Por tienda');
     h+='<div class="adm-label" style="margin-top:18px">'+titulo+'</div>'
       + (ks.length ? ks.map(function(k){
-            return _preBarra(_preNom(k), mapa[k], mx2,
-              'preRutaBajar('+_admJsStr(nivel)+','+_admJsStr(k)+','+_admJsStr(k)+')');
+            return '<div class="adm-opt" style="padding:11px 13px;margin-bottom:7px;cursor:pointer" onclick="preRutaBajar('
+              +_admJsStr(nivel)+','+_admJsStr(k)+','+_admJsStr(k)+')">'
+              +'<span class="adm-opt-name" style="flex:1">'+_admEsc(_preNom(k))+'</span>'
+              +'<span style="font-size:11px;color:var(--hv2-ink3);width:78px;text-align:right;flex-shrink:0">'
+              +(mapaPos[k]||0)+' pos · '+(mapaRen[k]||0)+' ren</span>'
+              +'<span style="width:64px;height:6px;background:var(--hv2-card-soft);border-radius:3px;overflow:hidden;flex-shrink:0">'
+              +'<span style="display:block;height:100%;width:'+(mx2?Math.round(mapa[k]/mx2*100):0)+'%;background:var(--hv2-accent)"></span></span>'
+              +'<span style="width:30px;text-align:right;font-weight:800;color:var(--hv2-ink);flex-shrink:0">'+mapa[k]+'</span>'
+              +'<span style="color:var(--hv2-ink3);flex-shrink:0">›</span></div>';
           }).join('')
         : '<div class="adm-msg">Sin pre-registros en este alcance todavía.</div>');
   }
@@ -11747,43 +11832,135 @@ function _preRender(){
 // El concentrado suma esos resumenes. Una sola lectura, y lo que ve el mando
 // es exactamente lo que el asesor tiene en su lista.
 function _preResumenDe(arr){
-  var mod={}, col={};
+  var mod={}, col={}, pos=0, ren=0;
   (arr||[]).forEach(function(x){
     var m=_kResumen(x.modelo), c=_kResumen(x.color);
     if(m) mod[m]=(mod[m]||0)+1;
     if(c) col[c]=(col[c]||0)+1;
+    if(x.tipo==='RENOVACION') ren++; else pos++;
   });
-  return {n:(arr||[]).length, mod:mod, col:col};
+  return {n:(arr||[]).length, pos:pos, ren:ren, mod:mod, col:col};
 }
 
-// Escribe el resumen COMPLETO del asesor. Sustituye por completo su entrada.
-async function preSincronizar(arr){
+// Fechas que este asesor tiene en su lista, para saber que dias reescribir.
+function _preFechasDe(arr){
+  var f=[];
+  (arr||[]).forEach(function(x){ var d=String(x.fecha||''); if(d && f.indexOf(d)<0) f.push(d); });
+  return f;
+}
+
+// [v1.48] Reescribe la entrada del asesor en los DIAS indicados. Para cada dia
+// se recalcula desde su lista real filtrada a esa fecha: absoluto, no delta.
+// Se pasan solo los dias afectados por la operacion (el alta toca hoy; editar o
+// quitar tocan la fecha de ese registro), asi una captura = una escritura.
+async function preSincronizar(arr, fechas){
   try{
     await loadFirebase();
     var att=String((asesorData&&asesorData.attuid)||'').toUpperCase();
     var kT=_kResumen(String((asesorData&&(asesorData.tienda||asesorData.sucursal))||''));
     var kR=_kResumen((typeof regionCanon==='function')?regionCanon((asesorData&&asesorData.region)||''):String((asesorData&&asesorData.region)||''));
-    var r=_preResumenDe(arr);
-    var entrada={ n:r.n, nom:String((asesorData&&asesorData.name)||att), t:kT, r:kR, mod:r.mod, col:r.col };
-    var ref=firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC_ASE);
-    // OJO: setDoc con merge hace merge PROFUNDO — los mod/col de la version
-    // anterior sobrevivirian y el resumen dejaria de ser absoluto (al cambiar
-    // de Pro Max 256 a Pro 256 quedarian los dos). updateDoc con ruta punteada
-    // REEMPLAZA el objeto completo del asesor, que es justo lo que hace falta.
-    // El setDoc solo entra la primera vez, cuando el documento aun no existe y
-    // no hay nada con que mezclar.
-    try{
-      var upd={}; upd['asesor.'+att]=entrada;
-      await firestoreFns.updateDoc(ref, upd);
-    }catch(e){
-      var d={asesor:{}}; d.asesor[att]=entrada;
-      await firestoreFns.setDoc(ref, d, {merge:true});
+    var nom=String((asesorData&&asesorData.name)||att);
+    var dias=(fechas&&fechas.length)?fechas:[new Date().toISOString().slice(0,10)];
+    for(var i=0;i<dias.length;i++){
+      var dia=dias[i];
+      var delDia=(arr||[]).filter(function(x){ return String(x.fecha||'')===dia; });
+      var r=_preResumenDe(delDia);
+      var entrada={ n:r.n, pos:r.pos, ren:r.ren, nom:nom, t:kT, r:kR, mod:r.mod, col:r.col };
+      var ref=firestoreFns.doc(firestoreDB,'resumenes',preDocDia(dia));
+      // updateDoc con ruta punteada REEMPLAZA la entrada del asesor. setDoc con
+      // merge haria merge PROFUNDO y dejaria vivos mod/col de la version previa.
+      try{
+        var upd={}; upd['asesor.'+att]=entrada;
+        await firestoreFns.updateDoc(ref, upd);
+      }catch(e){
+        var d={asesor:{}}; d.asesor[att]=entrada;
+        await firestoreFns.setDoc(ref, d, {merge:true});
+      }
     }
     return true;
   }catch(e){
     console.warn('[pre] sincronizar', e && e.message);
     admToast('Se guardó el registro, pero el tablero no se actualizó: '+((e&&e.message)||'error'),'err');
     return false;
+  }
+}
+
+// Lee los dias del periodo en paralelo y consolida por asesor. Calcado de
+// leerResumenes() del tablero de cotizaciones.
+async function preLeerPeriodo(dias){
+  await loadFirebase();
+  var out={};
+  var snaps=await Promise.all(dias.map(function(f){
+    return firestoreFns.getDoc(firestoreFns.doc(firestoreDB,'resumenes',preDocDia(f)))
+           .catch(function(){ return null; });
+  }));
+  snaps.forEach(function(sn){
+    if(!sn || !sn.exists()) return;
+    var ase=(sn.data()||{}).asesor||{};
+    Object.keys(ase).forEach(function(att){
+      var d=ase[att]||{}, n=Number(d.n)||0;
+      if(n<=0) return;
+      var o=out[att]||(out[att]={n:0,pos:0,ren:0,nom:d.nom||att,t:d.t||'',r:d.r||'',mod:{},col:{}});
+      o.n+=n; o.pos+=(Number(d.pos)||0); o.ren+=(Number(d.ren)||0);
+      if(d.nom) o.nom=d.nom;
+      if(d.t) o.t=d.t;
+      if(d.r) o.r=d.r;
+      Object.keys(d.mod||{}).forEach(function(k){ o.mod[k]=(o.mod[k]||0)+(d.mod[k]||0); });
+      Object.keys(d.col||{}).forEach(function(k){ o.col[k]=(o.col[k]||0)+(d.col[k]||0); });
+    });
+  });
+  return out;
+}
+
+// [v1.48] EXPORTAR CSV. Una fila por asesor del alcance, INCLUYENDO a los que
+// llevan cero: la lista de quien no ha capturado es la mitad del valor. Se
+// exporta lo que esta en pantalla — mismo periodo, mismo nivel de la ruta.
+function preExportarCSV(){
+  try{
+    var tiendas=_preMisTiendas();
+    _preRuta.forEach(function(p){
+      var jer=_preJerarquia||{tienda_region:{},tienda_regional:{}};
+      if(p.t==='region')   tiendas=tiendas.filter(function(t){ return _kResumen(jer.tienda_region[t]||_preRegionDe(t)||'')===p.v; });
+      if(p.t==='regional') tiendas=tiendas.filter(function(t){ return _kResumen(jer.tienda_regional[t]||'')===p.v; });
+      if(p.t==='tienda')   tiendas=[p.v];
+    });
+    var padron=_prePadronEn(tiendas), ase=_preAse||{};
+    var jer=_preJerarquia||{tienda_region:{},tienda_regional:{}};
+    var sel=document.getElementById('pre-periodo');
+    var periodo=sel?(sel.options[sel.selectedIndex]||{}).text||sel.value:'';
+    var cab=['Región','Regional','Tienda','Asesor','ATTUID','Rol','Total','Pospago','Renovación']
+      .concat(PRE_MODELOS).concat(PRE_COLORES);
+    var filas=[cab];
+    padron.forEach(function(x){
+      var d=ase[x.attuid]||{};
+      var fila=[
+        _preNom(jer.tienda_region[x.t]||_preRegionDe(x.t)||''),
+        _preNom(jer.tienda_regional[x.t]||''),
+        _preNom(x.t), x.nom, x.attuid, x.rol,
+        x.n, x.pos, x.ren
+      ];
+      PRE_MODELOS.forEach(function(m){ fila.push((d.mod||{})[_kResumen(m)]||0); });
+      PRE_COLORES.forEach(function(c){ fila.push((d.col||{})[_kResumen(c)]||0); });
+      filas.push(fila);
+    });
+    var csv=filas.map(function(f){
+      return f.map(function(v){
+        var s=String(v==null?'':v);
+        // Comillas dobles escapadas: un nombre con coma rompe la columna.
+        return /[",;\n]/.test(s) ? ('"'+s.replace(/"/g,'""')+'"') : s;
+      }).join(',');
+    }).join('\r\n');
+    // BOM para que Excel en español lea bien los acentos.
+    var blob=new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;
+    a.download='prerregistro-ip18-'+_kResumen(periodo).toLowerCase()+'-'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
+    admToast('CSV descargado: '+padron.length+' asesor(es).','ok');
+  }catch(e){
+    admToast('No se pudo generar el CSV: '+((e&&e.message)||'error'),'err');
   }
 }
 
@@ -11874,7 +12051,7 @@ async function preCancelar(id){
     await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'prerregistros_idx',att),
       {attuid:att, items:arr, n:arr.length, ts:Date.now()});
     preGuardarLocal(arr);
-    await preSincronizar(arr);
+    await preSincronizar(arr, [String(x.fecha||'')]);
     admCerrarSheet(); admToast('Quitado. Llevas '+arr.length+'.','ok');
     preRefrescarTarjeta();
   }catch(e){
@@ -11966,7 +12143,8 @@ async function preGuardar(){
     // Contadores agregados: lo unico que ve el mando.
     // [v1.47] Alta y edicion hacen lo MISMO: reescribir el resumen completo.
     // No hay deltas que cuadrar, asi que no hay forma de desfasarse.
-    await preSincronizar(arr);
+    // Alta toca hoy; editar toca la fecha de ESE registro.
+    await preSincronizar(arr, [fila.fecha]);
     _preEditando=null;
     admCerrarSheet();
     admToast(editando?'Registro actualizado.':('Interesado registrado. Llevas '+arr.length+'.'),'ok');
