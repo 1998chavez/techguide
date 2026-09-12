@@ -11443,13 +11443,27 @@ function _preNivelesDe(rol){
 function preVeConcentrado(){ return _preNivelesDe(asesorData&&asesorData.rol).length>0; }
 
 // Tiendas que le tocan a quien esta logueado, por rol.
+// [v1.53] Devuelve la region canonica SOLO si existe en REGIONES_MX. Misma
+// regla que el mapa CANON de _admConstruirArbol.
+function _preRegionValida(r){
+  var c=(typeof regionCanon==='function')?regionCanon(r):String(r||'').trim().toUpperCase();
+  if(!c) return '';
+  var lista=(typeof REGIONES_MX!=='undefined')?REGIONES_MX:[];
+  return (lista.indexOf(c)>=0) ? c : '';
+}
+
 // [v1.47] Region de una tienda segun lo que reportan sus propios asesores.
 // Respaldo cuando el padron aun no carga o la tienda no aparece ahi.
 function _preRegionDe(t){
   var ase=_preAse||{}, r='';
   Object.keys(ase).forEach(function(att){
     var d=ase[att]||{};
-    if(_kResumen(d.t||'')===t && d.r) r=String(d.r);
+    // La region que reporto el asesor tambien se valida: si trae basura, no
+    // se usa como respaldo — se prefiere "Sin region" a inventar una.
+    if(_kResumen(d.t||'')===t && d.r){
+      var v=_preRegionValida(String(d.r).replace(/_/g,' '));
+      if(v) r=_kResumen(v);
+    }
   });
   return r;
 }
@@ -11619,7 +11633,15 @@ async function _preCargarJerarquia(){
     Object.keys(fuente).forEach(function(id){
       var d=fuente[id]||{};
       var t=_kResumen(String(d.tienda||'').trim()); if(!t) return;
-      var rg=(typeof regionCanon==='function')?regionCanon(d.region):String(d.region||'');
+      // [v1.53] SOLO votan las regiones del catalogo oficial. El padron trae
+      // valores sucios con numeros romanos —"NORTE I", "NOROESTE II",
+      // "CENTRO I"— que no existen en REGIONES_MX. Accesos ya los descarta con
+      // su mapa CANON y yo los estaba aceptando crudos: por eso la pantalla
+      // listaba 11 regiones en vez de 7.
+      // Una tienda cae en su region por mayoria de los votos VALIDOS de su
+      // gente, igual que _admConstruirArbol. Si nadie tiene region valida,
+      // queda en "Sin region" — que es una senal de dato sucio, no una region.
+      var rg=_preRegionValida(d.region);
       if(rg){ votos[t]=votos[t]||{}; votos[t][rg]=(votos[t][rg]||0)+1; }
       var rol=String(d.rol||'asesor').toLowerCase();
       if((rol==='asesor'||rol==='gerente') && d.activo!==false){
@@ -11915,7 +11937,9 @@ async function preSincronizar(arr, fechas){
     await loadFirebase();
     var att=String((asesorData&&asesorData.attuid)||'').toUpperCase();
     var kT=_kResumen(String((asesorData&&(asesorData.tienda||asesorData.sucursal))||''));
-    var kR=_kResumen((typeof regionCanon==='function')?regionCanon((asesorData&&asesorData.region)||''):String((asesorData&&asesorData.region)||''));
+    // La region que se guarda con el pre-registro tambien se valida: asi el
+    // dato nace limpio aunque el documento del asesor traiga basura.
+    var kR=_kResumen(_preRegionValida((asesorData&&asesorData.region)||''));
     var nom=String((asesorData&&asesorData.name)||att);
     var dias=(fechas&&fechas.length)?fechas:[new Date().toISOString().slice(0,10)];
     for(var i=0;i<dias.length;i++){
