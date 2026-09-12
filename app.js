@@ -3979,6 +3979,11 @@ function updateAsesorChip(){
   // [v1.40] El contador de pre-registro vive en la misma tarjeta del pulso y
   // se refresca junto con todo lo demas al entrar, salir o cambiar de usuario.
   if(typeof preRefrescarTarjeta === 'function') preRefrescarTarjeta();
+  // [v1.42] El acceso del menu lateral, junto a Accesos y Vigencias.
+  try{
+    var _pb=document.getElementById('pre-home-card');
+    if(_pb) _pb.style.display=(typeof preVeConcentrado==='function' && preActivo() && preVeConcentrado())?'':'none';
+  }catch(e){}
   // [v1.9.23] Actualizar saludo (nombre del asesor)
   if(typeof updateGreeting === 'function') updateGreeting();
   // [v1.10.0] Mostrar/ocultar burbuja IA según ATTUID
@@ -11442,7 +11447,7 @@ async function preRefrescarTarjeta(){
   // DN no capturan: para ellos el CONTADOR es el que abre el concentrado.
   if(cta) cta.style.display = captura ? '' : 'none';
   item.style.cursor = preVeConcentrado() ? 'pointer' : '';
-  item.onclick = preVeConcentrado() ? preAbrirConcentrado : null;
+  item.onclick = preVeConcentrado() ? showPrerregistro : null;
   var lbl=document.getElementById('hv2-pre-lbl');
   if(lbl) lbl.textContent = (rol==='asesor') ? 'pre-registros'
         : (preVeConcentrado() ? 'pre-registros · ver' : 'pre-registros de tu zona');
@@ -11451,26 +11456,89 @@ async function preRefrescarTarjeta(){
   if(num) num.textContent = (n===null?'—':String(n));
 }
 
-// ── Concentrado con ruta por rol ─────────────────────────────────────────
-function _preBarra(lbl,n,max){
-  var pct=max?Math.round(n/max*100):0;
-  return '<div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;font-size:13px">'
-    +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--hv2-ink)">'+_admEsc(lbl)+'</span>'
-    +'<span style="width:64px;height:6px;background:var(--hv2-card-soft);border-radius:3px;overflow:hidden;flex-shrink:0">'
-    +'<span style="display:block;height:100%;width:'+pct+'%;background:var(--hv2-accent)"></span></span>'
-    +'<span style="width:26px;text-align:right;font-weight:700;color:var(--hv2-ink)">'+n+'</span></div>';
-}
-function _preTarjetas(mapa, orden){
-  var tot=orden.reduce(function(a,k){ return a+(mapa[k]||0); },0);
-  if(!tot) return '';
-  return '<div style="display:flex;gap:6px;margin-bottom:14px">'+orden.map(function(k){
-    return '<div style="flex:1;background:var(--hv2-card);border:.5px solid var(--hv2-line);border-radius:10px;padding:8px 4px;text-align:center">'
-      +'<div style="font-size:17px;font-weight:800;color:var(--hv2-ink)">'+(mapa[k]||0)+'</div>'
-      +'<div style="font-size:10px;color:var(--hv2-ink3);margin-top:2px">'+_admEsc(k)+'</div></div>';
-  }).join('')+'</div>';
+// ── PANTALLA DE CONCENTRADO ──────────────────────────────────────────────
+// Pantalla propia (#s-prerregistro), con la misma estructura que Accesos y el
+// tablero de Actividad: hero con titulo, resumen de alcance arriba, migas de
+// ruta, y el cuerpo debajo. NO es una hoja emergente.
+//
+// La jerarquia tienda -> regional -> region se resuelve del PADRON, no de un
+// campo escrito al capturar. Asi funciona con los registros que ya existen y
+// no depende de que el asesor traiga datos que su documento no tiene.
+var _preJerarquia=null;
+
+function _preNom(k){ return String(k||'').replace(/_/g,' '); }
+
+async function _preCargarJerarquia(){
+  if(_preJerarquia) return _preJerarquia;
+  var mapa={tienda_region:{}, tienda_regional:{}};
+  try{
+    // Si Accesos ya cargo el padron, se reutiliza: cero lecturas extra.
+    var fuente=(_admGente && Object.keys(_admGente).length) ? _admGente : null;
+    if(!fuente){
+      await loadFirebase();
+      var qs=await firestoreFns.getDocs(firestoreFns.collection(firestoreDB,'empleados'));
+      fuente={}; qs.forEach(function(sn){ fuente[sn.id]=sn.data()||{}; });
+    }
+    var votos={};
+    Object.keys(fuente).forEach(function(id){
+      var d=fuente[id]||{};
+      var t=_kResumen(String(d.tienda||'').trim()); if(!t) return;
+      var rg=(typeof regionCanon==='function')?regionCanon(d.region):String(d.region||'');
+      if(rg){ votos[t]=votos[t]||{}; votos[t][rg]=(votos[t][rg]||0)+1; }
+    });
+    Object.keys(votos).forEach(function(t){
+      var o=votos[t], mx=-1, g='';
+      Object.keys(o).forEach(function(r){ if(o[r]>mx){mx=o[r];g=r;} });
+      mapa.tienda_region[t]=g;
+    });
+    // Regional: quien tiene la tienda en sus tiendasAsignadas.
+    Object.keys(fuente).forEach(function(id){
+      var d=fuente[id]||{};
+      if(!Array.isArray(d.tiendasAsignadas)) return;
+      d.tiendasAsignadas.forEach(function(x){
+        var k=_kResumen(String(x||'').trim());
+        if(k) mapa.tienda_regional[k]=String(d.nombre||id);
+      });
+    });
+  }catch(e){ console.warn('[pre] jerarquia', e && e.message); }
+  _preJerarquia=mapa;
+  return mapa;
 }
 
-// Suma modelo/color del ambito visible usando las llaves compuestas.
+function preRutaIr(i){ _preRuta=_preRuta.slice(0,i); _preRender(); }
+function preRutaBajar(tipo,valor,etiqueta){ _preRuta.push({t:tipo,v:valor,e:etiqueta}); _preRender(); }
+
+async function showPrerregistro(){
+  if(!preVeConcentrado()) return;
+  _preRuta=[];
+  show('s-prerregistro');
+  var c=document.getElementById('pre-cuerpo');
+  if(c) c.innerHTML='<div class="adm-msg">Cargando…</div>';
+  try{
+    await loadFirebase();
+    var a=await firestoreFns.getDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC));
+    _preRes=(a&&a.exists())?(a.data()||{}):{};
+    var b=await firestoreFns.getDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC_ASE));
+    _preAse=(b&&b.exists())?((b.data()||{}).asesor||{}):{};
+    await _preCargarJerarquia();
+    _preRender();
+  }catch(e){
+    if(c) c.innerHTML='<div class="adm-msg adm-err">'+_admEsc((e&&e.message)||'Error')+'</div>';
+  }
+}
+
+function _preBarra(lbl,n,max,click){
+  var pct=max?Math.round(n/max*100):0;
+  return '<div '+(click?('onclick="'+click+'" style="cursor:pointer"'):'style=""')
+    +' class="adm-opt" style="'+(click?'cursor:pointer;':'')+'padding:11px 13px;margin-bottom:7px">'
+    +'<span class="adm-opt-name" style="flex:1">'+_admEsc(lbl)+'</span>'
+    +'<span style="width:70px;height:6px;background:var(--hv2-card-soft);border-radius:3px;overflow:hidden;flex-shrink:0">'
+    +'<span style="display:block;height:100%;width:'+pct+'%;background:var(--hv2-accent)"></span></span>'
+    +'<span style="width:30px;text-align:right;font-weight:800;color:var(--hv2-ink);flex-shrink:0">'+n+'</span>'
+    +(click?'<span style="color:var(--hv2-ink3);flex-shrink:0">›</span>':'')
+    +'</div>';
+}
+
 function _preDesglose(tiendas, campo){
   var res=_preRes||{}, comp=res['tienda_'+campo]||{}, out={};
   var lista=(campo==='modelo')?PRE_MODELOS:PRE_COLORES;
@@ -11484,98 +11552,86 @@ function _preDesglose(tiendas, campo){
   return out;
 }
 
-function preRutaIr(i){ _preRuta=_preRuta.slice(0,i); _preRenderConcentrado(); }
-function preRutaBajar(tipo,valor,etiqueta){ _preRuta.push({t:tipo,v:valor,e:etiqueta}); _preRenderConcentrado(); }
-
-async function preAbrirConcentrado(){
-  if(!preVeConcentrado()) return;
-  _preRuta=[];
-  admAbrirSheet('<div class="adm-sheet-h">Concentrado</div><div class="adm-msg">Cargando…</div>');
-  try{
-    await loadFirebase();
-    var a=await firestoreFns.getDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC));
-    _preRes=(a&&a.exists())?(a.data()||{}):{};
-    var b=await firestoreFns.getDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC_ASE));
-    _preAse=(b&&b.exists())?((b.data()||{}).asesor||{}):{};
-    _preRenderConcentrado();
-  }catch(e){
-    admAbrirSheet('<div class="adm-sheet-h">Concentrado</div><div class="adm-msg adm-err">'
-      +_admEsc((e&&e.message)||'Error')+'</div><button class="adm-sheet-cta" onclick="admCerrarSheet()">Cerrar</button>');
-  }
-}
-
-function _preRenderConcentrado(){
-  var res=_preRes||{}, ase=_preAse||{};
+function _preRender(){
+  var res=_preRes||{}, ase=_preAse||{}, jer=_preJerarquia||{tienda_region:{},tienda_regional:{}};
   var niveles=_preNivelesDe(asesorData&&asesorData.rol);
   var nivel=niveles[_preRuta.length]||'asesor';
-  var t2r=res.tienda_region||{};
+  var t2r=jer.tienda_region||{}, t2g=jer.tienda_regional||{};
 
-  // Tiendas del ambito actual: se estrecha con cada paso de la ruta.
   var tiendas=_preMisTiendas();
   _preRuta.forEach(function(p){
     if(p.t==='region')   tiendas=tiendas.filter(function(t){ return _kResumen(t2r[t]||'')===p.v; });
-    if(p.t==='regional') tiendas=tiendas.filter(function(t){ return (res.tienda_regional||{})[t]===p.v; });
+    if(p.t==='regional') tiendas=tiendas.filter(function(t){ return _kResumen(t2g[t]||'')===p.v; });
     if(p.t==='tienda')   tiendas=[p.v];
   });
   var porT=res.tienda||{};
   var total=tiendas.reduce(function(a,t){ return a+(porT[t]||0); },0);
 
-  // Migas: siempre se ve dónde estás parado y se puede regresar.
-  var migas='<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-bottom:12px;font-size:12px">'
-    +'<span style="cursor:pointer;color:var(--hv2-accent);font-weight:700" onclick="preRutaIr(0)">Mi alcance</span>'
-    + _preRuta.map(function(p,i){
-        return '<span style="color:var(--hv2-ink3)">›</span><span style="cursor:pointer;color:'
-          +((i===_preRuta.length-1)?'var(--hv2-ink)':'var(--hv2-accent)')+'" onclick="preRutaIr('+(i+1)+')">'
-          +_admEsc(p.e)+'</span>';
+  var sub=document.getElementById('pre-hero-sub');
+  if(sub) sub.textContent = _preRuta.length ? _preNom(_preRuta[_preRuta.length-1].e) : 'Concentrado de tu alcance';
+
+  // Resumen de alcance, mismo componente que usa Accesos.
+  var mod=_preDesglose(tiendas,'modelo'), col=_preDesglose(tiendas,'color');
+  var sc=document.getElementById('pre-scope');
+  if(sc){
+    sc.style.display='';
+    sc.innerHTML='<div class="adm-scope-cell"><div class="adm-scope-num is-accent">'+total+'</div><div class="adm-scope-lbl">Pre-registros</div></div>'
+      +'<div class="adm-scope-div"></div>'
+      +'<div class="adm-scope-cell"><div class="adm-scope-num">'+tiendas.length+'</div><div class="adm-scope-lbl">Tiendas</div></div>'
+      +'<div class="adm-scope-div"></div>'
+      +'<div class="adm-scope-cell"><div class="adm-scope-num">'+Object.keys(ase).filter(function(x){return tiendas.indexOf(_kResumen((ase[x]||{}).t||''))>=0;}).length+'</div><div class="adm-scope-lbl">Asesores</div></div>';
+  }
+
+  var mg=document.getElementById('pre-ruta');
+  if(mg){
+    mg.innerHTML='<span style="cursor:pointer;color:var(--hv2-accent);font-weight:700" onclick="preRutaIr(0)">Mi alcance</span>'
+      + _preRuta.map(function(p,i){
+          return ' <span style="color:var(--hv2-ink3)">›</span> <span style="cursor:pointer;color:'
+            +((i===_preRuta.length-1)?'var(--hv2-ink)':'var(--hv2-accent)')+'" onclick="preRutaIr('+(i+1)+')">'
+            +_admEsc(_preNom(p.e))+'</span>';
+        }).join('');
+  }
+
+  var mxM=Math.max.apply(null,PRE_MODELOS.map(function(x){return mod[x]||0;}))||0;
+  var h='<div class="adm-label" style="margin-top:4px">Por modelo</div>'
+    + PRE_MODELOS.map(function(m){ return _preBarra(m.replace('iPhone 18 ',''), mod[m]||0, mxM, ''); }).join('')
+    +'<div class="adm-label" style="margin-top:18px">Por color</div>'
+    +'<div style="display:flex;gap:7px;margin-bottom:4px">'
+    + PRE_COLORES.map(function(c){
+        return '<div style="flex:1;background:var(--hv2-card);border:.5px solid var(--hv2-line);border-radius:12px;padding:11px 4px;text-align:center">'
+          +'<div style="font-size:19px;font-weight:800;color:var(--hv2-ink)">'+(col[c]||0)+'</div>'
+          +'<div style="font-size:10px;color:var(--hv2-ink3);margin-top:3px">'+_admEsc(c)+'</div></div>';
       }).join('')
     +'</div>';
 
-  var cuerpo='';
   if(nivel==='asesor'){
     var filas=Object.keys(ase).filter(function(att){
-      return tiendas.indexOf(_kResumen((ase[att]||{}).t||''))>=0;
+      return tiendas.indexOf(_kResumen((ase[att]||{}).t||''))>=0 && (ase[att].n||0)>0;
     }).sort(function(x,y){ return (ase[y].n||0)-(ase[x].n||0); });
     var mx=filas.length?(ase[filas[0]].n||0):0;
-    cuerpo = filas.length
-      ? '<div style="font-size:11px;color:var(--hv2-ink3);margin-bottom:7px">Por asesor</div>'
-        + filas.map(function(att){ return _preBarra((ase[att].nom||att)+' · '+att, ase[att].n||0, mx); }).join('')
-      : '<div class="adm-msg">Nadie ha capturado en este alcance todavía.</div>';
+    h+='<div class="adm-label" style="margin-top:18px">Por asesor</div>'
+      + (filas.length ? filas.map(function(att){ return _preBarra((ase[att].nom||att)+' · '+att, ase[att].n||0, mx, ''); }).join('')
+                      : '<div class="adm-msg">Nadie ha capturado en este alcance todavía.</div>');
   } else {
-    var mapa={}, etiqueta={};
+    var mapa={};
     tiendas.forEach(function(t){
       var k = (nivel==='region')   ? _kResumen(t2r[t]||'Sin región')
-            : (nivel==='regional') ? ((res.tienda_regional||{})[t]||'Sin regional')
+            : (nivel==='regional') ? _kResumen(t2g[t]||'Sin regional')
             : t;
       mapa[k]=(mapa[k]||0)+(porT[t]||0);
-      etiqueta[k]=k;
     });
-    var ks=Object.keys(mapa).sort(function(x,y){ return mapa[y]-mapa[x]; });
+    var ks=Object.keys(mapa).filter(function(k){ return mapa[k]>0; }).sort(function(x,y){ return mapa[y]-mapa[x]; });
     var mx2=ks.length?mapa[ks[0]]:0;
     var titulo = nivel==='region'?'Por región':(nivel==='regional'?'Por regional':'Por tienda');
-    cuerpo = ks.length
-      ? '<div style="font-size:11px;color:var(--hv2-ink3);margin-bottom:7px">'+titulo+'</div>'
-        + ks.map(function(k){
-            return '<div onclick="preRutaBajar('+_admJsStr(nivel)+','+_admJsStr(k)+','+_admJsStr(etiqueta[k])+')" style="cursor:pointer">'
-              + _preBarra(etiqueta[k], mapa[k], mx2) + '</div>';
+    h+='<div class="adm-label" style="margin-top:18px">'+titulo+'</div>'
+      + (ks.length ? ks.map(function(k){
+            return _preBarra(_preNom(k), mapa[k], mx2,
+              'preRutaBajar('+_admJsStr(nivel)+','+_admJsStr(k)+','+_admJsStr(k)+')');
           }).join('')
-      : '<div class="adm-msg">Sin pre-registros en este alcance todavía.</div>';
+        : '<div class="adm-msg">Sin pre-registros en este alcance todavía.</div>');
   }
-
-  admAbrirSheet(
-    '<div class="adm-sheet-h">Concentrado</div>'
-    +'<div class="adm-sheet-sub"><b>'+total+'</b> pre-registro(s) · '+tiendas.length+' tienda(s)</div>'
-    +'<div class="adm-sheet-scroll">'
-    + migas
-    +'<div style="font-size:11px;color:var(--hv2-ink3);margin-bottom:7px">Por modelo</div>'
-    + PRE_MODELOS.map(function(m){ var d=_preDesglose(tiendas,'modelo');
-        var mx3=Math.max.apply(null,PRE_MODELOS.map(function(x){return d[x]||0;}))||0;
-        return _preBarra(m.replace('iPhone 18 ',''), d[m]||0, mx3); }).join('')
-    +'<div style="font-size:11px;color:var(--hv2-ink3);margin:12px 0 7px">Por color</div>'
-    + _preTarjetas(_preDesglose(tiendas,'color'), PRE_COLORES)
-    + cuerpo
-    +'</div>'
-    +'<button class="adm-sheet-cta" onclick="admCerrarSheet()">Cerrar</button>'
-  );
+  var c=document.getElementById('pre-cuerpo');
+  if(c) c.innerHTML=h;
 }
 
 // ── Captura ──────────────────────────────────────────────────────────────
@@ -11790,9 +11846,10 @@ async function preGuardar(){
     // Compuestas: permiten desglosar UNA tienda sin leer nada mas.
     payload['tienda_modelo.'+kT+'||'+_preModelo] = inc;
     payload['tienda_color.'+kT+'||'+_preColor] = inc;
-    // Mapas de estructura: con esto el arbol se arma sin tocar /empleados.
-    payload['tienda_region.'+kT] = region;
-    payload['tienda_regional.'+kT] = String((asesorData&&asesorData.regionalNombre)||'') || null;
+    // [v1.42] Ya NO se escribe tienda_region ni tienda_regional aqui. El asesor
+    // no conoce a su regional, y la region de su documento puede estar vieja.
+    // La jerarquia se resuelve del padron al abrir la pantalla, asi funciona
+    // tambien con los registros capturados antes de esta version.
     try{
       await firestoreFns.setDoc(ref, payload, {merge:true});
     }catch(e){

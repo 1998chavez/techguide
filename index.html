@@ -11,10 +11,10 @@
      otro script, porque catalog.js/vendors.js la usan para el cache-busting y
      el registro del SW la compara. Si HTML y SW no coinciden → recarga forzada.
      Al empacar cada versión, este número se actualiza igual que el cache del SW. -->
-<script>window.BUILD_ID = '1789952400';
+<script>window.BUILD_ID = '1789956000';
 // [v1.11.61] APP_VERSION vive aquí desde que el bloque principal salió a app.js.
 // El ritual de release NO cambia: 2 constantes aquí + 2 en sw.js.
-const APP_VERSION = 'v1.41.0';</script>
+const APP_VERSION = 'v1.42.0';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -5031,6 +5031,7 @@ html.con-upd body{padding-top:52px}
     <button class="pmd-item" onclick="pmdGo('calc')"><svg viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M8 6.5h8M8 11h2M8 15h2M14 11h2M14 15h2M11 11h2M11 15h2"/></svg>Calculadora</button>
     <button class="pmd-item" onclick="pmdGo('diag')"><svg viewBox="0 0 24 24"><path d="M3.5 13a8.5 8.5 0 0 1 17 0"/><path d="M12 13l4-3.5"/><circle cx="12" cy="13" r="1.4" fill="currentColor" stroke="none"/></svg>Diagnóstico</button>
     <button class="pmd-item" id="admin-home-card" style="display:none" onclick="pmdGo('accesos')"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4.5"/><path d="M11 12l8-8 2 2M16 7l2 2"/></svg>Accesos</button>
+    <button class="pmd-item" id="pre-home-card" style="display:none" onclick="pmdGo('prerregistro')"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Pre-registro</button>
     <button class="pmd-item" id="vig-home-card" style="display:none" onclick="pmdGo('vigencias')"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span style="flex:1">Vigencias</span><span class="pmd-dot" id="pmd-vig-dot" style="display:none"></span></button>
     <button class="pmd-item" id="uso-home-card" style="display:none" onclick="pmdGo('adopcion')"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Adopción</button>
     <div class="pmd-sep"></div>
@@ -5149,6 +5150,22 @@ html.con-upd body{padding-top:52px}
   <div class="adm-sheet" id="adm-sheet"></div>
 </div>
 <div id="adm-toast" class="adm-toast"></div>
+
+<div id="s-prerregistro" class="screen">
+  <div class="adm-hero">
+    <button class="nav-back" onclick="show('s-home')" aria-label="Inicio">‹</button>
+    <h1>Pre-registro iPhone 18</h1>
+    <p id="pre-hero-sub">Concentrado de tu alcance</p>
+  </div>
+  <div class="scroll-area">
+    <div class="adm-wrap">
+      <div id="pre-scope" class="adm-scope" style="display:none"></div>
+      <div id="pre-ruta" style="margin:14px 2px 10px;font-size:12px"></div>
+      <div id="pre-cuerpo"></div>
+    </div>
+    <div style="height:48px"></div>
+  </div>
+</div>
 
 <div id="s-catalog" class="screen">
   <div class="nav">
@@ -5325,7 +5342,7 @@ window._onCatalogImgReady=function(){
 // [v1.38] app.js se versiona por CONTENIDO, no por BUILD_ID: si el archivo no
 // cambio, el navegador y el service worker reusan la copia que ya tienen en vez
 // de re-bajar 579 KB en cada release. DEBE coincidir con APP_JS_V en sw.js.
-window.APP_JS_V = '9d8c69a55b';
+window.APP_JS_V = '1bf6032568';
 document.write('<scr'+'ipt src="app.js?v='+window.APP_JS_V+'"></scr'+'ipt>');
 </script>
 
@@ -5790,6 +5807,7 @@ document.write('<scr'+'ipt src="app.js?v='+window.APP_JS_V+'"></scr'+'ipt>');
       case 'calc':    run(function(){ if(typeof showCalc==='function')showCalc(); }); break;
       case 'diag':    run(function(){ if(typeof openDiagnostico==='function')openDiagnostico(); }); break;
       case 'accesos': run(function(){ if(typeof showAccesos==='function')showAccesos(); }); break;
+      case 'prerregistro': run(function(){ if(typeof showPrerregistro==='function')showPrerregistro(); }); break;
       case 'vigencias': run(function(){ if(typeof openVigencias==='function')openVigencias(); }); break;
       case 'adopcion': run(function(){ if(typeof openAdopcion==='function')openAdopcion(); }); break;
       case 'perfil':  run(function(){ if(typeof openAsesorEdit==='function')openAsesorEdit(); }); break;
