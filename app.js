@@ -11594,20 +11594,27 @@ function preToggleVerTodos(){ _preVerTodos=!_preVerTodos; _preRender(); }
 
 function _preNom(k){ return String(k||'').replace(/_/g,' '); }
 
+// [v1.52] La cache se ata al ATTUID: al cambiar de usuario se recarga sola.
+// Antes era global y para siempre, asi que un arbol armado con datos parciales
+// se quedaba pegado el resto de la sesion.
+var _preJerarquiaDe=null;
 async function _preCargarJerarquia(){
-  if(_preJerarquia) return _preJerarquia;
+  var yo=String((asesorData&&asesorData.attuid)||'').toUpperCase();
+  if(_preJerarquia && _preJerarquiaDe===yo) return _preJerarquia;
+  _preJerarquiaDe=yo;
   // [v1.48] Ademas de la jerarquia, se arma el PADRON de quien puede capturar
   // (asesor y gerente). De ahi salen los que llevan cero: el tablero hace lo
   // mismo en calcularActividadRegionales para marcar SIN ACTIVIDAD.
   var mapa={tienda_region:{}, tienda_regional:{}, roster:{}};
   try{
-    // Si Accesos ya cargo el padron, se reutiliza: cero lecturas extra.
-    var fuente=(_admGente && Object.keys(_admGente).length) ? _admGente : null;
-    if(!fuente){
-      await loadFirebase();
-      var qs=await firestoreFns.getDocs(firestoreFns.collection(firestoreDB,'empleados'));
-      fuente={}; qs.forEach(function(sn){ fuente[sn.id]=sn.data()||{}; });
-    }
+    // [v1.52] SIEMPRE se lee el padron completo. Antes reusaba _admGente "para
+    // ahorrar una lectura", pero ese objeto NO es el padron: para un regional o
+    // gerente, Accesos lo carga acotado a sus tiendas (query con where tienda in
+    // ...). El concentrado heredaba ese recorte y el arbol se quedaba con una
+    // sola region — que es justo lo que se veia.
+    await loadFirebase();
+    var qs=await firestoreFns.getDocs(firestoreFns.collection(firestoreDB,'empleados'));
+    var fuente={}; qs.forEach(function(sn){ fuente[sn.id]=sn.data()||{}; });
     var votos={};
     Object.keys(fuente).forEach(function(id){
       var d=fuente[id]||{};
