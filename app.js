@@ -11540,14 +11540,20 @@ function _prePadronEn(tiendas){
 async function preContarAlcance(){
   try{
     if(!asesorData) return 0;
+    // [v1.50] Solo el DIA, igual que contarEquipoHoy() con las cotizaciones.
+    // El acumulado de la campana vive en la pantalla, con su selector.
+    var hoy=new Date().toISOString().slice(0,10);
     var rol=String(asesorData.rol||'asesor').toLowerCase();
-    if(rol==='asesor') return preLeerLocal().length;
+    if(rol==='asesor'){
+      return preLeerLocal().filter(function(x){ return String(x.fecha||'')===hoy; }).length;
+    }
     // [v1.49] FALTABA MIGRAR ESTO al modelo por dia: seguia leyendo el
     // documento unico retirado en v1.48, asi que la tarjeta del home decia 0
     // mientras la pantalla mostraba el dato correcto. Ahora lee los mismos dias
     // que el concentrado, con el periodo que tenga seleccionado.
-    var sel=document.getElementById('pre-periodo');
-    _preAse=await preLeerPeriodo(_preDiasPeriodo(sel?sel.value:'todo'));
+    // Una sola lectura: el documento del dia. Antes leia toda la campana en
+    // cada carga del home, que a fin de mes serian ~20 lecturas por entrada.
+    _preAse=await preLeerPeriodo([hoy]);
     return _preNoNeg(_preTotales(_preMisTiendas()).total);
   }catch(e){ console.warn('[pre] contar', e && e.message); return null; }
 }
@@ -11569,7 +11575,7 @@ async function preRefrescarTarjeta(){
   item.style.cursor = preVeConcentrado() ? 'pointer' : '';
   item.onclick = preVeConcentrado() ? showPrerregistro : null;
   var lbl=document.getElementById('hv2-pre-lbl');
-  if(lbl) lbl.textContent = (rol==='asesor') ? 'pre-registros' : 'pre-registros de tu zona';
+  if(lbl) lbl.textContent = (rol==='asesor') ? 'pre-registraste hoy' : 'pre-registros de hoy';
   var n=await preContarAlcance();
   var num=document.getElementById('hv2-pre-num');
   if(num) num.textContent = (n===null?'—':String(n));

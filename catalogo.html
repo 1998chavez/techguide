@@ -750,6 +750,27 @@ var APP={
     }).sort(function(a,b){ return info[b.id].pct-info[a.id].pct; });
     offers=offers.concat(relleno).slice(0,6);
   }
+  /* [v1.50] Banda de preventa del iPhone 18. Va DESPUES del heroe y ANTES de
+     las ofertas: es lo primero que el cliente ve al bajar, sin desplazar el
+     llamado principal del catalogo. Enlace oficial de AT&T, en pestana nueva.
+     PARA QUITARLA cuando cierre la preventa: borrar este bloque completo. */
+  h+='<section class="wrap"><a href="https://tu.att.com.mx/preventa" target="_blank" rel="noopener"'
+   +' style="display:flex;align-items:center;gap:18px;margin-top:26px;padding:20px 22px;border-radius:18px;'
+   +'background:linear-gradient(135deg,var(--color-neutral-900) 0%,#0b2540 58%,var(--color-accent) 100%);'
+   +'color:#fff;text-decoration:none;overflow:hidden;position:relative">'
+   +'<span style="flex-shrink:0;width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,.14);'
+   +'display:flex;align-items:center;justify-content:center">'
+   +'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+   +'<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg></span>'
+   +'<span style="flex:1;min-width:0">'
+   +'<span style="display:block;font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-400)">Preventa abierta</span>'
+   +'<span style="display:block;font-family:var(--font-heading);font-weight:800;font-size:22px;letter-spacing:-.02em;margin-top:3px">iPhone 18 Pro y Pro Max</span>'
+   +'<span style="display:block;font-size:13.5px;line-height:1.5;margin-top:5px;color:rgba(255,255,255,.78)">Aparta el tuyo en att.com.mx. Burgundy, Glacier, plata y negro.</span>'
+   +'</span>'
+   +'<span style="flex-shrink:0;display:flex;align-items:center;gap:7px;font-size:14px;font-weight:700;white-space:nowrap">Ir a la preventa'
+   +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>'
+   +'</a></section>';
+
   h+='<section class="wrap"><div class="hr2"></div><div class="sechead" style="padding-top:24px"><h2>Ofertas de la semana</h2>'
   +'<button class="btn btn-ghost" style="font-size:13px" onclick="APP.goOfertas()">Ver todas</button></div>'+this.filaHTML(offers)+'</section>';
   var news=devs.filter(function(d){return d.status==='NPI';}).slice(0,6);
