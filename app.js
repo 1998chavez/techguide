@@ -11513,16 +11513,37 @@ async function _preCargarJerarquia(){
   return mapa;
 }
 
-function preRutaIr(i){ _preRuta=_preRuta.slice(0,i); _preRender(); }
+function preRutaIr(i){
+  var respaldo=_preRuta.slice();
+  _preRuta=_preRuta.slice(0,i);
+  try{ _preRender(); }
+  catch(e){ _preRuta=respaldo; console.warn('[pre] ruta', e && e.message); }
+}
 
 // [v1.43] El boton ‹ del encabezado sube UN nivel si estas dentro de la ruta,
 // y solo sale al home cuando ya estas en la raiz. Antes siempre salia al home:
 // entrabas a una region y no habia como regresar a la lista anterior.
 function preAtras(){
-  if(_preRuta.length){ _preRuta.pop(); _preRender(); return; }
-  show('s-home');
+  // [v1.44] Antes, si _preRender fallaba el nivel ya se habia sacado de la ruta
+  // y la pantalla se quedaba igual: parecia que el boton "funcionaba cuando
+  // queria". Ahora se restaura la ruta si el render truena, y cualquier error
+  // se reporta en vez de tragarse.
+  if(!_preRuta.length){ show('s-home'); return; }
+  var respaldo=_preRuta.slice();
+  _preRuta.pop();
+  try{ _preRender(); }
+  catch(e){
+    _preRuta=respaldo;
+    console.warn('[pre] atras', e && e.message);
+    admToast('No se pudo regresar: '+((e&&e.message)||'error'),'err');
+  }
 }
-function preRutaBajar(tipo,valor,etiqueta){ _preRuta.push({t:tipo,v:valor,e:etiqueta}); _preRender(); }
+function preRutaBajar(tipo,valor,etiqueta){
+  var respaldo=_preRuta.slice();
+  _preRuta.push({t:tipo,v:valor,e:etiqueta});
+  try{ _preRender(); }
+  catch(e){ _preRuta=respaldo; console.warn('[pre] bajar', e && e.message); admToast('No se pudo abrir ese nivel.','err'); }
+}
 
 async function showPrerregistro(){
   if(!preVeConcentrado()) return;
@@ -11559,14 +11580,19 @@ function _preBarra(lbl,n,max,click){
 }
 
 function _preDesglose(tiendas, campo){
-  var res=_preRes||{}, comp=res['tienda_'+campo]||{}, out={};
+  var res=_preRes||{}, comp=res['tienda_'+campo]||{}, out={}, porK={};
   var lista=(campo==='modelo')?PRE_MODELOS:PRE_COLORES;
-  lista.forEach(function(v){ out[v]=0; });
+  // [v1.44] La escritura guarda la llave NORMALIZADA (_kResumen). El lector
+  // comparaba contra el nombre crudo con espacios y nunca casaba, asi que el
+  // desglose salia en cero aunque el contador tuviera datos.
+  lista.forEach(function(v){ out[v]=0; porK[_kResumen(v)]=v; });
   Object.keys(comp).forEach(function(k){
-    var p=k.split('||'); if(p.length!==2) return;
-    if(tiendas.indexOf(p[0])<0) return;
-    if(out[p[1]]===undefined) return;
-    out[p[1]] += comp[k]||0;
+    var i=k.indexOf('||'); if(i<0) return;
+    var t=k.slice(0,i), v=k.slice(i+2);
+    if(tiendas.indexOf(t)<0) return;
+    var nombre=porK[v] || porK[_kResumen(v)];
+    if(!nombre) return;
+    out[nombre] += comp[k]||0;
   });
   return out;
 }
@@ -11651,6 +11677,47 @@ function _preRender(){
   }
   var c=document.getElementById('pre-cuerpo');
   if(c) c.innerHTML=h;
+}
+
+// [v1.44] CONTADORES — UNA SOLA FUNCION, CON OBJETOS ANIDADOS.
+//
+// EL BUG QUE ESTO ARREGLA: se escribian llaves con punto —'tienda.PRM_TDA_X'—
+// junto con setDoc({merge:true}). setDoc NO interpreta el punto como ruta
+// anidada: creaba un campo llamado literalmente "tienda.PRM_TDA_X" que ningun
+// lector consulta. Por eso el total subia (no lleva punto) pero el desglose por
+// tienda, modelo, color y asesor se quedaba congelado con lo que habia escrito
+// la version anterior, que si usaba updateDoc.
+//
+// Con objetos ANIDADOS y merge:true, Firestore hace merge profundo, aplica el
+// increment y ademas CREA el documento si no existe — que es justo lo que
+// updateDoc no podia hacer y por lo que lo habia cambiado.
+//
+// soloDesglose: al editar solo se corrige modelo/color, sin mover el total.
+async function preSumar(signo, kT, kR, modelo, color, att, soloDesglose){
+  try{
+    await loadFirebase();
+    var inc=firestoreFns.increment(signo);
+    var doc1={ modelo:{}, color:{}, tienda_modelo:{}, tienda_color:{} };
+    doc1.modelo[_kResumen(modelo)] = inc;
+    doc1.color[_kResumen(color)]   = inc;
+    doc1.tienda_modelo[kT+'||'+_kResumen(modelo)] = inc;
+    doc1.tienda_color[kT+'||'+_kResumen(color)]   = inc;
+    if(!soloDesglose){
+      doc1.total = inc;
+      doc1.region = {}; doc1.region[kR] = inc;
+      doc1.tienda = {}; doc1.tienda[kT] = inc;
+    }
+    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC), doc1, {merge:true});
+    if(soloDesglose) return true;
+    var doc2={ asesor:{} };
+    doc2.asesor[att] = { n: inc, nom: String((asesorData&&asesorData.name)||att), t: kT };
+    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC_ASE), doc2, {merge:true});
+    return true;
+  }catch(e){
+    console.warn('[pre] contadores', e && e.message);
+    admToast('Se guardó el registro, pero el contador no subió: '+((e&&e.message)||'error'),'err');
+    return false;
+  }
 }
 
 // ── Captura ──────────────────────────────────────────────────────────────
@@ -11742,13 +11809,7 @@ async function preCancelar(id){
     preGuardarLocal(arr);
     var kT=_kResumen(String((asesorData&&(asesorData.tienda||asesorData.sucursal))||''));
     var kR=_kResumen((typeof regionCanon==='function')?regionCanon((asesorData&&asesorData.region)||''):'');
-    var dec=firestoreFns.increment(-1), p={total:dec};
-    p['region.'+kR]=dec; p['tienda.'+kT]=dec;
-    p['modelo.'+_kResumen(x.modelo)]=dec; p['color.'+_kResumen(x.color)]=dec;
-    p['tienda_modelo.'+kT+'||'+x.modelo]=dec; p['tienda_color.'+kT+'||'+x.color]=dec;
-    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC), p, {merge:true});
-    var pa={}; pa['asesor.'+att+'.n']=dec;
-    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC_ASE), pa, {merge:true});
+    await preSumar(-1, kT, kR, x.modelo, x.color, att);
     admCerrarSheet(); admToast('Quitado. Llevas '+arr.length+'.','ok');
     preRefrescarTarjeta();
   }catch(e){
@@ -11839,49 +11900,21 @@ async function preGuardar(){
     preGuardarLocal(arr);
     // Contadores agregados: lo unico que ve el mando.
     var kT=_kResumen(tienda), kR=_kResumen(region);
+    // [v1.44] Se arma ANIDADO, no con llaves con punto. Ver nota de preSumar.
     if(editando){
       // Editar NO mueve el total. Solo corrige modelo/color si cambiaron.
       if(previo && (previo.modelo!==_preModelo || previo.color!==_preColor)){
-        var d1=firestoreFns.increment(-1), i1=firestoreFns.increment(1), pe={};
-        pe['modelo.'+_kResumen(previo.modelo)]=d1; pe['color.'+_kResumen(previo.color)]=d1;
-        pe['tienda_modelo.'+kT+'||'+previo.modelo]=d1; pe['tienda_color.'+kT+'||'+previo.color]=d1;
-        pe['modelo.'+_kResumen(_preModelo)]=i1; pe['color.'+_kResumen(_preColor)]=i1;
-        pe['tienda_modelo.'+kT+'||'+_preModelo]=i1; pe['tienda_color.'+kT+'||'+_preColor]=i1;
-        try{ await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC), pe, {merge:true}); }
-        catch(e){ console.warn('[pre] ajuste', e && e.message); }
+        // Editar no mueve el total: se resta el modelo/color viejo y se suma el
+        // nuevo, sin tocar total, region, tienda ni asesor.
+        await preSumar(-1, kT, kR, previo.modelo, previo.color, att, true);
+        await preSumar(+1, kT, kR, _preModelo, _preColor, att, true);
       }
       _preEditando=null;
       admCerrarSheet(); admToast('Registro actualizado.','ok');
       preRefrescarTarjeta();
       return;
     }
-    var ref=firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC);
-    var inc=firestoreFns.increment(1);
-    var payload={ total:inc };
-    payload['region.'+kR] = inc;
-    payload['tienda.'+kT] = inc;
-    payload['modelo.'+_kResumen(_preModelo)] = inc;
-    payload['color.'+_kResumen(_preColor)] = inc;
-    // Compuestas: permiten desglosar UNA tienda sin leer nada mas.
-    payload['tienda_modelo.'+kT+'||'+_preModelo] = inc;
-    payload['tienda_color.'+kT+'||'+_preColor] = inc;
-    // [v1.42] Ya NO se escribe tienda_region ni tienda_regional aqui. El asesor
-    // no conoce a su regional, y la region de su documento puede estar vieja.
-    // La jerarquia se resuelve del padron al abrir la pantalla, asi funciona
-    // tambien con los registros capturados antes de esta version.
-    try{
-      await firestoreFns.setDoc(ref, payload, {merge:true});
-    }catch(e){
-      console.warn('[pre] contadores', e && e.message);
-    }
-    // Doc de asesores: solo se lee al bajar a ese nivel.
-    try{
-      var pa={};
-      pa['asesor.'+att+'.n']   = inc;
-      pa['asesor.'+att+'.nom'] = String((asesorData&&asesorData.name)||att);
-      pa['asesor.'+att+'.t']   = kT;
-      await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC_ASE), pa, {merge:true});
-    }catch(e){ console.warn('[pre] asesores', e && e.message); }
+    await preSumar(+1, kT, kR, _preModelo, _preColor, att);
     admCerrarSheet();
     admToast('Interesado registrado. Llevas '+arr.length+'.','ok');
     preRefrescarTarjeta();
