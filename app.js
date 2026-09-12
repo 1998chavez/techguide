@@ -11346,6 +11346,9 @@ async function admConfirmMigrarPacifico(){
 //     de /resumenes ya lo permiten — no hizo falta abrir nada nuevo.
 // ══════════════════════════════════════════════════════════════════════════
 window.PRERREGISTRO_OFF = false;
+// [v1.47] PRE_DOC quedo fuera de uso: era el documento de contadores
+// incrementales. Se conserva el nombre solo como referencia historica por si
+// hay que limpiarlo a mano en la consola. Nada lo lee ni lo escribe.
 var PRE_DOC = 'prerregistro_ip18';
 var PRE_LS  = 'pmx_prerregistros_ip18';
 var PRE_TITULO = 'iPhone 18';
@@ -11396,7 +11399,7 @@ async function preLeerIndice(){
 //
 // La tarjeta del home lee SOLO el ligero. El concentrado lee el pesado al abrir.
 var PRE_DOC_ASE = 'prerregistro_ip18_asesores';
-var _preRes=null, _preAse=null, _preRuta=[];
+var _preAse=null, _preRuta=[];
 
 function _preNivelesDe(rol){
   rol=String(rol||'asesor').toLowerCase();
@@ -11409,20 +11412,60 @@ function _preNivelesDe(rol){
 function preVeConcentrado(){ return _preNivelesDe(asesorData&&asesorData.rol).length>0; }
 
 // Tiendas que le tocan a quien esta logueado, por rol.
+// [v1.47] Region de una tienda segun lo que reportan sus propios asesores.
+// Respaldo cuando el padron aun no carga o la tienda no aparece ahi.
+function _preRegionDe(t){
+  var ase=_preAse||{}, r='';
+  Object.keys(ase).forEach(function(att){
+    var d=ase[att]||{};
+    if(_kResumen(d.t||'')===t && d.r) r=String(d.r);
+  });
+  return r;
+}
+
+// [v1.47] Las tiendas salen de los resumenes de asesor: solo las que tienen al
+// menos un pre-registro vivo. Antes salian de un mapa incremental que conservaba
+// llaves en cero — de ahi el "1 tienda, 0 pre-registros" de la captura.
 function _preMisTiendas(){
   var rol=String((asesorData&&asesorData.rol)||'asesor').toLowerCase();
-  var res=_preRes||{};
-  var t2r=res.tienda_region||{};
-  var todas=Object.keys(res.tienda||{});
+  var ase=_preAse||{}, jer=_preJerarquia||{tienda_region:{}};
+  var t2r=jer.tienda_region||{};
+  var todas=[];
+  Object.keys(ase).forEach(function(att){
+    var d=ase[att]||{};
+    if((Number(d.n)||0)<=0) return;
+    var t=_kResumen(d.t||''); if(!t) return;
+    if(todas.indexOf(t)<0) todas.push(t);
+  });
   if(rol==='director_nacional') return todas;
   if(rol==='director'){
     var regs=((typeof _misRegiones==='function')?_misRegiones():[]).map(function(r){return _kResumen(r);});
-    return todas.filter(function(t){ return regs.indexOf(_kResumen(t2r[t]||''))>=0; });
+    return todas.filter(function(t){
+      return regs.indexOf(_kResumen(t2r[t]||_preRegionDe(t)||''))>=0;
+    });
   }
   var mias=(asesorData.tiendasAsignadas&&asesorData.tiendasAsignadas.length)
     ? asesorData.tiendasAsignadas : [asesorData.tienda||asesorData.sucursal||''];
   var k=mias.filter(Boolean).map(function(x){ return _kResumen(x); });
   return todas.filter(function(t){ return k.indexOf(t)>=0; });
+}
+
+// [v1.47] Totales del ambito, sumando los resumenes de los asesores que caen
+// dentro. Cero aritmetica incremental: se suma lo que cada asesor reporta.
+function _preTotales(tiendas){
+  var ase=_preAse||{}, out={total:0, tienda:{}, region:{}, mod:{}, col:{}};
+  Object.keys(ase).forEach(function(att){
+    var d=ase[att]||{}, n=Number(d.n)||0;
+    if(n<=0) return;
+    var t=_kResumen(d.t||'');
+    if(tiendas.indexOf(t)<0) return;
+    out.total += n;
+    out.tienda[t]=(out.tienda[t]||0)+n;
+    var r=_kResumen(d.r||''); if(r) out.region[r]=(out.region[r]||0)+n;
+    Object.keys(d.mod||{}).forEach(function(k){ out.mod[k]=(out.mod[k]||0)+(d.mod[k]||0); });
+    Object.keys(d.col||{}).forEach(function(k){ out.col[k]=(out.col[k]||0)+(d.col[k]||0); });
+  });
+  return out;
 }
 
 async function preContarAlcance(){
@@ -11431,13 +11474,11 @@ async function preContarAlcance(){
     var rol=String(asesorData.rol||'asesor').toLowerCase();
     if(rol==='asesor') return preLeerLocal().length;
     await loadFirebase();
-    var snap=await firestoreFns.getDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC));
-    if(!snap || !snap.exists()) return 0;
-    _preRes=snap.data()||{};
-    if(rol==='director_nacional') return _preRes.total||0;
-    var porT=_preRes.tienda||{}, tot=0;
-    _preMisTiendas().forEach(function(t){ tot += (porT[t]||0); });
-    return tot;
+    // [v1.47] Un solo documento: el de resumenes por asesor. Es la unica fuente
+    // de verdad y coincide exactamente con lo que cada asesor ve en su lista.
+    var snap=await firestoreFns.getDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC_ASE));
+    _preAse=(snap&&snap.exists())?((snap.data()||{}).asesor||{}):{};
+    return _preNoNeg(_preTotales(_preMisTiendas()).total);
   }catch(e){ console.warn('[pre] contar', e && e.message); return null; }
 }
 
@@ -11553,8 +11594,7 @@ async function showPrerregistro(){
   if(c) c.innerHTML='<div class="adm-msg">Cargando…</div>';
   try{
     await loadFirebase();
-    var a=await firestoreFns.getDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC));
-    _preRes=(a&&a.exists())?(a.data()||{}):{};
+    // [v1.47] Una sola lectura de contadores: el resumen por asesor.
     var b=await firestoreFns.getDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC_ASE));
     _preAse=(b&&b.exists())?((b.data()||{}).asesor||{}):{};
     await _preCargarJerarquia();
@@ -11595,27 +11635,17 @@ function _preAsesoresEn(tiendas){
   });
 }
 
-function _preDesglose(tiendas, campo){
-  var res=_preRes||{}, comp=res['tienda_'+campo]||{}, out={}, porK={};
+// [v1.47] El desglose sale de los totales ya sumados, no de llaves compuestas.
+function _preDesglose(tot, campo){
+  var fuente=(campo==='modelo')?(tot.mod||{}):(tot.col||{});
   var lista=(campo==='modelo')?PRE_MODELOS:PRE_COLORES;
-  // [v1.44] La escritura guarda la llave NORMALIZADA (_kResumen). El lector
-  // comparaba contra el nombre crudo con espacios y nunca casaba, asi que el
-  // desglose salia en cero aunque el contador tuviera datos.
-  lista.forEach(function(v){ out[v]=0; porK[_kResumen(v)]=v; });
-  Object.keys(comp).forEach(function(k){
-    var i=k.indexOf('||'); if(i<0) return;
-    var t=k.slice(0,i), v=k.slice(i+2);
-    if(tiendas.indexOf(t)<0) return;
-    var nombre=porK[v] || porK[_kResumen(v)];
-    if(!nombre) return;
-    out[nombre] += comp[k]||0;
-  });
-  Object.keys(out).forEach(function(k){ out[k]=_preNoNeg(out[k]); });
+  var out={};
+  lista.forEach(function(v){ out[v]=_preNoNeg(fuente[_kResumen(v)]||0); });
   return out;
 }
 
 function _preRender(){
-  var res=_preRes||{}, ase=_preAse||{}, jer=_preJerarquia||{tienda_region:{},tienda_regional:{}};
+  var ase=_preAse||{}, jer=_preJerarquia||{tienda_region:{},tienda_regional:{}};
   var niveles=_preNivelesDe(asesorData&&asesorData.rol);
   var nivel=niveles[_preRuta.length]||'asesor';
   var t2r=jer.tienda_region||{}, t2g=jer.tienda_regional||{};
@@ -11626,16 +11656,15 @@ function _preRender(){
     if(p.t==='regional') tiendas=tiendas.filter(function(t){ return _kResumen(t2g[t]||'')===p.v; });
     if(p.t==='tienda')   tiendas=[p.v];
   });
-  var porT=res.tienda||{};
-  var total=_preNoNeg(tiendas.reduce(function(a,t){ return a+(porT[t]||0); },0));
+  var tot=_preTotales(tiendas);
+  var porT=tot.tienda||{};
+  var total=_preNoNeg(tot.total);
 
   var sub=document.getElementById('pre-hero-sub');
   if(sub) sub.textContent = _preRuta.length ? _preNom(_preRuta[_preRuta.length-1].e) : 'Concentrado de tu alcance';
-  var rst=document.getElementById('pre-reset');
-  if(rst) rst.style.display = (String((asesorData&&asesorData.attuid)||'').toUpperCase()===SUPER_ADMIN_ATTUID) ? '' : 'none';
 
   // Resumen de alcance, mismo componente que usa Accesos.
-  var mod=_preDesglose(tiendas,'modelo'), col=_preDesglose(tiendas,'color');
+  var mod=_preDesglose(tot,'modelo'), col=_preDesglose(tot,'color');
   var sc=document.getElementById('pre-scope');
   if(sc){
     sc.style.display='';
@@ -11680,7 +11709,7 @@ function _preRender(){
   } else {
     var mapa={};
     tiendas.forEach(function(t){
-      var k = (nivel==='region')   ? _kResumen(t2r[t]||'Sin región')
+      var k = (nivel==='region')   ? _kResumen(t2r[t]||_preRegionDe(t)||'Sin región')
             : (nivel==='regional') ? _kResumen(t2g[t]||'Sin regional')
             : t;
       mapa[k]=(mapa[k]||0)+(porT[t]||0);
@@ -11699,86 +11728,62 @@ function _preRender(){
   if(c) c.innerHTML=h;
 }
 
-// [v1.44] CONTADORES — UNA SOLA FUNCION, CON OBJETOS ANIDADOS.
+// ══ [v1.47] CONTADORES ABSOLUTOS, NO INCREMENTALES ═══════════════════════
 //
-// EL BUG QUE ESTO ARREGLA: se escribian llaves con punto —'tienda.PRM_TDA_X'—
-// junto con setDoc({merge:true}). setDoc NO interpreta el punto como ruta
-// anidada: creaba un campo llamado literalmente "tienda.PRM_TDA_X" que ningun
-// lector consulta. Por eso el total subia (no lleva punto) pero el desglose por
-// tienda, modelo, color y asesor se quedaba congelado con lo que habia escrito
-// la version anterior, que si usaba updateDoc.
+// POR QUE SE REESCRIBIO: antes cada alta sumaba +1 y cada baja restaba -1.
+// Eso obliga a que TODAS las escrituras sean perfectas para siempre: un error,
+// una version con bug, una escritura a medias, y el desfase queda grabado sin
+// forma de recalcularlo — /prerregistros_ip18 tiene `list` negado a proposito,
+// asi que no se puede releer la coleccion para reconstruir. De ahi salieron el
+// -1, los colores en cero y el boton de reiniciar, que ademas desincronizaba
+// el tablero de lo que el asesor tiene en su lista.
 //
-// Con objetos ANIDADOS y merge:true, Firestore hace merge profundo, aplica el
-// increment y ademas CREA el documento si no existe — que es justo lo que
-// updateDoc no podia hacer y por lo que lo habia cambiado.
+// AHORA: en cada guardado el asesor reescribe su PROPIO resumen COMPLETO,
+// derivado de su lista real. No manda un delta, manda la verdad:
+//   asesor[ATTUID] = {n, nom, t, r, mod:{...}, col:{...}}
+// Si alguna vez se desfasa, se corrige solo con el siguiente movimiento de ese
+// asesor. No hace falta reiniciar nada.
 //
-// soloDesglose: al editar solo se corrige modelo/color, sin mover el total.
-async function preSumar(signo, kT, kR, modelo, color, att, soloDesglose){
+// El concentrado suma esos resumenes. Una sola lectura, y lo que ve el mando
+// es exactamente lo que el asesor tiene en su lista.
+function _preResumenDe(arr){
+  var mod={}, col={};
+  (arr||[]).forEach(function(x){
+    var m=_kResumen(x.modelo), c=_kResumen(x.color);
+    if(m) mod[m]=(mod[m]||0)+1;
+    if(c) col[c]=(col[c]||0)+1;
+  });
+  return {n:(arr||[]).length, mod:mod, col:col};
+}
+
+// Escribe el resumen COMPLETO del asesor. Sustituye por completo su entrada.
+async function preSincronizar(arr){
   try{
     await loadFirebase();
-    var inc=firestoreFns.increment(signo);
-    var doc1={ modelo:{}, color:{}, tienda_modelo:{}, tienda_color:{} };
-    doc1.modelo[_kResumen(modelo)] = inc;
-    doc1.color[_kResumen(color)]   = inc;
-    doc1.tienda_modelo[kT+'||'+_kResumen(modelo)] = inc;
-    doc1.tienda_color[kT+'||'+_kResumen(color)]   = inc;
-    if(!soloDesglose){
-      doc1.total = inc;
-      doc1.region = {}; doc1.region[kR] = inc;
-      doc1.tienda = {}; doc1.tienda[kT] = inc;
+    var att=String((asesorData&&asesorData.attuid)||'').toUpperCase();
+    var kT=_kResumen(String((asesorData&&(asesorData.tienda||asesorData.sucursal))||''));
+    var kR=_kResumen((typeof regionCanon==='function')?regionCanon((asesorData&&asesorData.region)||''):String((asesorData&&asesorData.region)||''));
+    var r=_preResumenDe(arr);
+    var entrada={ n:r.n, nom:String((asesorData&&asesorData.name)||att), t:kT, r:kR, mod:r.mod, col:r.col };
+    var ref=firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC_ASE);
+    // OJO: setDoc con merge hace merge PROFUNDO — los mod/col de la version
+    // anterior sobrevivirian y el resumen dejaria de ser absoluto (al cambiar
+    // de Pro Max 256 a Pro 256 quedarian los dos). updateDoc con ruta punteada
+    // REEMPLAZA el objeto completo del asesor, que es justo lo que hace falta.
+    // El setDoc solo entra la primera vez, cuando el documento aun no existe y
+    // no hay nada con que mezclar.
+    try{
+      var upd={}; upd['asesor.'+att]=entrada;
+      await firestoreFns.updateDoc(ref, upd);
+    }catch(e){
+      var d={asesor:{}}; d.asesor[att]=entrada;
+      await firestoreFns.setDoc(ref, d, {merge:true});
     }
-    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC), doc1, {merge:true});
-    if(soloDesglose) return true;
-    var doc2={ asesor:{} };
-    doc2.asesor[att] = { n: inc, nom: String((asesorData&&asesorData.name)||att), t: kT };
-    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC_ASE), doc2, {merge:true});
     return true;
   }catch(e){
-    console.warn('[pre] contadores', e && e.message);
-    admToast('Se guardó el registro, pero el contador no subió: '+((e&&e.message)||'error'),'err');
+    console.warn('[pre] sincronizar', e && e.message);
+    admToast('Se guardó el registro, pero el tablero no se actualizó: '+((e&&e.message)||'error'),'err');
     return false;
-  }
-}
-
-// [v1.46] Mueve UNA unidad de un valor a otro dentro del mismo campo, en una
-// sola escritura. Se usa al editar: no toca total, region, tienda ni asesor.
-async function preAjustar(campo, kT, viejo, nuevo){
-  try{
-    await loadFirebase();
-    var menos=firestoreFns.increment(-1), mas=firestoreFns.increment(1);
-    var d={}; d[campo]={}; d['tienda_'+campo]={};
-    d[campo][_kResumen(viejo)] = menos;
-    d[campo][_kResumen(nuevo)] = mas;
-    d['tienda_'+campo][kT+'||'+_kResumen(viejo)] = menos;
-    d['tienda_'+campo][kT+'||'+_kResumen(nuevo)] = mas;
-    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC), d, {merge:true});
-    return true;
-  }catch(e){ console.warn('[pre] ajustar', e && e.message); return false; }
-}
-
-// [v1.46] REINICIAR CONTADORES — solo SUPER_ADMIN.
-//
-// POR QUE EXISTE: los contadores son incrementales. Cualquier desfase queda
-// como residuo permanente, y como /prerregistros_ip18 tiene `list` negado a
-// proposito, NO se pueden recalcular leyendo la coleccion. La unica forma de
-// volver a cero es ponerlos a cero.
-//
-// NO borra ningun pre-registro: los documentos y las listas de los asesores
-// quedan intactos. Solo se reinicia el tablero.
-async function preReiniciarContadores(){
-  if(String((asesorData&&asesorData.attuid)||'').toUpperCase()!==SUPER_ADMIN_ATTUID) return;
-  if(!confirm('¿Poner los contadores del concentrado en cero?\n\nNo se borra ningún pre-registro: solo el tablero vuelve a cero y empieza a contar desde los próximos.')) return;
-  try{
-    await loadFirebase();
-    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC),
-      {total:0, region:{}, tienda:{}, modelo:{}, color:{}, tienda_modelo:{}, tienda_color:{}});
-    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC_ASE), {asesor:{}});
-    _preRes={}; _preAse={}; _preRuta=[];
-    admToast('Contadores en cero.','ok');
-    showPrerregistro();
-  }catch(e){
-    var m=(e&&e.message)?e.message:'Error';
-    admToast(/permission|insufficient/i.test(m)?'Sin permiso (revisa las reglas de Firestore).':m,'err');
   }
 }
 
@@ -11869,9 +11874,7 @@ async function preCancelar(id){
     await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'prerregistros_idx',att),
       {attuid:att, items:arr, n:arr.length, ts:Date.now()});
     preGuardarLocal(arr);
-    var kT=_kResumen(String((asesorData&&(asesorData.tienda||asesorData.sucursal))||''));
-    var kR=_kResumen((typeof regionCanon==='function')?regionCanon((asesorData&&asesorData.region)||''):'');
-    await preSumar(-1, kT, kR, x.modelo, x.color, att);
+    await preSincronizar(arr);
     admCerrarSheet(); admToast('Quitado. Llevas '+arr.length+'.','ok');
     preRefrescarTarjeta();
   }catch(e){
@@ -11961,27 +11964,12 @@ async function preGuardar(){
       {attuid:att, items:arr, n:arr.length, ts:Date.now()});
     preGuardarLocal(arr);
     // Contadores agregados: lo unico que ve el mando.
-    var kT=_kResumen(tienda), kR=_kResumen(region);
-    // [v1.44] Se arma ANIDADO, no con llaves con punto. Ver nota de preSumar.
-    if(editando){
-      // [v1.46] Editar NO mueve el total. Y se ajusta SOLO lo que cambio: antes
-      // se restaba y sumaba modelo Y color aunque solo cambiara uno. La cuenta
-      // daba cero, pero cualquier desfase previo quedaba amplificado y se
-      // gastaban escrituras de mas. Ahora cada campo se toca por separado.
-      if(previo && previo.modelo!==_preModelo){
-        await preAjustar('modelo', kT, previo.modelo, _preModelo);
-      }
-      if(previo && previo.color!==_preColor){
-        await preAjustar('color', kT, previo.color, _preColor);
-      }
-      _preEditando=null;
-      admCerrarSheet(); admToast('Registro actualizado.','ok');
-      preRefrescarTarjeta();
-      return;
-    }
-    await preSumar(+1, kT, kR, _preModelo, _preColor, att);
+    // [v1.47] Alta y edicion hacen lo MISMO: reescribir el resumen completo.
+    // No hay deltas que cuadrar, asi que no hay forma de desfasarse.
+    await preSincronizar(arr);
+    _preEditando=null;
     admCerrarSheet();
-    admToast('Interesado registrado. Llevas '+arr.length+'.','ok');
+    admToast(editando?'Registro actualizado.':('Interesado registrado. Llevas '+arr.length+'.'),'ok');
     preRefrescarTarjeta();
   }catch(e){
     var msg=(e&&e.message)?e.message:'Error';
