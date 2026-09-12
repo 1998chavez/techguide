@@ -3976,6 +3976,9 @@ function updateAsesorChip(){
   // "PEDRO MARQUEZ - DN". Colgarlo aqui lo cubre todo de una vez, porque
   // updateAsesorChip ya se llama en login, logout y refresco de sesion.
   if(typeof window.pmdFill === 'function') window.pmdFill();
+  // [v1.40] El contador de pre-registro vive en la misma tarjeta del pulso y
+  // se refresca junto con todo lo demas al entrar, salir o cambiar de usuario.
+  if(typeof preRefrescarTarjeta === 'function') preRefrescarTarjeta();
   // [v1.9.23] Actualizar saludo (nombre del asesor)
   if(typeof updateGreeting === 'function') updateGreeting();
   // [v1.10.0] Mostrar/ocultar burbuja IA según ATTUID
@@ -11302,6 +11305,258 @@ async function admConfirmMigrarPacifico(){
     var msg=(e&&e.message)?e.message:'Error';
     admToast(/permission|insufficient/i.test(msg)?'Sin permiso (revisa las reglas de Firestore).':msg,'err');
     if(cta){ cta.disabled=false; cta.textContent='Reintentar'; }
+  }
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// [v1.40] PRE-REGISTRO iPHONE 18
+//
+// Modulo temporal de lanzamiento. Para apagarlo: PRERREGISTRO_OFF = true.
+// Desaparece el contador, el boton y la pantalla, sin desplegar nada mas.
+//
+// MODELO DE DATOS — decidido con Diego (opcion C):
+//   • El DETALLE (nombre, telefono, cuenta) vive en /prerregistros_ip18 con
+//     `list` NEGADO en las reglas. Nadie puede volcar la coleccion: es la
+//     unica forma de que no exista una base publica de clientes con numero
+//     de cuenta en una app sin autenticacion real.
+//   • El ASESOR ve los suyos como un mini-CRM. Su lista de ids vive en
+//     localStorage, asi que carga al instante, funciona sin red, y no abre
+//     ninguna via de lectura para terceros.
+//     LIMITE CONOCIDO: si borra el cache o cambia de telefono, pierde SU
+//     vista. El dato sigue en Firestore para la campana; lo que se pierde es
+//     la lista local. Es el precio de no publicar la base.
+//   • Los LIDERES ven SOLO LA CANTIDAD, igual que con las cotizaciones:
+//     contadores agregados en /resumenes/prerregistro_ip18, con total,
+//     region{} y tienda{}. Un solo documento, una sola lectura, y las reglas
+//     de /resumenes ya lo permiten — no hizo falta abrir nada nuevo.
+// ══════════════════════════════════════════════════════════════════════════
+window.PRERREGISTRO_OFF = false;
+var PRE_DOC = 'prerregistro_ip18';
+var PRE_LS  = 'pmx_prerregistros_ip18';
+var PRE_TITULO = 'iPhone 18';
+
+// Modelos y colores oficiales del anuncio de Apple del 9-sep-2026. Se eligen
+// de boton, nunca se escriben: un "prpo max" mal tecleado ensucia el reporte
+// y no hay forma de corregirlo despues sin ir doc por doc.
+var PRE_MODELOS = ['iPhone 18 Pro 256 GB','iPhone 18 Pro 512 GB',
+                   'iPhone 18 Pro Max 256 GB','iPhone 18 Pro Max 512 GB'];
+var PRE_COLORES = ['Negro','Plata','Glacier','Burgundy'];
+
+function preActivo(){ return !window.PRERREGISTRO_OFF; }
+
+// ── Lista del asesor ─────────────────────────────────────────────────────
+// [OPCION 2] Vive en /prerregistros_idx/{ATTUID}: un solo documento con el
+// resumen de sus registros. Se lee de UNA vez y lo sigue a cualquier telefono.
+// localStorage queda como cache para que la hoja abra instantanea y funcione
+// sin senal; el indice manda cuando hay red.
+function preLeerLocal(){
+  try{ var r=localStorage.getItem(PRE_LS); return r?(JSON.parse(r)||[]):[]; }catch(e){ return []; }
+}
+function preGuardarLocal(arr){
+  try{ localStorage.setItem(PRE_LS, JSON.stringify(arr.slice(0,300))); }catch(e){}
+}
+async function preLeerIndice(){
+  try{
+    var att=String((asesorData&&asesorData.attuid)||'').toUpperCase();
+    if(!att) return null;
+    await loadFirebase();
+    var sn=await firestoreFns.getDoc(firestoreFns.doc(firestoreDB,'prerregistros_idx',att));
+    if(!sn || !sn.exists()) return [];
+    var d=sn.data()||{};
+    return Array.isArray(d.items)?d.items:[];
+  }catch(e){ console.warn('[pre] indice', e && e.message); return null; }
+}
+
+// ── Contador para mando: misma forma que contarEquipoHoy() ───────────────
+async function preContarAlcance(){
+  try{
+    if(!asesorData) return 0;
+    var rol=String(asesorData.rol||'asesor').toLowerCase();
+    if(rol==='asesor') return preLeerLocal().length;
+    await loadFirebase();
+    var snap=await firestoreFns.getDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC));
+    if(!snap || !snap.exists()) return 0;
+    var d=snap.data()||{};
+    if(rol==='director_nacional') return d.total||0;
+    if(rol==='director'){
+      var regs=(typeof _misRegiones==='function')?_misRegiones():(asesorData.region?[asesorData.region]:[]);
+      var porR=d.region||{}, tot=0;
+      regs.forEach(function(rg){ tot += (porR[_kResumen(rg)]||0); });
+      return tot;
+    }
+    var tiendas=(asesorData.tiendasAsignadas&&asesorData.tiendasAsignadas.length)
+      ? asesorData.tiendasAsignadas : [asesorData.tienda||asesorData.sucursal||''];
+    var porT=d.tienda||{}, t=0;
+    tiendas.filter(Boolean).forEach(function(x){ t += (porT[_kResumen(x)]||0); });
+    return t;
+  }catch(e){ console.warn('[pre] contar', e && e.message); return null; }
+}
+
+async function preRefrescarTarjeta(){
+  var div=document.getElementById('hv2-pre-div'), item=document.getElementById('hv2-pulse-pre'),
+      cta=document.getElementById('hv2-pre-cta');
+  if(!item) return;
+  if(!preActivo() || !asesorData){
+    if(div)div.style.display='none'; item.style.display='none'; if(cta)cta.style.display='none';
+    return;
+  }
+  if(div)div.style.display=''; item.style.display=''; if(cta)cta.style.display='';
+  var rol=String(asesorData.rol||'asesor').toLowerCase();
+  var lbl=document.getElementById('hv2-pre-lbl');
+  if(lbl) lbl.textContent = (rol==='asesor') ? 'pre-registros' : 'pre-registros de tu zona';
+  var n=await preContarAlcance();
+  var num=document.getElementById('hv2-pre-num');
+  if(num) num.textContent = (n===null?'—':String(n));
+}
+
+// ── Captura ──────────────────────────────────────────────────────────────
+var _preTipo=null, _preModelo=null, _preColor=null;
+
+function _prePick(grupo, valor){
+  if(grupo==='tipo'){
+    _preTipo=valor;
+    ['POSPAGO','RENOVACION'].forEach(function(x){
+      var b=document.getElementById('pre-tipo-'+x);
+      if(b) b.classList.toggle('crm-tipo-selected', x===valor);
+    });
+    // La cuenta solo se pide en renovacion, y ahi es OBLIGATORIA.
+    var w=document.getElementById('pre-cuenta-wrap');
+    if(w) w.style.display=(valor==='RENOVACION')?'':'none';
+  } else if(grupo==='modelo'){
+    _preModelo=valor;
+    PRE_MODELOS.forEach(function(m,i){
+      var b=document.getElementById('pre-mod-'+i);
+      if(b) b.classList.toggle('sel', m===valor);
+    });
+  } else {
+    _preColor=valor;
+    PRE_COLORES.forEach(function(c,i){
+      var b=document.getElementById('pre-col-'+i);
+      if(b) b.classList.toggle('sel', c===valor);
+    });
+  }
+  preValidar();
+}
+
+function preValidar(){
+  var n=String((document.getElementById('pre-nombre')||{}).value||'').trim();
+  var tel=String((document.getElementById('pre-tel')||{}).value||'').replace(/\D/g,'');
+  var cta=String((document.getElementById('pre-cuenta')||{}).value||'').trim();
+  var ok = n.length>=3 && tel.length===10 && !!_preTipo && !!_preModelo && !!_preColor
+           && (_preTipo!=='RENOVACION' || cta.length>0);
+  var b=document.getElementById('pre-guardar');
+  if(b) b.disabled=!ok;
+  return ok;
+}
+
+function _preFila(x){
+  return '<div class="adm-opt" style="align-items:flex-start">'
+    +'<span class="adm-opt-name" style="white-space:normal">'+_admEsc(x.nombre)
+    +'<br><span style="font-size:11px;color:var(--hv2-ink3)">'+_admEsc(x.tel)
+    +' · '+_admEsc(x.modelo||'—')+' · '+_admEsc(x.color||'—')
+    +' · '+_admEsc(x.tipo==='RENOVACION'?('Renovación · cuenta '+(x.cuenta||'—')):'Pospago')+'</span></span>'
+    +'<span class="adm-opt-cur" style="background:none;color:var(--hv2-ink3)">'+_admEsc(String(x.fecha||'').slice(5))+'</span>'
+    +'</div>';
+}
+
+function _preHoja(mios){
+  var lista = mios.length ? mios.map(_preFila).join('')
+    : '<div class="adm-msg">Todavía no registras a nadie.</div>';
+  var mods = PRE_MODELOS.map(function(m,i){
+    return '<button type="button" class="crm-tipo-btn" id="pre-mod-'+i+'" style="padding:10px 8px" '
+      +'onclick="_prePick(\'modelo\','+_admJsStr(m)+')"><div class="crm-tipo-label" style="font-size:12px">'
+      +_admEsc(m.replace('iPhone 18 ',''))+'</div></button>';
+  }).join('');
+  var cols = PRE_COLORES.map(function(c,i){
+    return '<button type="button" class="crm-tipo-btn" id="pre-col-'+i+'" style="padding:10px 8px" '
+      +'onclick="_prePick(\'color\','+_admJsStr(c)+')"><div class="crm-tipo-label" style="font-size:12px">'
+      +_admEsc(c)+'</div></button>';
+  }).join('');
+  return '<div class="adm-sheet-h">Pre-registro '+PRE_TITULO+'</div>'
+    +'<div class="adm-sheet-sub">Registra a quien quiera apartar el suyo. Solo tú ves estos datos.</div>'
+    +'<div class="adm-sheet-scroll">'
+    +'<div style="margin-bottom:10px"><input id="pre-nombre" class="adm-input" type="text" autocomplete="off" maxlength="60" placeholder="Nombre del cliente" oninput="preValidar()"></div>'
+    +'<div style="margin-bottom:12px"><input id="pre-tel" class="adm-input" type="tel" inputmode="numeric" autocomplete="off" maxlength="14" placeholder="Teléfono a 10 dígitos" oninput="preValidar()"></div>'
+    +'<div class="adm-msg" style="padding:2px;font-weight:700;color:var(--hv2-ink2)">Modelo</div>'
+    +'<div class="crm-tipo-selector" style="margin-bottom:12px">'+mods+'</div>'
+    +'<div class="adm-msg" style="padding:2px;font-weight:700;color:var(--hv2-ink2)">Color</div>'
+    +'<div class="crm-tipo-selector" style="margin-bottom:12px">'+cols+'</div>'
+    +'<div class="adm-msg" style="padding:2px;font-weight:700;color:var(--hv2-ink2)">Tipo</div>'
+    +'<div class="crm-tipo-selector" style="margin-bottom:10px">'
+    +'<button type="button" class="crm-tipo-btn" id="pre-tipo-POSPAGO" onclick="_prePick(\'tipo\',\'POSPAGO\')"><div class="crm-tipo-label">POSPAGO</div><div class="crm-tipo-sub">Línea nueva</div></button>'
+    +'<button type="button" class="crm-tipo-btn" id="pre-tipo-RENOVACION" onclick="_prePick(\'tipo\',\'RENOVACION\')"><div class="crm-tipo-label">RENOVACIÓN</div><div class="crm-tipo-sub">Ya tiene línea</div></button>'
+    +'</div>'
+    +'<div id="pre-cuenta-wrap" style="display:none;margin-bottom:10px"><input id="pre-cuenta" class="adm-input" type="text" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="Número de cuenta (obligatorio)" oninput="preValidar()"></div>'
+    +'<div class="adm-msg" style="margin-top:14px;font-weight:700;color:var(--hv2-ink2)">Tus pre-registros ('+mios.length+')</div>'
+    + lista
+    +'</div>'
+    +'<button class="adm-sheet-cta" id="pre-guardar" disabled onclick="preGuardar()">Registrar interesado</button>';
+}
+
+async function preAbrir(){
+  if(!preActivo()) return;
+  _preTipo=null; _preModelo=null; _preColor=null;
+  // Abre con el cache local para que sea instantaneo, y si el indice responde
+  // se repinta. Asi funciona sin senal y se recupera en un telefono nuevo.
+  admAbrirSheet(_preHoja(preLeerLocal()));
+  var remoto=await preLeerIndice();
+  if(remoto && remoto.length>=preLeerLocal().length){
+    preGuardarLocal(remoto);
+    var ov=document.getElementById('adm-sheet-ov');
+    if(ov && ov.classList.contains('show')){
+      var t=_preTipo, m=_preModelo, c=_preColor;
+      admAbrirSheet(_preHoja(remoto));
+      if(t)_prePick('tipo',t); if(m)_prePick('modelo',m); if(c)_prePick('color',c);
+    }
+  }
+}
+
+async function preGuardar(){
+  if(!preValidar()) return;
+  var btn=document.getElementById('pre-guardar');
+  if(btn){ btn.disabled=true; btn.textContent='Guardando…'; }
+  var nombre=String(document.getElementById('pre-nombre').value||'').trim();
+  var tel=String(document.getElementById('pre-tel').value||'').replace(/\D/g,'');
+  var cuenta=(_preTipo==='RENOVACION')?String(document.getElementById('pre-cuenta').value||'').trim():'';
+  var att=String((asesorData&&asesorData.attuid)||'').toUpperCase();
+  var tienda=String((asesorData&&(asesorData.tienda||asesorData.sucursal))||'');
+  var region=(typeof regionCanon==='function')?regionCanon((asesorData&&asesorData.region)||''):String((asesorData&&asesorData.region)||'');
+  var hoy=new Date().toISOString().slice(0,10);
+  var id=att+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,10);
+  var fila={id:id, nombre:nombre, tel:tel, tipo:_preTipo, cuenta:cuenta,
+            modelo:_preModelo, color:_preColor, fecha:hoy};
+  try{
+    await loadFirebase();
+    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'prerregistros_ip18',id), {
+      id:id, attuid:att, nombre:nombre, telefono:tel, tipo:_preTipo, cuenta:cuenta,
+      modelo:_preModelo, color:_preColor, tienda:tienda, region:region, fecha:hoy, ts:Date.now()
+    });
+    // Indice del asesor: su lista, en un solo documento.
+    var arr=preLeerLocal(); arr.unshift(fila); arr=arr.slice(0,300);
+    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'prerregistros_idx',att),
+      {attuid:att, items:arr, n:arr.length, ts:Date.now()});
+    preGuardarLocal(arr);
+    // Contadores agregados: lo unico que ve el mando.
+    var ref=firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC);
+    var inc=firestoreFns.increment(1);
+    var payload={ total:inc };
+    payload['region.'+_kResumen(region)] = inc;
+    payload['tienda.'+_kResumen(tienda)] = inc;
+    try{
+      await firestoreFns.updateDoc(ref, payload);
+    }catch(e){
+      var base={total:1, region:{}, tienda:{}};
+      base.region[_kResumen(region)]=1; base.tienda[_kResumen(tienda)]=1;
+      await firestoreFns.setDoc(ref, base, {merge:true});
+    }
+    admCerrarSheet();
+    admToast('Interesado registrado. Llevas '+arr.length+'.','ok');
+    preRefrescarTarjeta();
+  }catch(e){
+    var msg=(e&&e.message)?e.message:'Error';
+    admToast(/permission|insufficient/i.test(msg)?'Sin permiso (revisa las reglas de Firestore).':msg,'err');
+    if(btn){ btn.disabled=false; btn.textContent='Registrar interesado'; }
   }
 }
 
