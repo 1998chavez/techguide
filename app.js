@@ -11368,7 +11368,49 @@ async function preLeerIndice(){
   }catch(e){ console.warn('[pre] indice', e && e.message); return null; }
 }
 
-// ── Contador para mando: misma forma que contarEquipoHoy() ───────────────
+// ── CONTADORES Y CONCENTRADO ─────────────────────────────────────────────
+// Dos documentos dentro de /resumenes, que ya permite escritura: no hizo falta
+// abrir ninguna coleccion nueva.
+//
+//   prerregistro_ip18            LIGERO. total, region{}, tienda{}, modelo{},
+//                                color{}, y las compuestas tienda_modelo{} /
+//                                tienda_color{} para desglosar una sucursal
+//                                sin leer nada mas. Tambien tienda_region{},
+//                                que permite armar el arbol sin tocar /empleados.
+//   prerregistro_ip18_asesores   PESADO. {ATTUID:{n, nom, t}}. Solo se lee al
+//                                bajar al nivel de asesores.
+//
+// La tarjeta del home lee SOLO el ligero. El concentrado lee el pesado al abrir.
+var PRE_DOC_ASE = 'prerregistro_ip18_asesores';
+var _preRes=null, _preAse=null, _preRuta=[];
+
+function _preNivelesDe(rol){
+  rol=String(rol||'asesor').toLowerCase();
+  if(rol==='director_nacional') return ['region','regional','tienda','asesor'];
+  if(rol==='director')          return ['regional','tienda','asesor'];
+  if(rol==='regional')          return ['tienda','asesor'];
+  if(rol==='gerente')           return ['asesor'];
+  return [];
+}
+function preVeConcentrado(){ return _preNivelesDe(asesorData&&asesorData.rol).length>0; }
+
+// Tiendas que le tocan a quien esta logueado, por rol.
+function _preMisTiendas(){
+  var rol=String((asesorData&&asesorData.rol)||'asesor').toLowerCase();
+  var res=_preRes||{};
+  var t2r=res.tienda_region||{};
+  var todas=Object.keys(res.tienda||{});
+  if(rol==='director_nacional') return todas;
+  if(rol==='director'){
+    var regs=((typeof _misRegiones==='function')?_misRegiones():[]).map(function(r){return _kResumen(r);});
+    return todas.filter(function(t){ return regs.indexOf(_kResumen(t2r[t]||''))>=0; });
+  }
+  var mias=(asesorData.tiendasAsignadas&&asesorData.tiendasAsignadas.length)
+    ? asesorData.tiendasAsignadas : [asesorData.tienda||asesorData.sucursal||''];
+  var k=mias.filter(Boolean).map(function(x){ return _kResumen(x); });
+  return todas.filter(function(t){ return k.indexOf(t)>=0; });
+}
+
 async function preContarAlcance(){
   try{
     if(!asesorData) return 0;
@@ -11377,19 +11419,11 @@ async function preContarAlcance(){
     await loadFirebase();
     var snap=await firestoreFns.getDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC));
     if(!snap || !snap.exists()) return 0;
-    var d=snap.data()||{};
-    if(rol==='director_nacional') return d.total||0;
-    if(rol==='director'){
-      var regs=(typeof _misRegiones==='function')?_misRegiones():(asesorData.region?[asesorData.region]:[]);
-      var porR=d.region||{}, tot=0;
-      regs.forEach(function(rg){ tot += (porR[_kResumen(rg)]||0); });
-      return tot;
-    }
-    var tiendas=(asesorData.tiendasAsignadas&&asesorData.tiendasAsignadas.length)
-      ? asesorData.tiendasAsignadas : [asesorData.tienda||asesorData.sucursal||''];
-    var porT=d.tienda||{}, t=0;
-    tiendas.filter(Boolean).forEach(function(x){ t += (porT[_kResumen(x)]||0); });
-    return t;
+    _preRes=snap.data()||{};
+    if(rol==='director_nacional') return _preRes.total||0;
+    var porT=_preRes.tienda||{}, tot=0;
+    _preMisTiendas().forEach(function(t){ tot += (porT[t]||0); });
+    return tot;
   }catch(e){ console.warn('[pre] contar', e && e.message); return null; }
 }
 
@@ -11401,13 +11435,147 @@ async function preRefrescarTarjeta(){
     if(div)div.style.display='none'; item.style.display='none'; if(cta)cta.style.display='none';
     return;
   }
-  if(div)div.style.display=''; item.style.display=''; if(cta)cta.style.display='';
   var rol=String(asesorData.rol||'asesor').toLowerCase();
+  var captura=(rol==='asesor'||rol==='gerente');
+  if(div)div.style.display=''; item.style.display='';
+  // [v1.41] El boton de capturar solo lo ve quien vende. Regional, director y
+  // DN no capturan: para ellos el CONTADOR es el que abre el concentrado.
+  if(cta) cta.style.display = captura ? '' : 'none';
+  item.style.cursor = preVeConcentrado() ? 'pointer' : '';
+  item.onclick = preVeConcentrado() ? preAbrirConcentrado : null;
   var lbl=document.getElementById('hv2-pre-lbl');
-  if(lbl) lbl.textContent = (rol==='asesor') ? 'pre-registros' : 'pre-registros de tu zona';
+  if(lbl) lbl.textContent = (rol==='asesor') ? 'pre-registros'
+        : (preVeConcentrado() ? 'pre-registros · ver' : 'pre-registros de tu zona');
   var n=await preContarAlcance();
   var num=document.getElementById('hv2-pre-num');
   if(num) num.textContent = (n===null?'—':String(n));
+}
+
+// ── Concentrado con ruta por rol ─────────────────────────────────────────
+function _preBarra(lbl,n,max){
+  var pct=max?Math.round(n/max*100):0;
+  return '<div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;font-size:13px">'
+    +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--hv2-ink)">'+_admEsc(lbl)+'</span>'
+    +'<span style="width:64px;height:6px;background:var(--hv2-card-soft);border-radius:3px;overflow:hidden;flex-shrink:0">'
+    +'<span style="display:block;height:100%;width:'+pct+'%;background:var(--hv2-accent)"></span></span>'
+    +'<span style="width:26px;text-align:right;font-weight:700;color:var(--hv2-ink)">'+n+'</span></div>';
+}
+function _preTarjetas(mapa, orden){
+  var tot=orden.reduce(function(a,k){ return a+(mapa[k]||0); },0);
+  if(!tot) return '';
+  return '<div style="display:flex;gap:6px;margin-bottom:14px">'+orden.map(function(k){
+    return '<div style="flex:1;background:var(--hv2-card);border:.5px solid var(--hv2-line);border-radius:10px;padding:8px 4px;text-align:center">'
+      +'<div style="font-size:17px;font-weight:800;color:var(--hv2-ink)">'+(mapa[k]||0)+'</div>'
+      +'<div style="font-size:10px;color:var(--hv2-ink3);margin-top:2px">'+_admEsc(k)+'</div></div>';
+  }).join('')+'</div>';
+}
+
+// Suma modelo/color del ambito visible usando las llaves compuestas.
+function _preDesglose(tiendas, campo){
+  var res=_preRes||{}, comp=res['tienda_'+campo]||{}, out={};
+  var lista=(campo==='modelo')?PRE_MODELOS:PRE_COLORES;
+  lista.forEach(function(v){ out[v]=0; });
+  Object.keys(comp).forEach(function(k){
+    var p=k.split('||'); if(p.length!==2) return;
+    if(tiendas.indexOf(p[0])<0) return;
+    if(out[p[1]]===undefined) return;
+    out[p[1]] += comp[k]||0;
+  });
+  return out;
+}
+
+function preRutaIr(i){ _preRuta=_preRuta.slice(0,i); _preRenderConcentrado(); }
+function preRutaBajar(tipo,valor,etiqueta){ _preRuta.push({t:tipo,v:valor,e:etiqueta}); _preRenderConcentrado(); }
+
+async function preAbrirConcentrado(){
+  if(!preVeConcentrado()) return;
+  _preRuta=[];
+  admAbrirSheet('<div class="adm-sheet-h">Concentrado</div><div class="adm-msg">Cargando…</div>');
+  try{
+    await loadFirebase();
+    var a=await firestoreFns.getDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC));
+    _preRes=(a&&a.exists())?(a.data()||{}):{};
+    var b=await firestoreFns.getDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC_ASE));
+    _preAse=(b&&b.exists())?((b.data()||{}).asesor||{}):{};
+    _preRenderConcentrado();
+  }catch(e){
+    admAbrirSheet('<div class="adm-sheet-h">Concentrado</div><div class="adm-msg adm-err">'
+      +_admEsc((e&&e.message)||'Error')+'</div><button class="adm-sheet-cta" onclick="admCerrarSheet()">Cerrar</button>');
+  }
+}
+
+function _preRenderConcentrado(){
+  var res=_preRes||{}, ase=_preAse||{};
+  var niveles=_preNivelesDe(asesorData&&asesorData.rol);
+  var nivel=niveles[_preRuta.length]||'asesor';
+  var t2r=res.tienda_region||{};
+
+  // Tiendas del ambito actual: se estrecha con cada paso de la ruta.
+  var tiendas=_preMisTiendas();
+  _preRuta.forEach(function(p){
+    if(p.t==='region')   tiendas=tiendas.filter(function(t){ return _kResumen(t2r[t]||'')===p.v; });
+    if(p.t==='regional') tiendas=tiendas.filter(function(t){ return (res.tienda_regional||{})[t]===p.v; });
+    if(p.t==='tienda')   tiendas=[p.v];
+  });
+  var porT=res.tienda||{};
+  var total=tiendas.reduce(function(a,t){ return a+(porT[t]||0); },0);
+
+  // Migas: siempre se ve dónde estás parado y se puede regresar.
+  var migas='<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-bottom:12px;font-size:12px">'
+    +'<span style="cursor:pointer;color:var(--hv2-accent);font-weight:700" onclick="preRutaIr(0)">Mi alcance</span>'
+    + _preRuta.map(function(p,i){
+        return '<span style="color:var(--hv2-ink3)">›</span><span style="cursor:pointer;color:'
+          +((i===_preRuta.length-1)?'var(--hv2-ink)':'var(--hv2-accent)')+'" onclick="preRutaIr('+(i+1)+')">'
+          +_admEsc(p.e)+'</span>';
+      }).join('')
+    +'</div>';
+
+  var cuerpo='';
+  if(nivel==='asesor'){
+    var filas=Object.keys(ase).filter(function(att){
+      return tiendas.indexOf(_kResumen((ase[att]||{}).t||''))>=0;
+    }).sort(function(x,y){ return (ase[y].n||0)-(ase[x].n||0); });
+    var mx=filas.length?(ase[filas[0]].n||0):0;
+    cuerpo = filas.length
+      ? '<div style="font-size:11px;color:var(--hv2-ink3);margin-bottom:7px">Por asesor</div>'
+        + filas.map(function(att){ return _preBarra((ase[att].nom||att)+' · '+att, ase[att].n||0, mx); }).join('')
+      : '<div class="adm-msg">Nadie ha capturado en este alcance todavía.</div>';
+  } else {
+    var mapa={}, etiqueta={};
+    tiendas.forEach(function(t){
+      var k = (nivel==='region')   ? _kResumen(t2r[t]||'Sin región')
+            : (nivel==='regional') ? ((res.tienda_regional||{})[t]||'Sin regional')
+            : t;
+      mapa[k]=(mapa[k]||0)+(porT[t]||0);
+      etiqueta[k]=k;
+    });
+    var ks=Object.keys(mapa).sort(function(x,y){ return mapa[y]-mapa[x]; });
+    var mx2=ks.length?mapa[ks[0]]:0;
+    var titulo = nivel==='region'?'Por región':(nivel==='regional'?'Por regional':'Por tienda');
+    cuerpo = ks.length
+      ? '<div style="font-size:11px;color:var(--hv2-ink3);margin-bottom:7px">'+titulo+'</div>'
+        + ks.map(function(k){
+            return '<div onclick="preRutaBajar('+_admJsStr(nivel)+','+_admJsStr(k)+','+_admJsStr(etiqueta[k])+')" style="cursor:pointer">'
+              + _preBarra(etiqueta[k], mapa[k], mx2) + '</div>';
+          }).join('')
+      : '<div class="adm-msg">Sin pre-registros en este alcance todavía.</div>';
+  }
+
+  admAbrirSheet(
+    '<div class="adm-sheet-h">Concentrado</div>'
+    +'<div class="adm-sheet-sub"><b>'+total+'</b> pre-registro(s) · '+tiendas.length+' tienda(s)</div>'
+    +'<div class="adm-sheet-scroll">'
+    + migas
+    +'<div style="font-size:11px;color:var(--hv2-ink3);margin-bottom:7px">Por modelo</div>'
+    + PRE_MODELOS.map(function(m){ var d=_preDesglose(tiendas,'modelo');
+        var mx3=Math.max.apply(null,PRE_MODELOS.map(function(x){return d[x]||0;}))||0;
+        return _preBarra(m.replace('iPhone 18 ',''), d[m]||0, mx3); }).join('')
+    +'<div style="font-size:11px;color:var(--hv2-ink3);margin:12px 0 7px">Por color</div>'
+    + _preTarjetas(_preDesglose(tiendas,'color'), PRE_COLORES)
+    + cuerpo
+    +'</div>'
+    +'<button class="adm-sheet-cta" onclick="admCerrarSheet()">Cerrar</button>'
+  );
 }
 
 // ── Captura ──────────────────────────────────────────────────────────────
@@ -11451,13 +11619,67 @@ function preValidar(){
 }
 
 function _preFila(x){
-  return '<div class="adm-opt" style="align-items:flex-start">'
-    +'<span class="adm-opt-name" style="white-space:normal">'+_admEsc(x.nombre)
+  var wa='https://wa.me/52'+String(x.tel||'').replace(/\D/g,'');
+  return '<div class="adm-opt" style="display:block">'
+    +'<div style="display:flex;align-items:flex-start;gap:10px">'
+    +'<span class="adm-opt-name" style="flex:1;white-space:normal">'+_admEsc(x.nombre)
     +'<br><span style="font-size:11px;color:var(--hv2-ink3)">'+_admEsc(x.tel)
-    +' · '+_admEsc(x.modelo||'—')+' · '+_admEsc(x.color||'—')
-    +' · '+_admEsc(x.tipo==='RENOVACION'?('Renovación · cuenta '+(x.cuenta||'—')):'Pospago')+'</span></span>'
+    +'<br>'+_admEsc(String(x.modelo||'—').replace('iPhone 18 ',''))+' · '+_admEsc(x.color||'—')
+    +'<br>'+_admEsc(x.tipo==='RENOVACION'?('Renovación · cuenta '+(x.cuenta||'—')):'Pospago')+'</span></span>'
     +'<span class="adm-opt-cur" style="background:none;color:var(--hv2-ink3)">'+_admEsc(String(x.fecha||'').slice(5))+'</span>'
-    +'</div>';
+    +'</div>'
+    +'<div style="display:flex;gap:6px;margin-top:9px;padding-top:8px;border-top:.5px solid var(--hv2-line)">'
+    +'<button type="button" class="adm-action adm-action-ghost" style="flex:1;min-width:0;font-size:12px;padding:7px" onclick="preEditar('+_admJsStr(x.id)+')">Editar</button>'
+    +'<a class="adm-action adm-action-ghost" style="flex:1;min-width:0;font-size:12px;padding:7px;text-align:center;text-decoration:none;line-height:1.5" href="'+wa+'" target="_blank" rel="noopener">Escribir</a>'
+    +'<button type="button" class="adm-action" style="flex:0 0 auto;min-width:0;font-size:12px;padding:7px 11px;background:transparent;color:var(--hv2-neg);border:.5px solid var(--hv2-neg)" onclick="preCancelar('+_admJsStr(x.id)+')">Quitar</button>'
+    +'</div></div>';
+}
+
+// [v1.41] Editar: se relee el registro en los campos y al guardar REEMPLAZA.
+var _preEditando=null;
+function preEditar(id){
+  var x=preLeerLocal().filter(function(r){ return r.id===id; })[0];
+  if(!x) return;
+  _preEditando=id;
+  var n=document.getElementById('pre-nombre'), t=document.getElementById('pre-tel');
+  if(n)n.value=x.nombre||''; if(t)t.value=x.tel||'';
+  _prePick('modelo',x.modelo); _prePick('color',x.color); _prePick('tipo',x.tipo);
+  var c=document.getElementById('pre-cuenta'); if(c)c.value=x.cuenta||'';
+  var b=document.getElementById('pre-guardar'); if(b)b.textContent='Guardar cambios';
+  var sc=document.querySelector('#adm-sheet .adm-sheet-scroll'); if(sc)sc.scrollTop=0;
+  preValidar();
+}
+
+// Quitar NO borra el documento — las reglas lo prohiben y asi debe quedarse.
+// Lo marca cancelado, lo baja de la lista del asesor y resta del contador.
+async function preCancelar(id){
+  var x=preLeerLocal().filter(function(r){ return r.id===id; })[0];
+  if(!x) return;
+  if(!confirm('¿Quitar a '+x.nombre+' de tus pre-registros?')) return;
+  try{
+    await loadFirebase();
+    var att=String((asesorData&&asesorData.attuid)||'').toUpperCase();
+    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'prerregistros_ip18',id),
+      {cancelado:true, ts:Date.now()}, {merge:true});
+    var arr=preLeerLocal().filter(function(r){ return r.id!==id; });
+    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'prerregistros_idx',att),
+      {attuid:att, items:arr, n:arr.length, ts:Date.now()});
+    preGuardarLocal(arr);
+    var kT=_kResumen(String((asesorData&&(asesorData.tienda||asesorData.sucursal))||''));
+    var kR=_kResumen((typeof regionCanon==='function')?regionCanon((asesorData&&asesorData.region)||''):'');
+    var dec=firestoreFns.increment(-1), p={total:dec};
+    p['region.'+kR]=dec; p['tienda.'+kT]=dec;
+    p['modelo.'+_kResumen(x.modelo)]=dec; p['color.'+_kResumen(x.color)]=dec;
+    p['tienda_modelo.'+kT+'||'+x.modelo]=dec; p['tienda_color.'+kT+'||'+x.color]=dec;
+    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC), p, {merge:true});
+    var pa={}; pa['asesor.'+att+'.n']=dec;
+    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC_ASE), pa, {merge:true});
+    admCerrarSheet(); admToast('Quitado. Llevas '+arr.length+'.','ok');
+    preRefrescarTarjeta();
+  }catch(e){
+    var m=(e&&e.message)?e.message:'Error';
+    admToast(/permission|insufficient/i.test(m)?'Sin permiso (revisa las reglas de Firestore).':m,'err');
+  }
 }
 
 function _preHoja(mios){
@@ -11496,7 +11718,7 @@ function _preHoja(mios){
 
 async function preAbrir(){
   if(!preActivo()) return;
-  _preTipo=null; _preModelo=null; _preColor=null;
+  _preTipo=null; _preModelo=null; _preColor=null; _preEditando=null;
   // Abre con el cache local para que sea instantaneo, y si el indice responde
   // se repinta. Asi funciona sin senal y se recupera en un telefono nuevo.
   admAbrirSheet(_preHoja(preLeerLocal()));
@@ -11523,9 +11745,11 @@ async function preGuardar(){
   var tienda=String((asesorData&&(asesorData.tienda||asesorData.sucursal))||'');
   var region=(typeof regionCanon==='function')?regionCanon((asesorData&&asesorData.region)||''):String((asesorData&&asesorData.region)||'');
   var hoy=new Date().toISOString().slice(0,10);
-  var id=att+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,10);
+  var editando=_preEditando;
+  var previo=editando?(preLeerLocal().filter(function(r){return r.id===editando;})[0]||null):null;
+  var id=editando||(att+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,10));
   var fila={id:id, nombre:nombre, tel:tel, tipo:_preTipo, cuenta:cuenta,
-            modelo:_preModelo, color:_preColor, fecha:hoy};
+            modelo:_preModelo, color:_preColor, fecha:(previo&&previo.fecha)||hoy};
   try{
     await loadFirebase();
     await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'prerregistros_ip18',id), {
@@ -11533,23 +11757,55 @@ async function preGuardar(){
       modelo:_preModelo, color:_preColor, tienda:tienda, region:region, fecha:hoy, ts:Date.now()
     });
     // Indice del asesor: su lista, en un solo documento.
-    var arr=preLeerLocal(); arr.unshift(fila); arr=arr.slice(0,300);
+    var arr=preLeerLocal().filter(function(r){ return r.id!==id; });
+    arr.unshift(fila); arr=arr.slice(0,300);
     await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'prerregistros_idx',att),
       {attuid:att, items:arr, n:arr.length, ts:Date.now()});
     preGuardarLocal(arr);
     // Contadores agregados: lo unico que ve el mando.
+    var kT=_kResumen(tienda), kR=_kResumen(region);
+    if(editando){
+      // Editar NO mueve el total. Solo corrige modelo/color si cambiaron.
+      if(previo && (previo.modelo!==_preModelo || previo.color!==_preColor)){
+        var d1=firestoreFns.increment(-1), i1=firestoreFns.increment(1), pe={};
+        pe['modelo.'+_kResumen(previo.modelo)]=d1; pe['color.'+_kResumen(previo.color)]=d1;
+        pe['tienda_modelo.'+kT+'||'+previo.modelo]=d1; pe['tienda_color.'+kT+'||'+previo.color]=d1;
+        pe['modelo.'+_kResumen(_preModelo)]=i1; pe['color.'+_kResumen(_preColor)]=i1;
+        pe['tienda_modelo.'+kT+'||'+_preModelo]=i1; pe['tienda_color.'+kT+'||'+_preColor]=i1;
+        try{ await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC), pe, {merge:true}); }
+        catch(e){ console.warn('[pre] ajuste', e && e.message); }
+      }
+      _preEditando=null;
+      admCerrarSheet(); admToast('Registro actualizado.','ok');
+      preRefrescarTarjeta();
+      return;
+    }
     var ref=firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC);
     var inc=firestoreFns.increment(1);
     var payload={ total:inc };
-    payload['region.'+_kResumen(region)] = inc;
-    payload['tienda.'+_kResumen(tienda)] = inc;
+    payload['region.'+kR] = inc;
+    payload['tienda.'+kT] = inc;
+    payload['modelo.'+_kResumen(_preModelo)] = inc;
+    payload['color.'+_kResumen(_preColor)] = inc;
+    // Compuestas: permiten desglosar UNA tienda sin leer nada mas.
+    payload['tienda_modelo.'+kT+'||'+_preModelo] = inc;
+    payload['tienda_color.'+kT+'||'+_preColor] = inc;
+    // Mapas de estructura: con esto el arbol se arma sin tocar /empleados.
+    payload['tienda_region.'+kT] = region;
+    payload['tienda_regional.'+kT] = String((asesorData&&asesorData.regionalNombre)||'') || null;
     try{
-      await firestoreFns.updateDoc(ref, payload);
+      await firestoreFns.setDoc(ref, payload, {merge:true});
     }catch(e){
-      var base={total:1, region:{}, tienda:{}};
-      base.region[_kResumen(region)]=1; base.tienda[_kResumen(tienda)]=1;
-      await firestoreFns.setDoc(ref, base, {merge:true});
+      console.warn('[pre] contadores', e && e.message);
     }
+    // Doc de asesores: solo se lee al bajar a ese nivel.
+    try{
+      var pa={};
+      pa['asesor.'+att+'.n']   = inc;
+      pa['asesor.'+att+'.nom'] = String((asesorData&&asesorData.name)||att);
+      pa['asesor.'+att+'.t']   = kT;
+      await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC_ASE), pa, {merge:true});
+    }catch(e){ console.warn('[pre] asesores', e && e.message); }
     admCerrarSheet();
     admToast('Interesado registrado. Llevas '+arr.length+'.','ok');
     preRefrescarTarjeta();
