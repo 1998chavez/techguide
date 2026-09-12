@@ -3592,7 +3592,22 @@ function precargarFirebase(){
 }
 window.precargarFirebase = precargarFirebase;
 
+// [v1.49] CACHE DE LA PROMESA, no solo del resultado.
+// Desde que existe precargarFirebase() (v1.39.4) puede haber DOS llamadas en
+// vuelo a la vez: la precarga al mostrarse el login y la del boton Entrar. Con
+// el guard de abajo (`if(firestoreDB)`) ambas pasaban, las dos hacian
+// initializeApp y la segunda podia quedarse colgada o tronar — de ahi el
+// "Verificando..." que no avanzaba al cambiar de usuario.
+// Guardando la PROMESA, la segunda llamada espera a la primera en vez de
+// arrancar otra inicializacion.
+var _fbPromesa=null;
 async function loadFirebase(){
+  if(firestoreDB) return firestoreDB;
+  if(_fbPromesa) return _fbPromesa;
+  _fbPromesa=_loadFirebaseReal().catch(function(e){ _fbPromesa=null; throw e; });
+  return _fbPromesa;
+}
+async function _loadFirebaseReal(){
   if(firestoreDB) return firestoreDB;
   try{
     const appMod=await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js');
@@ -3702,9 +3717,18 @@ async function doLogin(){
     return;
   }
   try{
-    await loadFirebase();
+    // [v1.49] Con tope de tiempo. getDoc puede quedarse colgado sin resolver ni
+    // rechazar si la conexion quedo en mal estado —tipico al cerrar sesion y
+    // volver a entrar—, y el boton se quedaba en "Verificando..." para siempre.
+    // Ahora a los 12 s se convierte en un error reintentable.
+    const conTope=function(p,ms,msg){
+      return Promise.race([p, new Promise(function(_,rej){
+        setTimeout(function(){ rej(new Error(msg)); }, ms);
+      })]);
+    };
+    await conTope(loadFirebase(), 12000, 'No se pudo conectar. Revisa tu internet y reintenta.');
     const ref=firestoreFns.doc(firestoreDB,'empleados',attuid);
-    const snap=await firestoreFns.getDoc(ref);
+    const snap=await conTope(firestoreFns.getDoc(ref), 12000, 'La conexión tardó demasiado. Reintenta.');
     if(!snap.exists()){
       errEl.textContent='ATTUID no encontrado. Revísalo.';
       btn.disabled=false;btn.textContent='Entrar';
@@ -11435,9 +11459,17 @@ function _preRegionDe(t){
 // llaves en cero — de ahi el "1 tienda, 0 pre-registros" de la captura.
 function _preMisTiendas(){
   var rol=String((asesorData&&asesorData.rol)||'asesor').toLowerCase();
-  var ase=_preAse||{}, jer=_preJerarquia||{tienda_region:{}};
-  var t2r=jer.tienda_region||{};
+  var ase=_preAse||{}, jer=_preJerarquia||{tienda_region:{}, roster:{}};
+  var t2r=jer.tienda_region||{}, ros=jer.roster||{};
   var todas=[];
+  // [v1.49] Las tiendas salen del PADRON, no solo de las que capturaron. Antes
+  // una tienda sin un solo pre-registro no existia para la pantalla: no se
+  // podia ver quien no ha arrancado, que es justo lo que se quiere vigilar.
+  Object.keys(ros).forEach(function(att){
+    var t=_kResumen((ros[att]||{}).t||''); if(!t) return;
+    if(todas.indexOf(t)<0) todas.push(t);
+  });
+  // Y las que capturaron aunque su gente ya no este en el padron.
   Object.keys(ase).forEach(function(att){
     var d=ase[att]||{};
     if((Number(d.n)||0)<=0) return;
@@ -11510,11 +11542,12 @@ async function preContarAlcance(){
     if(!asesorData) return 0;
     var rol=String(asesorData.rol||'asesor').toLowerCase();
     if(rol==='asesor') return preLeerLocal().length;
-    await loadFirebase();
-    // [v1.47] Un solo documento: el de resumenes por asesor. Es la unica fuente
-    // de verdad y coincide exactamente con lo que cada asesor ve en su lista.
-    var snap=await firestoreFns.getDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC_ASE));
-    _preAse=(snap&&snap.exists())?((snap.data()||{}).asesor||{}):{};
+    // [v1.49] FALTABA MIGRAR ESTO al modelo por dia: seguia leyendo el
+    // documento unico retirado en v1.48, asi que la tarjeta del home decia 0
+    // mientras la pantalla mostraba el dato correcto. Ahora lee los mismos dias
+    // que el concentrado, con el periodo que tenga seleccionado.
+    var sel=document.getElementById('pre-periodo');
+    _preAse=await preLeerPeriodo(_preDiasPeriodo(sel?sel.value:'todo'));
     return _preNoNeg(_preTotales(_preMisTiendas()).total);
   }catch(e){ console.warn('[pre] contar', e && e.message); return null; }
 }
@@ -11792,22 +11825,33 @@ function _preRender(){
       mapaPos[k]=(mapaPos[k]||0)+((tot.tiendaPos||{})[t]||0);
       mapaRen[k]=(mapaRen[k]||0)+((tot.tiendaRen||{})[t]||0);
     });
-    var ks=Object.keys(mapa).filter(function(k){ return mapa[k]>0; }).sort(function(x,y){ return mapa[y]-mapa[x]; });
+    // [v1.49] Ya NO se filtran los de cero: los activos van primero por volumen
+    // y los que no han capturado al final, en gris con SIN ACTIVIDAD — misma
+    // convencion que la lista de asesores y que el tablero de cotizaciones.
+    var ks=Object.keys(mapa).sort(function(x,y){
+      if((mapa[x]>0)!==(mapa[y]>0)) return mapa[x]>0?-1:1;
+      if(mapa[x]!==mapa[y]) return mapa[y]-mapa[x];
+      return String(x).localeCompare(String(y));
+    });
     var mx2=ks.length?mapa[ks[0]]:0;
     var titulo = nivel==='region'?'Por región':(nivel==='regional'?'Por regional':'Por tienda');
     h+='<div class="adm-label" style="margin-top:18px">'+titulo+'</div>'
       + (ks.length ? ks.map(function(k){
-            return '<div class="adm-opt" style="padding:11px 13px;margin-bottom:7px;cursor:pointer" onclick="preRutaBajar('
+            var inactivo=(mapa[k]<=0);
+            return '<div class="adm-opt'+(inactivo?' dash-row-inactive':'')
+              +'" style="padding:11px 13px;margin-bottom:7px;cursor:pointer" onclick="preRutaBajar('
               +_admJsStr(nivel)+','+_admJsStr(k)+','+_admJsStr(k)+')">'
               +'<span class="adm-opt-name" style="flex:1">'+_admEsc(_preNom(k))+'</span>'
-              +'<span style="font-size:11px;color:var(--hv2-ink3);width:78px;text-align:right;flex-shrink:0">'
-              +(mapaPos[k]||0)+' pos · '+(mapaRen[k]||0)+' ren</span>'
-              +'<span style="width:64px;height:6px;background:var(--hv2-card-soft);border-radius:3px;overflow:hidden;flex-shrink:0">'
-              +'<span style="display:block;height:100%;width:'+(mx2?Math.round(mapa[k]/mx2*100):0)+'%;background:var(--hv2-accent)"></span></span>'
+              + (inactivo
+                  ? '<span class="dash-row-badge-inactive">SIN ACTIVIDAD</span>'
+                  : ('<span style="font-size:11px;color:var(--hv2-ink3);width:78px;text-align:right;flex-shrink:0">'
+                     +(mapaPos[k]||0)+' pos · '+(mapaRen[k]||0)+' ren</span>'
+                     +'<span style="width:64px;height:6px;background:var(--hv2-card-soft);border-radius:3px;overflow:hidden;flex-shrink:0">'
+                     +'<span style="display:block;height:100%;width:'+(mx2?Math.round(mapa[k]/mx2*100):0)+'%;background:var(--hv2-accent)"></span></span>'))
               +'<span style="width:30px;text-align:right;font-weight:800;color:var(--hv2-ink);flex-shrink:0">'+mapa[k]+'</span>'
               +'<span style="color:var(--hv2-ink3);flex-shrink:0">›</span></div>';
           }).join('')
-        : '<div class="adm-msg">Sin pre-registros en este alcance todavía.</div>');
+        : '<div class="adm-msg">No hay tiendas en este alcance.</div>');
   }
   var c=document.getElementById('pre-cuerpo');
   if(c) c.innerHTML=h;
