@@ -572,6 +572,15 @@ function _onBack(ev){
   if(login && login.classList.contains('show')){
     return;
   }
+  // [v1.43] 3.5) Concentrado de pre-registro con ruta abierta → subir UN nivel
+  // en vez de salir al home. Sin esto, el "atras" del telefono se saltaba toda
+  // la ruta y el asesor perdia el lugar donde estaba parado.
+  var pantallaPre = document.getElementById('s-prerregistro');
+  if(pantallaPre && pantallaPre.classList.contains('active')
+     && typeof _preRuta !== 'undefined' && _preRuta.length){
+    preAtras();
+    return;
+  }
   // 4) Dentro de la app pero no en el home → ir al home.
   var actual = document.querySelector('.screen.active');
   var actualId = actual ? actual.id : 's-home';
@@ -11449,8 +11458,7 @@ async function preRefrescarTarjeta(){
   item.style.cursor = preVeConcentrado() ? 'pointer' : '';
   item.onclick = preVeConcentrado() ? showPrerregistro : null;
   var lbl=document.getElementById('hv2-pre-lbl');
-  if(lbl) lbl.textContent = (rol==='asesor') ? 'pre-registros'
-        : (preVeConcentrado() ? 'pre-registros · ver' : 'pre-registros de tu zona');
+  if(lbl) lbl.textContent = (rol==='asesor') ? 'pre-registros' : 'pre-registros de tu zona';
   var n=await preContarAlcance();
   var num=document.getElementById('hv2-pre-num');
   if(num) num.textContent = (n===null?'—':String(n));
@@ -11506,6 +11514,14 @@ async function _preCargarJerarquia(){
 }
 
 function preRutaIr(i){ _preRuta=_preRuta.slice(0,i); _preRender(); }
+
+// [v1.43] El boton ‹ del encabezado sube UN nivel si estas dentro de la ruta,
+// y solo sale al home cuando ya estas en la raiz. Antes siempre salia al home:
+// entrabas a una region y no habia como regresar a la lista anterior.
+function preAtras(){
+  if(_preRuta.length){ _preRuta.pop(); _preRender(); return; }
+  show('s-home');
+}
 function preRutaBajar(tipo,valor,etiqueta){ _preRuta.push({t:tipo,v:valor,e:etiqueta}); _preRender(); }
 
 async function showPrerregistro(){
@@ -11529,8 +11545,11 @@ async function showPrerregistro(){
 
 function _preBarra(lbl,n,max,click){
   var pct=max?Math.round(n/max*100):0;
-  return '<div '+(click?('onclick="'+click+'" style="cursor:pointer"'):'style=""')
-    +' class="adm-opt" style="'+(click?'cursor:pointer;':'')+'padding:11px 13px;margin-bottom:7px">'
+  // [v1.43] Antes esto emitia DOS atributos style en el mismo div; el navegador
+  // se queda con el primero y descarta el segundo, asi que los renglones con
+  // click perdian su padding y su separacion. Ahora va un solo style.
+  return '<div class="adm-opt"'+(click?(' onclick="'+click+'"'):'')
+    +' style="padding:11px 13px;margin-bottom:7px'+(click?';cursor:pointer':'')+'">'
     +'<span class="adm-opt-name" style="flex:1">'+_admEsc(lbl)+'</span>'
     +'<span style="width:70px;height:6px;background:var(--hv2-card-soft);border-radius:3px;overflow:hidden;flex-shrink:0">'
     +'<span style="display:block;height:100%;width:'+pct+'%;background:var(--hv2-accent)"></span></span>'
