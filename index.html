@@ -11,10 +11,10 @@
      otro script, porque catalog.js/vendors.js la usan para el cache-busting y
      el registro del SW la compara. Si HTML y SW no coinciden → recarga forzada.
      Al empacar cada versión, este número se actualiza igual que el cache del SW. -->
-<script>window.BUILD_ID = '1789966800';
+<script>window.BUILD_ID = '1789970400';
 // [v1.11.61] APP_VERSION vive aquí desde que el bloque principal salió a app.js.
 // El ritual de release NO cambia: 2 constantes aquí + 2 en sw.js.
-const APP_VERSION = 'v1.45.0';</script>
+const APP_VERSION = 'v1.46.0';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -5156,6 +5156,7 @@ html.con-upd body{padding-top:52px}
     <button class="nav-back" onclick="preAtras()" aria-label="Regresar">‹</button>
     <h1>Pre-registro iPhone 18</h1>
     <p id="pre-hero-sub">Concentrado de tu alcance</p>
+    <button id="pre-reset" class="adm-action adm-action-ghost" style="display:none;margin-top:10px;min-width:0;flex:0 0 auto;padding:7px 12px;font-size:12px" onclick="preReiniciarContadores()">Reiniciar contadores</button>
   </div>
   <div class="scroll-area">
     <div class="adm-wrap">
@@ -5342,7 +5343,7 @@ window._onCatalogImgReady=function(){
 // [v1.38] app.js se versiona por CONTENIDO, no por BUILD_ID: si el archivo no
 // cambio, el navegador y el service worker reusan la copia que ya tienen en vez
 // de re-bajar 579 KB en cada release. DEBE coincidir con APP_JS_V en sw.js.
-window.APP_JS_V = 'b3d2a75d0d';
+window.APP_JS_V = 'f19c94c4d4';
 document.write('<scr'+'ipt src="app.js?v='+window.APP_JS_V+'"></scr'+'ipt>');
 </script>
 

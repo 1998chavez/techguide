@@ -11579,6 +11579,22 @@ function _preBarra(lbl,n,max,click){
     +'</div>';
 }
 
+// [v1.46] Los contadores son incrementales: cualquier desfase —un registro
+// escrito por una version con bug, un ajuste sin su alta— queda como residuo
+// permanente y puede dar NEGATIVOS, que al asesor no le dicen nada. Se pisan
+// en cero al mostrarlos. El dato crudo sigue en Firestore para poder auditarlo.
+function _preNoNeg(n){ n=Number(n)||0; return n<0?0:n; }
+
+// Asesores con al menos un pre-registro vivo dentro del ambito. Unica fuente
+// de verdad: la usan el contador de arriba y la lista de abajo.
+function _preAsesoresEn(tiendas){
+  var ase=_preAse||{};
+  return Object.keys(ase).filter(function(att){
+    var d=ase[att]||{};
+    return tiendas.indexOf(_kResumen(d.t||''))>=0 && (Number(d.n)||0)>0;
+  });
+}
+
 function _preDesglose(tiendas, campo){
   var res=_preRes||{}, comp=res['tienda_'+campo]||{}, out={}, porK={};
   var lista=(campo==='modelo')?PRE_MODELOS:PRE_COLORES;
@@ -11594,6 +11610,7 @@ function _preDesglose(tiendas, campo){
     if(!nombre) return;
     out[nombre] += comp[k]||0;
   });
+  Object.keys(out).forEach(function(k){ out[k]=_preNoNeg(out[k]); });
   return out;
 }
 
@@ -11610,10 +11627,12 @@ function _preRender(){
     if(p.t==='tienda')   tiendas=[p.v];
   });
   var porT=res.tienda||{};
-  var total=tiendas.reduce(function(a,t){ return a+(porT[t]||0); },0);
+  var total=_preNoNeg(tiendas.reduce(function(a,t){ return a+(porT[t]||0); },0));
 
   var sub=document.getElementById('pre-hero-sub');
   if(sub) sub.textContent = _preRuta.length ? _preNom(_preRuta[_preRuta.length-1].e) : 'Concentrado de tu alcance';
+  var rst=document.getElementById('pre-reset');
+  if(rst) rst.style.display = (String((asesorData&&asesorData.attuid)||'').toUpperCase()===SUPER_ADMIN_ATTUID) ? '' : 'none';
 
   // Resumen de alcance, mismo componente que usa Accesos.
   var mod=_preDesglose(tiendas,'modelo'), col=_preDesglose(tiendas,'color');
@@ -11624,7 +11643,10 @@ function _preRender(){
       +'<div class="adm-scope-div"></div>'
       +'<div class="adm-scope-cell"><div class="adm-scope-num">'+tiendas.length+'</div><div class="adm-scope-lbl">Tiendas</div></div>'
       +'<div class="adm-scope-div"></div>'
-      +'<div class="adm-scope-cell"><div class="adm-scope-num">'+Object.keys(ase).filter(function(x){return tiendas.indexOf(_kResumen((ase[x]||{}).t||''))>=0;}).length+'</div><div class="adm-scope-lbl">Asesores</div></div>';
+      // [v1.46] MISMO filtro que la lista de abajo. Antes el numero contaba a
+      // todos los asesores del ambito y la lista solo a los que tienen n>0:
+      // decia "1 asesor" y debajo "nadie ha capturado".
+      +'<div class="adm-scope-cell"><div class="adm-scope-num">'+_preAsesoresEn(tiendas).length+'</div><div class="adm-scope-lbl">Asesores</div></div>';
   }
 
   var mg=document.getElementById('pre-ruta');
@@ -11650,9 +11672,7 @@ function _preRender(){
     +'</div>';
 
   if(nivel==='asesor'){
-    var filas=Object.keys(ase).filter(function(att){
-      return tiendas.indexOf(_kResumen((ase[att]||{}).t||''))>=0 && (ase[att].n||0)>0;
-    }).sort(function(x,y){ return (ase[y].n||0)-(ase[x].n||0); });
+    var filas=_preAsesoresEn(tiendas).sort(function(x,y){ return (ase[y].n||0)-(ase[x].n||0); });
     var mx=filas.length?(ase[filas[0]].n||0):0;
     h+='<div class="adm-label" style="margin-top:18px">Por asesor</div>'
       + (filas.length ? filas.map(function(att){ return _preBarra((ase[att].nom||att)+' · '+att, ase[att].n||0, mx, ''); }).join('')
@@ -11717,6 +11737,48 @@ async function preSumar(signo, kT, kR, modelo, color, att, soloDesglose){
     console.warn('[pre] contadores', e && e.message);
     admToast('Se guardó el registro, pero el contador no subió: '+((e&&e.message)||'error'),'err');
     return false;
+  }
+}
+
+// [v1.46] Mueve UNA unidad de un valor a otro dentro del mismo campo, en una
+// sola escritura. Se usa al editar: no toca total, region, tienda ni asesor.
+async function preAjustar(campo, kT, viejo, nuevo){
+  try{
+    await loadFirebase();
+    var menos=firestoreFns.increment(-1), mas=firestoreFns.increment(1);
+    var d={}; d[campo]={}; d['tienda_'+campo]={};
+    d[campo][_kResumen(viejo)] = menos;
+    d[campo][_kResumen(nuevo)] = mas;
+    d['tienda_'+campo][kT+'||'+_kResumen(viejo)] = menos;
+    d['tienda_'+campo][kT+'||'+_kResumen(nuevo)] = mas;
+    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC), d, {merge:true});
+    return true;
+  }catch(e){ console.warn('[pre] ajustar', e && e.message); return false; }
+}
+
+// [v1.46] REINICIAR CONTADORES — solo SUPER_ADMIN.
+//
+// POR QUE EXISTE: los contadores son incrementales. Cualquier desfase queda
+// como residuo permanente, y como /prerregistros_ip18 tiene `list` negado a
+// proposito, NO se pueden recalcular leyendo la coleccion. La unica forma de
+// volver a cero es ponerlos a cero.
+//
+// NO borra ningun pre-registro: los documentos y las listas de los asesores
+// quedan intactos. Solo se reinicia el tablero.
+async function preReiniciarContadores(){
+  if(String((asesorData&&asesorData.attuid)||'').toUpperCase()!==SUPER_ADMIN_ATTUID) return;
+  if(!confirm('¿Poner los contadores del concentrado en cero?\n\nNo se borra ningún pre-registro: solo el tablero vuelve a cero y empieza a contar desde los próximos.')) return;
+  try{
+    await loadFirebase();
+    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC),
+      {total:0, region:{}, tienda:{}, modelo:{}, color:{}, tienda_modelo:{}, tienda_color:{}});
+    await firestoreFns.setDoc(firestoreFns.doc(firestoreDB,'resumenes',PRE_DOC_ASE), {asesor:{}});
+    _preRes={}; _preAse={}; _preRuta=[];
+    admToast('Contadores en cero.','ok');
+    showPrerregistro();
+  }catch(e){
+    var m=(e&&e.message)?e.message:'Error';
+    admToast(/permission|insufficient/i.test(m)?'Sin permiso (revisa las reglas de Firestore).':m,'err');
   }
 }
 
@@ -11902,12 +11964,15 @@ async function preGuardar(){
     var kT=_kResumen(tienda), kR=_kResumen(region);
     // [v1.44] Se arma ANIDADO, no con llaves con punto. Ver nota de preSumar.
     if(editando){
-      // Editar NO mueve el total. Solo corrige modelo/color si cambiaron.
-      if(previo && (previo.modelo!==_preModelo || previo.color!==_preColor)){
-        // Editar no mueve el total: se resta el modelo/color viejo y se suma el
-        // nuevo, sin tocar total, region, tienda ni asesor.
-        await preSumar(-1, kT, kR, previo.modelo, previo.color, att, true);
-        await preSumar(+1, kT, kR, _preModelo, _preColor, att, true);
+      // [v1.46] Editar NO mueve el total. Y se ajusta SOLO lo que cambio: antes
+      // se restaba y sumaba modelo Y color aunque solo cambiara uno. La cuenta
+      // daba cero, pero cualquier desfase previo quedaba amplificado y se
+      // gastaban escrituras de mas. Ahora cada campo se toca por separado.
+      if(previo && previo.modelo!==_preModelo){
+        await preAjustar('modelo', kT, previo.modelo, _preModelo);
+      }
+      if(previo && previo.color!==_preColor){
+        await preAjustar('color', kT, previo.color, _preColor);
       }
       _preEditando=null;
       admCerrarSheet(); admToast('Registro actualizado.','ok');
