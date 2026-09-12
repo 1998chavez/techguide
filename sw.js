@@ -9,7 +9,7 @@
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v1440-contadores';
+const CACHE_NAME = 'techguide-v1450-fix-aviso';
 // [v1.11.103] Caché SEPARADO y ESTABLE para los pesados que NO cambian entre
 // versiones: vendors.js (999KB, html2canvas+jsPDF) y catalog-img.js (866KB,
 // las fotos del catálogo). Antes vivían en CACHE_NAME, así que CADA bump
@@ -36,11 +36,11 @@ const IMG_BUILD = '2026-08-29-redmi17';
 // cuando app.js cambia de verdad.
 // DEBE coincidir con window.APP_JS_V del index.html. Al editar app.js hay que
 // subir este valor en LOS DOS archivos.
-const APP_JS_V = 'c361d302f9';
+const APP_JS_V = 'b3d2a75d0d';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1789963200';
+const BUILD_ID = '1789966800';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la
@@ -86,14 +86,19 @@ self.addEventListener('install', function(event){
           console.warn('[SW] Failed to pre-cache', url, err);
         });
       })).then(function(){
-        /* [v1.37] Segunda mitad del bug de "no abre". Los .catch de arriba se
-           tragan los fallos, asi que con red floja el SW se instalaba con el
-           precache INCOMPLETO, hacia skipWaiting, y activate borraba el cache
-           anterior: el equipo se quedaba sin app.js viejo Y sin app.js nuevo.
-           Ahora se verifican los criticos; si falta alguno se reintenta una vez
-           y, si sigue faltando, el install FALLA a proposito. El SW anterior
-           sigue sirviendo la app y el navegador reintenta despues. Es preferible
-           quedarse una version atras que quedarse en blanco. */
+        /* [v1.45] ESTO CAUSABA EL AVISO DE ACTUALIZACION QUE NO SE IBA.
+           En v1.37 hice que el install ABORTARA si faltaba un critico. La idea
+           era no activar un SW a medias. El efecto real fue peor: si un solo
+           archivo fallaba al bajar —propagacion del CDN, un corte de medio
+           segundo— el SW nuevo NUNCA se instalaba. El SW viejo seguia mandando
+           con su BUILD_ID anterior, el HTML si se refrescaba al nuevo, y el
+           handshake veia HTML != SW: aviso de actualizacion permanente. Darle
+           a "Actualizar" borraba todo, volvia a intentar, volvia a fallar.
+           Ya no hace falta abortar: el FIX de v1.37 en el fetch garantiza que
+           respondWith NUNCA resuelva a undefined, asi que un precache
+           incompleto ya no deja la pantalla en blanco — solo obliga a ir a red.
+           Ahora se REINTENTA con cache:'reload' y, si aun asi falta, se instala
+           igual y se deja constancia en consola. */
         var CRITICOS = [
           SCOPE + 'index.html',
           SCOPE + 'catalog.js?v=' + BUILD_ID
@@ -101,13 +106,18 @@ self.addEventListener('install', function(event){
         return Promise.all(CRITICOS.map(function(u){
           return cache.match(u).then(function(hit){
             if(hit) return true;
-            return cache.add(u).then(function(){ return true; })
-                        .catch(function(){ return u; });
+            return cache.add(u).then(function(){ return true; }).catch(function(){
+              // Segundo intento saltandose la cache HTTP del navegador.
+              return fetch(u, {cache:'reload'}).then(function(r){
+                if(r && r.status === 200) return cache.put(u, r).then(function(){ return true; });
+                return u;
+              }).catch(function(){ return u; });
+            });
           });
         })).then(function(res){
           var faltan = res.filter(function(x){ return x !== true; });
           if(faltan.length){
-            throw new Error('[SW] install abortado, faltan criticos: ' + faltan.join(', '));
+            console.warn('[SW] precache incompleto, se instala igual:', faltan.join(', '));
           }
         });
       });

@@ -12057,20 +12057,29 @@ setTimeout(function(){
 // ── HARD REFRESH ────────────────────────────────────────────────────────────
 function hardRefresh(){
   if(!confirm('¿Actualizar la app a la última versión?'))return;
+  /* [v1.45] Antes se disparaban el unregister y el borrado de cachés y se
+     recargaba a los 300 ms sin esperarlos. Con CACHE_ESTABLE en ~1.9 MB el
+     borrado no alcanzaba a terminar: la recarga la atendía todavía el SW viejo
+     y volvía a entregar el HTML anterior — por eso el aviso reaparecía.
+     Ahora se ESPERA a que ambas cosas terminen, con un tope de 4 s por si
+     alguna se cuelga. */
+  var tareas=[];
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.getRegistrations().then(function(rs){
-      rs.forEach(function(r){r.unregister();});
-    }).catch(function(){});
+    tareas.push(navigator.serviceWorker.getRegistrations()
+      .then(function(rs){ return Promise.all(rs.map(function(r){ return r.unregister(); })); })
+      .catch(function(){}));
   }
   if('caches' in window){
-    caches.keys().then(function(names){
-      names.forEach(function(n){caches.delete(n);});
-    }).catch(function(){});
+    tareas.push(caches.keys()
+      .then(function(names){ return Promise.all(names.map(function(n){ return caches.delete(n); })); })
+      .catch(function(){}));
   }
-  setTimeout(function(){
-    const url=window.location.href.split('?')[0]+'?v='+Date.now();
-    window.location.href=url;
-  },300);
+  var tope=new Promise(function(res){ setTimeout(res, 4000); });
+  Promise.race([Promise.all(tareas), tope]).then(function(){
+    try{ sessionStorage.removeItem('_swReloadCount'); }catch(e){}
+    var url=window.location.href.split('?')[0].split('#')[0]+'?v='+Date.now();
+    window.location.replace(url);
+  });
 }
 
 // ── FLYER GENERATOR ────────────────────────────────────────────────────────
