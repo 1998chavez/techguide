@@ -3704,6 +3704,12 @@ async function doLogin(){
         loginAt: Date.now()
       };
       saveSesion(asesorData);
+      // [v1.55] EL BUG DEL "Verificando..." PEGADO. El camino de EXITO cerraba
+      // el overlay pero nunca devolvia el boton a su estado normal: quedaba
+      // deshabilitado y con el texto "Verificando...". Al cerrar sesion, el
+      // overlay reaparecia con ese boton muerto y la unica salida era cerrar y
+      // reabrir la app. Se restaura aqui y tambien al abrir el overlay.
+      btn.disabled=false; btn.textContent='Entrar';
       document.getElementById('asesor-overlay').classList.remove('show');
       updateAsesorChip(); updateDashHomeCard();
       if(typeof updateAdminHomeCard==='function') updateAdminHomeCard();
@@ -3763,6 +3769,9 @@ async function doLogin(){
       loginAt: Date.now()
     };
     saveSesion(asesorData);
+    // [v1.55] Mismo arreglo que en el camino del backend: devolver el boton a
+    // su estado normal antes de cerrar el overlay.
+    btn.disabled=false; btn.textContent='Entrar';
     document.getElementById('asesor-overlay').classList.remove('show');
     updateAsesorChip(); updateDashHomeCard();
     if(typeof updateAdminHomeCard==='function') updateAdminHomeCard();
@@ -3789,6 +3798,16 @@ function doLogout(){
   asesorData=null;
   updateAsesorChip(); updateDashHomeCard();
   if(typeof updateAdminHomeCard==='function') updateAdminHomeCard();
+  // [v1.55] Red de seguridad: al reabrir el overlay SIEMPRE se normaliza el
+  // boton y se limpia el error, venga de donde venga la sesion anterior.
+  try{
+    var _b=document.getElementById('login-btn');
+    if(_b){ _b.disabled=false; _b.textContent='Entrar'; }
+    var _e=document.getElementById('login-error');
+    if(_e) _e.textContent='';
+    var _p=document.getElementById('login-password-input');
+    if(_p) _p.value='';
+  }catch(e){}
   document.getElementById('asesor-overlay').classList.add('show');
 }
 
@@ -10425,27 +10444,11 @@ async function adminCargarEquipo(){
       // Dirección nacional: árbol Región › Regional › Tienda › Asesor.
       if(listLabel){
         listLabel.textContent = 'Estructura nacional';
-        // [v1.39] Accion global: aplicar un archivo de estructura. Va aqui, en
-        // el encabezado, no en la ficha de cada persona (ahi se repetia 2,941
-        // veces y no es una accion sobre un colaborador).
-        var _host = listLabel.parentElement || listLabel;
-        // [v1.39.4] Se oculta una vez aplicada. La marca lleva la version de la
-        // estructura: si llega un archivo nuevo se sube PAC_VER y el boton
-        // reaparece solo. Asi no hay que acordarse de nada.
-        var _yaAplicada = false;
-        try{ _yaAplicada = localStorage.getItem('pmx_estructura_aplicada') === PAC_VER_ESPERADA; }catch(e){}
-        if(_host && !_yaAplicada && !document.getElementById('adm-btn-estructura')){
-          var _b = document.createElement('button');
-          _b.id = 'adm-btn-estructura';
-          _b.className = 'adm-action';
-          // Ancho al contenido: con adm-action a secas se estiraba como barra
-          // gris de lado a lado del encabezado.
-          _b.style.cssText = 'margin-left:10px;font-size:12px;padding:5px 10px;'
-            + 'display:inline-block;width:auto;flex:0 0 auto;vertical-align:middle';
-          _b.textContent = 'Aplicar estructura Pacífico';
-          _b.onclick = function(){ admSheetMigrarPacifico(); };
-          _host.appendChild(_b);
-        }
+        // [v1.55] El boton "Aplicar estructura Pacifico" se retiro: la
+        // estructura de septiembre ya se aplico y no tiene que seguir ahi.
+        // La funcion admSheetMigrarPacifico sigue en el codigo por si hay que
+        // volver a correrla; para reponer el acceso basta con pintar un boton
+        // que la llame desde este mismo punto.
       }
       const qs = await firestoreFns.getDocs(col);
       const docs = []; qs.forEach(function(s){ docs.push({id:s.id,d:s.data()||{}}); });
@@ -11730,7 +11733,7 @@ async function showPrerregistro(soloPeriodo){
   if(c) c.innerHTML='<div class="adm-msg">Cargando…</div>';
   try{
     var sel=document.getElementById('pre-periodo');
-    var periodo=sel?sel.value:'semana';
+    var periodo=sel?sel.value:'hoy';
     _preAse=await preLeerPeriodo(_preDiasPeriodo(periodo));
     await _preCargarJerarquia();
     _preRender();
