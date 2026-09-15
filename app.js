@@ -10257,7 +10257,9 @@ function _admGrupoHTML(gid, titulo, lista, tiendaNombre, tiendaRegion){
     + '</div><div class="adm-group-body">'+cards
     + (tiendaNombre?('<button class="adm-add-btn" onclick="admSheetCrear('+_admJsStr(tiendaNombre)+','+_admJsStr(tiendaRegion||_meRegion())+')"><span class="adm-add-ic">+</span>Crear usuario</button>'):'')
     // [v1.38] Borrar tienda de raiz. Solo mando, y solo sobre tiendas de su alcance.
-    + ((tiendaNombre && esAdminAccesos())?('<button class="adm-add-btn" style="color:var(--hv2-bad);border-color:var(--hv2-bad)" onclick="admSheetBorrarTienda('+_admJsStr(tiendaNombre)+')">Eliminar tienda y su personal</button>'):'')
+    // [v1.61] El texto se adapta: decir "y su personal" en una tienda vacia
+    // confunde y hace pensar que el boton no aplica.
+    + ((tiendaNombre && esAdminAccesos())?('<button class="adm-add-btn" style="color:var(--hv2-bad);border-color:var(--hv2-bad)" onclick="admSheetBorrarTienda('+_admJsStr(tiendaNombre)+')">'+(g.length?'Eliminar tienda y su personal':'Eliminar tienda')+'</button>'):'')
     + '</div></div>';
 }
 function _admChev(){ return '<svg class="adm-group-chev" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'; }
@@ -10353,9 +10355,18 @@ function _admConstruirArbol(docs){
     Object.keys(R[region]).sort(_cmpFin('Sin regional')).forEach(function(nom){
       const g = R[region][nom];
       const tiendas = []; let gPersonas = 0;
+      // [v1.60] Sembrar las tiendas ASIGNADAS al regional aunque no tengan
+      // gente. Una tienda recien creada vive solo en sus tiendasAsignadas, y
+      // esta funcion la saltaba por no tener asesores: por eso el DN y el
+      // director no veian nada al crearla. Solo entran las explicitamente
+      // asignadas, no cualquier nombre suelto.
+      if(regs[nom] && regs[nom].tiendas){
+        Object.keys(regs[nom].tiendas).forEach(function(t){
+          if(!g.tiendas[t]) g.tiendas[t] = [];
+        });
+      }
       Object.keys(g.tiendas).sort().forEach(function(t){
         const gente = g.tiendas[t];
-        if(!gente.length) return;                   // no mostrar tiendas sin asesores activos
         tiendas.push({nombre:t, gente:gente, personas:gente.length, activas:gente.length});
         gPersonas += gente.length; regTset[t] = true;
       });
@@ -11128,7 +11139,10 @@ function admSheetBorrarTienda(tienda){
     return;
   }
   if(!_admDelVictimas.length){
-    admToast('Esa tienda ya no tiene personal asignado.','err');
+    // [v1.60] Una tienda VACIA si se puede eliminar: se quita de las
+    // tiendasAsignadas de quien la lleve. Antes solo se podia crear y quedaba
+    // atorada para siempre, porque este camino cortaba con un aviso.
+    admSheetBorrarTiendaVacia(tienda);
     return;
   }
   var lista=_admDelVictimas.map(function(v){
@@ -11145,6 +11159,78 @@ function admSheetBorrarTienda(tienda){
     +'<button class="adm-sheet-cta" id="adm-cta" disabled onclick="admConfirmBorrarTienda()" '
     +'style="background:var(--hv2-bad)">Eliminar definitivamente</button>'
   );
+}
+
+// [v1.60] Eliminar una tienda que no tiene personal. No hay documentos que
+// borrar: la tienda existe solo porque esta en las tiendasAsignadas de algun
+// regional o gerente, asi que eliminarla es sacarla de esas listas.
+var _admDelVaciaCtx=null;
+function admSheetBorrarTiendaVacia(tienda){
+  tienda=String(tienda||'');
+  var duenos=[];
+  Object.keys(_admGente).forEach(function(id){
+    var d=_admGente[id]||{};
+    if(!Array.isArray(d.tiendasAsignadas)) return;
+    if(!d.tiendasAsignadas.some(function(t){ return _admNormTienda(t)===_admNormTienda(tienda); })) return;
+    duenos.push({id:String(id).toUpperCase(), nom:String(d.nombre||id), rol:String(d.rol||'')});
+  });
+  // La sesion propia tambien cuenta: puede no estar en _admGente.
+  if(asesorData && Array.isArray(asesorData.tiendasAsignadas)
+     && asesorData.tiendasAsignadas.some(function(t){ return _admNormTienda(t)===_admNormTienda(tienda); })
+     && !duenos.some(function(x){ return x.id===_meAttuid(); })){
+    duenos.push({id:_meAttuid(), nom:String(asesorData.name||_meAttuid()), rol:String(asesorData.rol||'')});
+  }
+  _admDelVaciaCtx={tienda:tienda, duenos:duenos};
+  admAbrirSheet(
+    '<div class="adm-sheet-h">Eliminar tienda</div>'
+    +'<div class="adm-sheet-sub"><b>'+_admEsc(tienda)+'</b> no tiene personal. Se quitará de quien la lleva.</div>'
+    +'<div class="adm-sheet-scroll">'
+    + (duenos.length
+        ? duenos.map(function(x){
+            return '<div class="adm-opt"><span class="adm-opt-name">'+_admEsc(x.nom)
+              +'</span><span class="adm-opt-cur" style="background:none;color:var(--hv2-ink3)">'+_admEsc(x.rol.toUpperCase()||'—')+'</span></div>';
+          }).join('')
+        : '<div class="adm-msg">Ya no está asignada a nadie. No hay nada que eliminar.</div>')
+    +'</div>'
+    + (duenos.length ? _admCampoPass() : '')
+    + (duenos.length
+        ? '<button class="adm-sheet-cta" id="adm-cta" style="background:var(--hv2-bad)" onclick="admConfirmBorrarTiendaVacia()">Eliminar tienda</button>'
+        : '<button class="adm-sheet-cta" onclick="admCerrarSheet()">Cerrar</button>')
+  );
+}
+
+async function admConfirmBorrarTiendaVacia(){
+  var c=_admDelVaciaCtx;
+  if(!c || !c.duenos.length){ admCerrarSheet(); return; }
+  var cta=document.getElementById('adm-cta');
+  if(cta){ cta.disabled=true; cta.textContent='Eliminando…'; }
+  try{
+    await loadFirebase();
+    for(var k=0;k<c.duenos.length;k++){
+      var id=c.duenos[k].id;
+      var ref=firestoreFns.doc(firestoreDB,'empleados',id);
+      var sn=await firestoreFns.getDoc(ref);
+      if(!sn||!sn.exists()) continue;
+      var lista=(sn.data()||{}).tiendasAsignadas;
+      lista=Array.isArray(lista)?lista:[];
+      var resto=lista.filter(function(t){ return _admNormTienda(t)!==_admNormTienda(c.tienda); });
+      if(resto.length===lista.length) continue;
+      await firestoreFns.updateDoc(ref, {tiendasAsignadas:resto});
+      if(_admGente[id]) _admGente[id].tiendasAsignadas=resto;
+      if(id===_meAttuid() && asesorData){
+        asesorData.tiendasAsignadas=resto.slice();
+        try{ saveSesion(asesorData); }catch(e){}
+      }
+    }
+    _admDelVaciaCtx=null;
+    admCerrarSheet();
+    admToast('Tienda eliminada: '+c.tienda,'ok');
+    if(typeof adminCargarEquipo==='function') adminCargarEquipo();
+  }catch(e){
+    var m=(e&&e.message)?e.message:'Error';
+    admToast(/permission|insufficient/i.test(m)?'Sin permiso (revisa las reglas de Firestore).':m,'err');
+    if(cta){ cta.disabled=false; cta.textContent='Eliminar tienda'; }
+  }
 }
 
 function admDelValidar(){
