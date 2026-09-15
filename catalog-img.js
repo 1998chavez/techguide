@@ -90,3 +90,10 @@ window.IMG = {
   "xrn15pro":"img/xrn15pro.webp",
   "xrn17sp":"img/xrn17sp.webp"
 };
+
+// [v1.63.1] AVISO DE QUE YA ESTAN LISTAS.
+// El catalog-img.js original terminaba con esta llamada y al regenerarlo la
+// perdi. Sin ella nadie repinta: initMomento() y renderFlashCard() corren ANTES
+// de que este archivo cargue, se encuentran IMG vacio y dejan el icono gris
+// para siempre. index.html la usa para refrescar las vistas visibles.
+try{ if(typeof window._onCatalogImgReady === 'function') window._onCatalogImgReady(); }catch(e){}
