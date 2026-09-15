@@ -712,29 +712,18 @@ function toggleView(){
 }
 function dc(s){return s==='RESURTIBLE'?'dot-r':s==='INV. LIMITADO EN CANAL'?'dot-l':'dot-n'}
 function bs(s){const m={RESURTIBLE:'bs-r Resurtible','INV. LIMITADO EN CANAL':'bs-l Inv. limitado',NPI:'bs-n NPI','NO RESURTIBLE':'bs-nr No resurtible'};const[c,...t]=(m[s]||'bs-r Resurtible').split(' ');return`<span class="bs ${c}">${t.join(' ')}</span>`}
-// [v1.38] CACHE DE OBJECT URLs — arreglo de la lentitud del cotizador.
-// IMG[id] guarda una data-URI de ~11 KB. imgI() la metia COMPLETA dentro del
-// string de innerHTML, asi que el grid del catalogo pesaba 828 KB por render
-// (795 KB de puro base64) y renderDevs() corre en CADA TECLA del buscador:
-// escribir "samsung" armaba y parseaba 5.7 MB de HTML y re-decodificaba 490
-// data-URI. Con object URL el mismo <img> mide ~60 caracteres, el navegador
-// decodifica cada foto UNA sola vez y la reutiliza en todos los renders.
-// Si Blob/URL fallan por cualquier razon, se cae a la data-URI de siempre.
+// [v1.63] IMG[id] ya es una RUTA, no una data-URI. Antes esta funcion
+// convertia el base64 a object URL para no meter 828 KB de texto en cada
+// innerHTML; con rutas eso ya no hace falta y se devuelve tal cual.
+// Se conserva el nombre y la firma porque index.html la llama.
 var _imgURL = {};
 function imgSrc(id){
   if(typeof IMG==='undefined' || !IMG[id]) return '';
-  if(_imgURL[id]) return _imgURL[id];
-  try{
-    var s = IMG[id], i = s.indexOf(',');
-    var mime = (s.slice(0,i).match(/data:([^;]+)/)||[null,'image/jpeg'])[1];
-    var bin = atob(s.slice(i+1));
-    var buf = new Uint8Array(bin.length);
-    for(var n=0;n<bin.length;n++) buf[n] = bin.charCodeAt(n);
-    _imgURL[id] = URL.createObjectURL(new Blob([buf],{type:mime}));
-  }catch(e){
-    _imgURL[id] = IMG[id];
-  }
-  return _imgURL[id];
+  var v = IMG[id];
+  // Tolera alias (un id que apunta a otro id) y data-URI heredadas, por si
+  // algun despliegue queda a medias entre versiones.
+  if(typeof v==='string' && v.indexOf('/')<0 && v.indexOf('data:')!==0 && IMG[v]) v = IMG[v];
+  return v;
 }
 window.imgSrc = imgSrc;
 
@@ -742,7 +731,10 @@ function imgI(id,cls){
   // Use base64 image if available
   if(IMG[id]){
     const clsAttr=cls?(' class="'+cls+'"'):'';
-    return '<img'+clsAttr+' src="'+imgSrc(id)+'" alt="" style="width:100%;height:100%;object-fit:contain">';
+    // [v1.63] lazy + async + dimensiones: el navegador baja solo las visibles
+    // y reserva el espacio, asi no hay salto de maquetacion al aparecer.
+    return '<img'+clsAttr+' src="'+imgSrc(id)+'" alt="" width="300" height="300"'
+      +' loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:contain">';
   }
   const all=[...CAT.ios,...CAT.android];
   const dev=all.find(d=>d.id===id);

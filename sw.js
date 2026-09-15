@@ -9,7 +9,7 @@
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v1620-vendors-lazy';
+const CACHE_NAME = 'techguide-v1630-webp';
 // [v1.11.103] Caché SEPARADO y ESTABLE para los pesados que NO cambian entre
 // versiones: vendors.js (999KB, html2canvas+jsPDF) y catalog-img.js (866KB,
 // las fotos del catálogo). Antes vivían en CACHE_NAME, así que CADA bump
@@ -36,11 +36,11 @@ const IMG_BUILD = '2026-08-29-redmi17';
 // cuando app.js cambia de verdad.
 // DEBE coincidir con window.APP_JS_V del index.html. Al editar app.js hay que
 // subir este valor en LOS DOS archivos.
-const APP_JS_V = 'ca1c30f1e7';
+const APP_JS_V = '0b6f414fdd';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1790046000';
+const BUILD_ID = '1790049600';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la
@@ -61,6 +61,8 @@ const OFFLINE_ASSETS = [
   // [v1.11.62] incentivos.js va SIN ?v=: es chico y se sirve stale-while-revalidate
   // para que los tableros (que no tienen BUILD_ID propio) puedan pedirlo igual.
   SCOPE + 'incentivos.js',
+  // [v1.63] catalog-img.js ahora son 3 KB de rutas: precache normal.
+  SCOPE + 'catalog-img.js',
   // [v1.39] estructura-pacifico.js NO va aqui a proposito: son 45 KB que solo
   // necesita direccion nacional al aplicar la estructura. Se carga bajo demanda.
   // [v1.12.3] UI compartida de los tableros de comisiones (drawer). Sin ?v=:
@@ -170,21 +172,15 @@ self.addEventListener('install', function(event){
         }).catch(function(err){
           console.warn('[SW] sello de app.js falló', err && err.message);
         });
-        // [v1.36] catalog-img.js: se re-baja solo si IMG_BUILD cambió.
-        var sello = SCOPE + '__img_build';
-        ce.match(sello).then(function(hit){
-          return hit ? hit.text() : null;
-        }).then(function(prev){
-          if(prev === IMG_BUILD) return;   // fotos al día, no se re-descarga
-          return bajarEstable('catalog-img.js').then(function(ok){
-            if(!ok) return;   // fallo la descarga: NO sellar, se reintenta luego
-            return ce.put(sello, new Response(IMG_BUILD, {
-              headers: {'Content-Type': 'text/plain'}
-            }));
-          });
-        }).catch(function(err){
-          console.warn('[SW] sello de imágenes falló', err && err.message);
-        });
+        /* [v1.63] catalog-img.js YA NO se precachea aqui.
+           Antes pesaba 904 KB porque traia las 82 fotos en base64: habia que
+           bajarlo entero aunque el asesor viera ocho equipos, y por eso existia
+           todo este sello IMG_BUILD para no re-bajarlo en cada release.
+           Ahora son 3 KB de rutas y va en el precache normal. Las fotos son
+           WebP sueltas en img/ y las cachea el fetch cuando de verdad se
+           pintan — mismo patron que los modelos 3D.
+           IMG_BUILD se conserva declarado por compatibilidad: el activate
+           limpia solo las instalaciones viejas que aun tengan el archivo gordo. */
       });
       return self.skipWaiting();
     })
@@ -296,6 +292,27 @@ self.addEventListener('fetch', function(event){
   // que la segunda vez abre al instante y funciona sin señal.
   // Ojo: el script viene de CDN (type 'cors'), por eso aquí NO se exige
   // response.type === 'basic' como en los bundles propios.
+  /* [v1.63] FOTOS DEL CATALOGO — cache-first bajo demanda, igual que los 3D.
+     82 WebP de ~4 KB en img/. No se precachean: el navegador baja solo las que
+     se pintan, y una vez vistas quedan en cache y funcionan sin senal. */
+  if(/\/img\/[^/]+\.(webp|jpg|png)(\?.*)?$/i.test(url.pathname)){
+    event.respondWith(
+      caches.match(req).then(function(cached){
+        if(cached) return cached;
+        return fetch(req).then(function(res){
+          if(res && res.status === 200 && res.type === 'basic'){
+            const copia = res.clone();
+            caches.open(CACHE_ESTABLE).then(function(c){ c.put(req, copia); }).catch(function(){});
+          }
+          return res;
+        }).catch(function(){
+          return new Response('', {status: 503, statusText: 'Sin conexion'});
+        });
+      })
+    );
+    return;
+  }
+
   const es3D = /\.(glb|usdz)(\?.*)?$/i.test(url.pathname) ||
                (url.hostname === 'unpkg.com' && url.pathname.indexOf('model-viewer') >= 0);
   if(es3D){
