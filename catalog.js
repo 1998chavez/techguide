@@ -17,7 +17,7 @@ var CAT={ios:[{id:'ip18pro',name:'iPhone 18 Pro',brand:'APPLE',storage:'256 GB',
 var CATALOG_META = {
   version: "1.11.0",
   catalog_date: "2026-09-15",
-  source: "LISTA_DE_PRECIOS_V4.xlsx + iphone_18.xlsx (alta iPhone 18 Pro / Pro Max, preventa 18-sep, sin Azul 1-3)"
+  source: "LISTA_DE_PRECIOS_V4.xlsx + iphone_18.xlsx (alta iPhone 18 Pro / Pro Max, precios vigentes 18-sep, sin Azul 1-3)"
 };
 // [v1.11.105] OJO al próximo corte: varios equipos traen VARIAS ventanas de
 // precio escalonadas en el mismo archivo (el S26 Ultra trae 4). Hay que tomar
@@ -77,7 +77,7 @@ var FUTURE_PRICES={"ip18pro": {"start": "2026-09-18"}, "ip18promax": {"start": "
       "Diamante": { "24": 0, "30": 0, "36": 0 }
     }
   }};
-var UPCOMING_ONLY=["ip18pro","ip18promax"];
+var UPCOMING_ONLY=[];
 
 // [v1.10.83] Ofertas Flash agrupadas por marca (home). El orden del arreglo es el
 // orden en que aparecen las marcas. Por marca se muestran los 5 equipos con mejor
