@@ -19,6 +19,29 @@
 // Esto reduce la descarga inicial de ~870KB a ~570KB (-35%) y baja el
 // uso de memoria al arrancar la app — crítico en celulares de gama baja.
 let _vendorsPromise = null;
+// [v1.62] PRECARGA EN REPOSO de vendors.js.
+// El SW ya no lo baja al instalarse, asi que la primera apertura pesa ~1 MB
+// menos. Para no perder la generacion de PDF sin senal, se trae en silencio
+// cuando la app ya lleva rato abierta y la red lo permite.
+// NUNCA compite con el arranque: espera a que la pagina este interactiva, y se
+// abstiene si la conexion es lenta o el usuario pidio ahorrar datos.
+var _vendorsPrefetch=false;
+function precargarVendors(){
+  if(_vendorsPrefetch) return; _vendorsPrefetch=true;
+  try{
+    var c=navigator.connection||{};
+    if(c.saveData) return;                                   // ahorro de datos
+    var t=String(c.effectiveType||'');
+    if(t==='slow-2g'||t==='2g'||t==='3g') return;            // red lenta: ni lo intenta
+    var lanzar=function(){
+      fetch('vendors.js?v='+(window.BUILD_ID||'0'), {cache:'force-cache'}).catch(function(){});
+    };
+    if(typeof requestIdleCallback==='function') requestIdleCallback(lanzar, {timeout:8000});
+    else setTimeout(lanzar, 4000);
+  }catch(e){}
+}
+window.precargarVendors = precargarVendors;
+
 function loadVendors(){
   if(typeof html2canvas !== 'undefined' && typeof window.jspdf !== 'undefined'){
     return Promise.resolve(); // ya cargado

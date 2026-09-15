@@ -9,7 +9,7 @@
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v1610-borrar-vacia';
+const CACHE_NAME = 'techguide-v1620-vendors-lazy';
 // [v1.11.103] Caché SEPARADO y ESTABLE para los pesados que NO cambian entre
 // versiones: vendors.js (999KB, html2canvas+jsPDF) y catalog-img.js (866KB,
 // las fotos del catálogo). Antes vivían en CACHE_NAME, así que CADA bump
@@ -36,11 +36,11 @@ const IMG_BUILD = '2026-08-29-redmi17';
 // cuando app.js cambia de verdad.
 // DEBE coincidir con window.APP_JS_V del index.html. Al editar app.js hay que
 // subir este valor en LOS DOS archivos.
-const APP_JS_V = '8364d2e802';
+const APP_JS_V = 'ca1c30f1e7';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1790042400';
+const BUILD_ID = '1790046000';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la
@@ -141,10 +141,17 @@ self.addEventListener('install', function(event){
             return false;
           });
         };
-        // vendors.js: no cambia entre versiones. Si ya está, no se toca.
-        ce.match(SCOPE + 'vendors.js').then(function(hit){
-          if(!hit) bajarEstable('vendors.js');
-        });
+        /* [v1.62] vendors.js YA NO se baja aquí.
+           Pesa 999 KB (html2canvas + jsPDF + XLSX + Chart) y la pagina ya lo
+           carga solo cuando hace falta, con loadVendors(). Pero este install lo
+           bajaba igual en segundo plano, asi que la carga diferida quedaba
+           anulada a nivel de red: en la PRIMERA apertura competia por el ancho
+           de banda con el asesor que estaba tratando de cotizar, y la mayoria
+           nunca genera un PDF.
+           Ahora sigue el mismo patron que los modelos 3D: se cachea al primer
+           uso real, por el fetch handler (esEstable lo cubre). Y para no
+           perder el PDF sin senal, la pagina lo precarga en reposo mucho
+           despues de arrancar — ver precargarVendors() en app.js. */
         // [v1.38] app.js: mismo mecanismo que las fotos, sellado por el hash
         // de su contenido. Si no cambio, no se vuelve a bajar nunca.
         var selloApp = SCOPE + '__app_v';
