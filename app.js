@@ -10516,6 +10516,14 @@ async function adminCargarEquipo(){
     const _ops = arr.filter(function(x){ return !_admEsMando(x.d); });
     const porTienda = {};
     const regByTienda={};
+    // [v1.58] Las tiendas RECIEN CREADAS no tienen gente todavia, asi que no
+    // salian en esta lista y parecia que no se habian guardado. Se siembran
+    // desde _meTiendas() —donde viven— para que aparezcan vacias y con su
+    // boton de "Crear usuario" dentro.
+    _meTiendas().forEach(function(t){
+      t=String(t||'').trim();
+      if(t && !porTienda[t]) porTienda[t]=[];
+    });
     _ops.forEach(function(x){ const t=String(x.d.tienda||'Sin tienda'); (porTienda[t]=porTienda[t]||[]).push(x); if(!regByTienda[t] && x.d.region) regByTienda[t]=String(x.d.region); });
     let h='', gi=0;
     if(_meRol()==='director' || _meEsGlobal()){
@@ -11575,7 +11583,12 @@ async function preContarAlcance(){
     if(!asesorData) return 0;
     // [v1.50] Solo el DIA, igual que contarEquipoHoy() con las cotizaciones.
     // El acumulado de la campana vive en la pantalla, con su selector.
-    var hoy=new Date().toISOString().slice(0,10);
+    // [v1.57] Fecha LOCAL, no UTC. El tablero usa fechaToISO() y yo usaba
+    // toISOString(): despues de las 18:00 en Mexico ya es el dia siguiente en
+    // UTC, asi que el home leia el documento de MANANA y el concentrado el de
+    // HOY. De ahi 5 contra 48. Es el mismo bug que cotizaciones ya tenia
+    // arreglado desde v1.9.14 y que yo reintroduje.
+    var hoy=fechaToISO(new Date());
     var rol=String(asesorData.rol||'asesor').toLowerCase();
     if(rol==='asesor'){
       return preLeerLocal().filter(function(x){ return String(x.fecha||'')===hoy; }).length;
@@ -11725,7 +11738,7 @@ function preRutaBajar(tipo,valor,etiqueta){
 function _preDiasPeriodo(p){
   if(p!=='todo'){
     var r=(typeof getDateRange==='function')?getDateRange(p):null;
-    return (r&&r.dias)?r.dias:[new Date().toISOString().slice(0,10)];
+    return (r&&r.dias)?r.dias:[fechaToISO(new Date())];
   }
   var dias=[], cur=new Date(PRE_INICIO+'T12:00:00'), fin=new Date();
   while(cur<=fin && dias.length<120){
@@ -11745,6 +11758,13 @@ async function showPrerregistro(soloPeriodo){
   if(!soloPeriodo){ _preJerarquia=null; _preJerarquiaDe=null; }
   _preRuta=[]; _preVerTodos=false;
   show('s-prerregistro');
+  // [v1.59] El boton de cuadrar se muestra AL ABRIR, no dentro de _preRender:
+  // ahi solo aparecia si la lectura de los ~2,900 empleados terminaba bien, y
+  // si tardaba o fallaba nunca se veia.
+  try{
+    var _cua=document.getElementById('pre-cuadrar');
+    if(_cua) _cua.style.display = (String((asesorData&&asesorData.attuid)||'').toUpperCase()===SUPER_ADMIN_ATTUID) ? '' : 'none';
+  }catch(e){}
   var c=document.getElementById('pre-cuerpo');
   if(c) c.innerHTML='<div class="adm-msg">Cargando…</div>';
   try{
@@ -11977,7 +11997,7 @@ async function preSincronizar(arr, fechas){
     // dato nace limpio aunque el documento del asesor traiga basura.
     var kR=_kResumen(_preRegionValida((asesorData&&asesorData.region)||''));
     var nom=String((asesorData&&asesorData.name)||att);
-    var dias=(fechas&&fechas.length)?fechas:[new Date().toISOString().slice(0,10)];
+    var dias=(fechas&&fechas.length)?fechas:[fechaToISO(new Date())];
     for(var i=0;i<dias.length;i++){
       var dia=dias[i];
       var delDia=(arr||[]).filter(function(x){ return String(x.fecha||'')===dia; });
@@ -12072,12 +12092,92 @@ function preExportarCSV(){
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');
     a.href=url;
-    a.download='prerregistro-ip18-'+_kResumen(periodo).toLowerCase()+'-'+new Date().toISOString().slice(0,10)+'.csv';
+    a.download='prerregistro-ip18-'+_kResumen(periodo).toLowerCase()+'-'+fechaToISO(new Date())+'.csv';
     document.body.appendChild(a); a.click();
     setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
     admToast('CSV descargado: '+padron.length+' asesor(es).','ok');
   }catch(e){
     admToast('No se pudo generar el CSV: '+((e&&e.message)||'error'),'err');
+  }
+}
+
+// ══ [v1.58] CUADRE DE FECHAS ═══════════════════════════════════════════════
+// Los pre-registros capturados despues de las 18:00 hora de Mexico quedaron
+// archivados con la fecha del dia SIGUIENTE, porque yo usaba UTC. Este cuadre
+// los devuelve a su dia real.
+//
+// COMO SABE LA FECHA VERDADERA: el id de cada registro es
+// ATTUID_<timestamp>_<aleatorio>. Ese timestamp es el momento exacto de la
+// captura, asi que la fecha local se recalcula de ahi — no se adivina.
+//
+// Es IDEMPOTENTE: si ya esta cuadrado, no cambia nada y lo dice.
+// Solo SUPER_ADMIN, y solo reescribe lo que de verdad esta torcido.
+function _preFechaDeId(id){
+  var p=String(id||'').split('_');
+  if(p.length<2) return '';
+  var ts=Number(p[1]);
+  if(!ts || ts<1600000000000) return '';
+  return fechaToISO(new Date(ts));
+}
+
+async function preCuadrarFechas(){
+  if(String((asesorData&&asesorData.attuid)||'').toUpperCase()!==SUPER_ADMIN_ATTUID) return;
+  if(!confirm('¿Cuadrar las fechas de los pre-registros?\n\nLos capturados por la tarde quedaron con la fecha del día siguiente. Esto los devuelve a su día real. No se borra ningún registro.')) return;
+  var btn=document.getElementById('pre-cuadrar');
+  if(btn){ btn.disabled=true; btn.textContent='Cuadrando…'; }
+  try{
+    await loadFirebase();
+    await _preCargarJerarquia();
+    var ros=(_preJerarquia&&_preJerarquia.roster)||{};
+    var attuids=Object.keys(ros);
+    var revisados=0, corregidos=0, dias={}, personas=0;
+    for(var k=0;k<attuids.length;k++){
+      var att=attuids[k];
+      var ref=firestoreFns.doc(firestoreDB,'prerregistros_idx',att);
+      var sn=await firestoreFns.getDoc(ref).catch(function(){ return null; });
+      if(!sn || !sn.exists()) continue;
+      var items=((sn.data()||{}).items)||[];
+      if(!items.length) continue;
+      revisados++;
+      var cambio=false, tocados={};
+      items.forEach(function(x){
+        var real=_preFechaDeId(x.id);
+        if(real && String(x.fecha||'')!==real){
+          tocados[String(x.fecha||'')]=true; tocados[real]=true;
+          x.fecha=real; cambio=true; corregidos++;
+        }
+      });
+      if(!cambio) continue;
+      personas++;
+      await firestoreFns.updateDoc(ref, {items:items, n:items.length, ts:Date.now()});
+      // Reescribir la entrada de ESTE asesor en cada dia afectado, desde su
+      // lista ya corregida. Absoluto, igual que preSincronizar.
+      var meta=ros[att]||{};
+      var fechas=Object.keys(tocados).filter(Boolean);
+      for(var f=0;f<fechas.length;f++){
+        var dia=fechas[f]; dias[dia]=true;
+        var delDia=items.filter(function(x){ return String(x.fecha||'')===dia; });
+        var r=_preResumenDe(delDia);
+        var entrada={ n:r.n, pos:r.pos, ren:r.ren, nom:meta.nom||att, t:meta.t||'', r:meta.r||'', mod:r.mod, col:r.col };
+        var dref=firestoreFns.doc(firestoreDB,'resumenes',preDocDia(dia));
+        try{
+          var upd={}; upd['asesor.'+att]=entrada;
+          await firestoreFns.updateDoc(dref, upd);
+        }catch(e){
+          var dd={asesor:{}}; dd.asesor[att]=entrada;
+          await firestoreFns.setDoc(dref, dd, {merge:true});
+        }
+      }
+    }
+    admToast(corregidos
+      ? ('Cuadrado: '+corregidos+' registro(s) de '+personas+' asesor(es), en '+Object.keys(dias).length+' día(s).')
+      : 'Todo ya estaba cuadrado. No se cambió nada.','ok');
+    showPrerregistro();
+  }catch(e){
+    var m=(e&&e.message)?e.message:'Error';
+    admToast(/permission|insufficient/i.test(m)?'Sin permiso (revisa las reglas de Firestore).':m,'err');
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='Cuadrar fechas'; }
   }
 }
 
@@ -12239,7 +12339,9 @@ async function preGuardar(){
   var att=String((asesorData&&asesorData.attuid)||'').toUpperCase();
   var tienda=String((asesorData&&(asesorData.tienda||asesorData.sucursal))||'');
   var region=(typeof regionCanon==='function')?regionCanon((asesorData&&asesorData.region)||''):String((asesorData&&asesorData.region)||'');
-  var hoy=new Date().toISOString().slice(0,10);
+  // [v1.57] Fecha LOCAL. Una captura a las 19:00 en Mexico se guardaba con
+  // fecha del dia siguiente y desaparecia del corte de hoy.
+  var hoy=fechaToISO(new Date());
   var editando=_preEditando;
   var previo=editando?(preLeerLocal().filter(function(r){return r.id===editando;})[0]||null):null;
   var id=editando||(att+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,10));
@@ -12400,13 +12502,31 @@ async function admConfirmCrearTienda(){
     if(!snap || !snap.exists()){ throw new Error('No se encontró al regional '+reg+'.'); }
     var d=snap.data()||{};
     var lista=Array.isArray(d.tiendasAsignadas)?d.tiendasAsignadas.map(String):[];
-    if(lista.some(function(t){ return _admNormTienda(t)===_admNormTienda(nom); })){
-      throw new Error('Ese regional ya tiene esa tienda.');
+    var yaEsta=lista.filter(function(t){ return _admNormTienda(t)===_admNormTienda(nom); })[0];
+    if(yaEsta){
+      // [v1.59] Ya existe: no es un error, es que no se veia. Se refresca la
+      // sesion y la lista para que aparezca, en vez de solo negarse.
+      if(reg === _meAttuid() && asesorData){
+        asesorData.tiendasAsignadas = lista.slice();
+        try{ saveSesion(asesorData); }catch(e){}
+      }
+      if(_admGente[reg]) _admGente[reg].tiendasAsignadas=lista;
+      admCerrarSheet();
+      admToast('"'+yaEsta+'" ya estaba creada. Ya debe aparecer en la lista.','ok');
+      if(typeof adminCargarEquipo==='function') adminCargarEquipo();
+      return;
     }
     lista.push(nom); lista.sort();
     // La regla (5) de Firestore ya permite escribir tiendasAsignadas sola.
     await firestoreFns.updateDoc(ref, {tiendasAsignadas:lista});
     if(_admGente[reg]) _admGente[reg].tiendasAsignadas=lista;
+    // [v1.59] TAMBIEN la sesion en memoria. _meTiendas() lee asesorData, no
+    // Firestore: sin esto la tienda quedaba guardada pero invisible hasta
+    // cerrar y volver a abrir sesion. Era el "la cree y no la veo".
+    if(reg === _meAttuid() && asesorData){
+      asesorData.tiendasAsignadas = lista.slice();
+      try{ saveSesion(asesorData); }catch(e){}
+    }
     admCerrarSheet();
     admToast('Tienda creada: '+nom,'ok');
     if(typeof adminCargarEquipo==='function') adminCargarEquipo();
