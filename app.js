@@ -10172,6 +10172,14 @@ function _admPermisos(attuid, d){
   p.toggle = enAlc;
   p.mover = enAlc;
   p.eliminar = enAlc;
+  // [v1.56] CLUSTER DE GERENTES. Un gerente puede llevar mas de una tienda.
+  // Se reusa tiendasAsignadas —el mismo campo y la misma hoja que los
+  // regionales—, asi que _meTiendas() ya le da visibilidad multiple sin tocar
+  // nada mas: esa funcion lee el campo sin fijarse en el rol.
+  // OJO: NO se toca su campo `tienda`. Esa sigue siendo su sucursal base y es
+  // la que usan los reportes para atribuir, asi que un gerente con tres
+  // tiendas no cuenta tres veces.
+  if(_admRol(d)==='gerente') p.tiendas = enAlc;
   return p;
 }
 
@@ -10445,10 +10453,10 @@ async function adminCargarEquipo(){
       if(listLabel){
         listLabel.textContent = 'Estructura nacional';
         // [v1.55] El boton "Aplicar estructura Pacifico" se retiro: la
-        // estructura de septiembre ya se aplico y no tiene que seguir ahi.
-        // La funcion admSheetMigrarPacifico sigue en el codigo por si hay que
-        // volver a correrla; para reponer el acceso basta con pintar un boton
-        // que la llame desde este mismo punto.
+        // estructura de septiembre ya se aplico. La funcion sigue en el codigo
+        // por si hay que volver a correrla.
+        // [v1.56] En su lugar va "Crear tienda", para regional hacia arriba.
+        _admPintarBotonTienda(listLabel);
       }
       const qs = await firestoreFns.getDocs(col);
       const docs = []; qs.forEach(function(s){ docs.push({id:s.id,d:s.data()||{}}); });
@@ -10468,7 +10476,12 @@ async function adminCargarEquipo(){
     }
 
     // Regional / Director: cargar su gente.
-    if(listLabel) listLabel.textContent = 'Tu equipo';
+    if(listLabel){
+      listLabel.textContent = 'Tu equipo';
+      // [v1.56] El mismo boton para regional y gerente-con-alcance. Antes solo
+      // se pintaba en la rama del DN, asi que un regional nunca lo veia.
+      _admPintarBotonTienda(listLabel);
+    }
     const arr = [];
     if(_meRol()==='director'){
       const _regs=_misRegiones();
@@ -10641,8 +10654,11 @@ async function admConfirmCrear(){
     const ref = firestoreFns.doc(firestoreDB,'empleados',attuid);
     const snap = await firestoreFns.getDoc(ref);
     if(snap.exists()){
-      admToast('Ya existe un colaborador con ATTUID '+attuid+'.','err');
+      // [v1.56] Antes solo decia "ya existe" y ahi te quedabas. Ahora se
+      // muestra DONDE esta y, si esta en otra tienda dentro de tu alcance, se
+      // ofrece traerlo en vez de obligarte a buscarlo a mano.
       if(cta){ cta.disabled=false; cta.textContent=lbl||'Crear usuario'; }
+      admSheetDuplicado(attuid, snap.data()||{}, tienda, region);
       return;
     }
     await firestoreFns.setDoc(ref, {
@@ -12257,6 +12273,215 @@ async function preGuardar(){
   }
 }
 
+// ══ [v1.56] CREAR TIENDA ═══════════════════════════════════════════════════
+// No existe una coleccion /tiendas: una tienda existe porque alguien trabaja
+// ahi o porque un regional la tiene en sus tiendasAsignadas. Crear una tienda
+// es, entonces, agregarla a las tiendasAsignadas de su regional. Nace vacia y
+// lista para crear usuarios dentro — el buscador de sucursales ya contempla
+// tiendas sin gente.
+// Puede hacerlo regional, director y DN. El regional solo sobre si mismo.
+var _admNuevaTiendaRegional=null;
+
+// Pinta el boton una sola vez, junto al encabezado de la lista.
+function _admPintarBotonTienda(listLabel){
+  try{
+    if(!listLabel || !admPuedeCrearTienda()) return;
+    if(document.getElementById('adm-btn-tienda')) return;
+    var host = listLabel.parentElement || listLabel;
+    var b = document.createElement('button');
+    b.id = 'adm-btn-tienda';
+    b.className = 'adm-action';
+    b.style.cssText = 'margin-left:10px;font-size:12px;padding:5px 10px;'
+      + 'display:inline-block;width:auto;flex:0 0 auto;vertical-align:middle';
+    b.textContent = 'Crear tienda';
+    b.onclick = function(){ admSheetCrearTienda(); };
+    host.appendChild(b);
+  }catch(e){}
+}
+
+function admPuedeCrearTienda(){
+  var r=_meRol();
+  return _meEsSuper() || r==='regional' || r==='director' || r==='director_nacional';
+}
+
+// Nombres ya existentes, para avisar de parecidos antes de crear un fantasma.
+function _admTiendasConocidas(){
+  var set={};
+  Object.keys(_admGente).forEach(function(id){
+    var t=String((_admGente[id]||{}).tienda||'').trim(); if(t) set[t]=true;
+    var a=(_admGente[id]||{}).tiendasAsignadas;
+    if(Array.isArray(a)) a.forEach(function(x){ x=String(x||'').trim(); if(x) set[x]=true; });
+  });
+  return Object.keys(set).sort();
+}
+function _admNormTienda(s){
+  return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toUpperCase().replace(/[^A-Z0-9]/g,'');
+}
+
+function admSheetCrearTienda(){
+  if(!admPuedeCrearTienda()){ admToast('No tienes permiso para crear tiendas.','err'); return; }
+  var rol=_meRol(), soyRegional=(rol==='regional');
+  // Regionales a los que se le puede colgar la tienda.
+  var regs=[];
+  if(soyRegional){
+    regs=[{id:_meAttuid(), nombre:String((asesorData&&asesorData.name)||_meAttuid()), region:_meRegion()}];
+  } else {
+    var misR=_misRegiones();
+    Object.keys(_admGente).forEach(function(id){
+      var d=_admGente[id]||{};
+      if(String(d.rol||'').toLowerCase()!=='regional') return;
+      var rg=(typeof regionCanon==='function')?regionCanon(d.region):String(d.region||'');
+      if(!_meEsGlobal() && misR.indexOf(rg)<0) return;
+      regs.push({id:String(id).toUpperCase(), nombre:String(d.nombre||id), region:rg});
+    });
+    regs.sort(function(a,b){ return String(a.region+a.nombre).localeCompare(String(b.region+b.nombre)); });
+  }
+  _admNuevaTiendaRegional = soyRegional ? _meAttuid() : null;
+  var opts=regs.map(function(r){
+    return '<div class="adm-opt" data-v="'+_admEsc(r.id)+'" onclick="admSelUnico(this);_admNuevaTiendaRegional='+_admJsStr(r.id)+';admValidarTienda()">'
+      +'<span class="adm-opt-tick"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
+      +'<span class="adm-opt-name">'+_admEsc(r.nombre)+'</span>'
+      +'<span class="adm-opt-cur" style="background:none;color:var(--hv2-ink3)">'+_admEsc(r.region||'—')+'</span></div>';
+  }).join('');
+  admAbrirSheet(
+    '<div class="adm-sheet-h">Crear tienda</div>'
+    +'<div class="adm-sheet-sub">La tienda nace vacía, asignada a un regional. Después creas usuarios dentro.</div>'
+    +'<div class="adm-sheet-scroll">'
+    +'<div style="margin-bottom:6px"><input id="adm-tienda-nom" class="adm-input" type="text" autocomplete="off" maxlength="80" placeholder="Nombre de la tienda" oninput="admValidarTienda()"></div>'
+    +'<div id="adm-tienda-aviso" class="adm-msg" style="display:none"></div>'
+    + (soyRegional
+        ? ('<div class="adm-msg">Quedará en tu región, <b>'+_admEsc(_meRegion()||'—')+'</b>, asignada a ti.</div>')
+        : ('<div class="adm-msg" style="margin-top:8px;font-weight:700;color:var(--hv2-ink2)">¿A qué regional se le asigna?</div>'+
+           (opts||'<div class="adm-msg">No hay regionales en tu alcance.</div>')))
+    +'</div>'
+    +_admCampoPass()
+    +'<button class="adm-sheet-cta" id="adm-cta" disabled onclick="admConfirmCrearTienda()">Crear tienda</button>'
+  );
+}
+
+function admValidarTienda(){
+  var el=document.getElementById('adm-tienda-nom');
+  var nom=String((el&&el.value)||'').trim();
+  var av=document.getElementById('adm-tienda-aviso');
+  var cta=document.getElementById('adm-cta');
+  var ok=nom.length>=5 && !!_admNuevaTiendaRegional;
+  var msg='', bloquea=false;
+  if(nom.length>=3){
+    var n=_admNormTienda(nom), conocidas=_admTiendasConocidas();
+    var exacta=conocidas.filter(function(t){ return _admNormTienda(t)===n; });
+    if(exacta.length){
+      msg='⚠ Ya existe <b>'+_admEsc(exacta[0])+'</b>. No se crea duplicada.';
+      bloquea=true;
+    } else {
+      // Parecidas: una contiene a la otra. Atrapa acentos, espacios y typos.
+      var pare=conocidas.filter(function(t){
+        var m=_admNormTienda(t);
+        return m.length>4 && (m.indexOf(n)>=0 || n.indexOf(m)>=0);
+      }).slice(0,3);
+      if(pare.length) msg='Se parece a: '+pare.map(_admEsc).join(' · ')+'. Revisa que no sea la misma.';
+    }
+  }
+  if(av){ av.style.display=msg?'':'none'; av.innerHTML=msg; av.style.color=bloquea?'var(--hv2-bad)':'var(--hv2-ink3)'; }
+  if(cta) cta.disabled=!(ok && !bloquea);
+}
+
+async function admConfirmCrearTienda(){
+  var el=document.getElementById('adm-tienda-nom');
+  var nom=String((el&&el.value)||'').trim().replace(/\s+/g,' ');
+  var reg=_admNuevaTiendaRegional;
+  if(!nom || !reg){ admToast('Falta el nombre o el regional.','err'); return; }
+  var cta=document.getElementById('adm-cta'), lbl=cta?cta.textContent:'';
+  if(cta){ cta.disabled=true; cta.textContent='Creando…'; }
+  try{
+    await loadFirebase();
+    var ref=firestoreFns.doc(firestoreDB,'empleados',reg);
+    var snap=await firestoreFns.getDoc(ref);
+    if(!snap || !snap.exists()){ throw new Error('No se encontró al regional '+reg+'.'); }
+    var d=snap.data()||{};
+    var lista=Array.isArray(d.tiendasAsignadas)?d.tiendasAsignadas.map(String):[];
+    if(lista.some(function(t){ return _admNormTienda(t)===_admNormTienda(nom); })){
+      throw new Error('Ese regional ya tiene esa tienda.');
+    }
+    lista.push(nom); lista.sort();
+    // La regla (5) de Firestore ya permite escribir tiendasAsignadas sola.
+    await firestoreFns.updateDoc(ref, {tiendasAsignadas:lista});
+    if(_admGente[reg]) _admGente[reg].tiendasAsignadas=lista;
+    admCerrarSheet();
+    admToast('Tienda creada: '+nom,'ok');
+    if(typeof adminCargarEquipo==='function') adminCargarEquipo();
+  }catch(e){
+    var m=(e&&e.message)?e.message:'Error';
+    admToast(/permission|insufficient/i.test(m)?'Sin permiso (revisa las reglas de Firestore).':m,'err');
+    if(cta){ cta.disabled=false; cta.textContent=lbl||'Crear tienda'; }
+  }
+}
+
+// ══ [v1.56] ATTUID DUPLICADO ═══════════════════════════════════════════════
+// Nunca se crea encima de alguien que ya existe: seria pisar su tienda, su rol
+// y su contrasena. Se dice donde esta y, si cabe, se ofrece moverlo.
+var _admDupCtx=null;
+
+function admSheetDuplicado(attuid, d, tiendaDestino, regionDestino){
+  attuid=String(attuid).toUpperCase();
+  var rol=String(d.rol||'asesor').toLowerCase();
+  var tActual=String(d.tienda||''), rActual=String(d.region||'');
+  var activo=(d.activo!==false);
+  var mismaTienda=(_admNormTienda(tActual)===_admNormTienda(tiendaDestino));
+  // Solo se ofrece mover si es operativo y cae en el alcance de quien opera.
+  var movible = !mismaTienda && (rol==='asesor'||rol==='gerente') && _admEnAlcance(d);
+  _admDupCtx = movible ? {attuid:attuid, tienda:tiendaDestino, region:regionDestino} : null;
+  admAbrirSheet(
+    '<div class="adm-sheet-h">Ese ATTUID ya existe</div>'
+    +'<div class="adm-sheet-sub"><b>'+_admEsc(attuid)+'</b> ya está dado de alta. No se crea encima.</div>'
+    +'<div class="adm-sheet-scroll">'
+    +'<div class="adm-opt" style="display:block;padding:13px">'
+    +'<div style="font-weight:800;color:var(--hv2-ink);margin-bottom:6px">'+_admEsc(String(d.nombre||attuid))+'</div>'
+    +'<div style="font-size:12px;color:var(--hv2-ink3);line-height:1.7">'
+    +'Rol: <b>'+_admEsc(rol.toUpperCase())+'</b><br>'
+    +'Tienda: <b>'+_admEsc(tActual||'—')+'</b><br>'
+    +'Región: <b>'+_admEsc(rActual||'—')+'</b><br>'
+    +'Estado: <b style="color:'+(activo?'var(--hv2-ok)':'var(--hv2-bad)')+'">'+(activo?'Activo':'Dado de baja')+'</b>'
+    +'</div></div>'
+    + (mismaTienda
+        ? '<div class="adm-msg">Ya está en esta misma tienda. No hay nada que hacer.</div>'
+        : (movible
+            ? ('<div class="adm-msg">¿Es la misma persona? Puedes traerlo a <b>'+_admEsc(tiendaDestino)+'</b> en vez de crear otro registro.</div>')
+            : ('<div class="adm-msg">Está fuera de tu alcance o es un mando. Pídelo a quien lo administra.</div>')))
+    +'</div>'
+    + (movible ? _admCampoPass() : '')
+    + (movible
+        ? '<button class="adm-sheet-cta" id="adm-cta" onclick="admConfirmTraerDuplicado()">Traerlo a esta tienda</button>'
+        : '<button class="adm-sheet-cta" onclick="admCerrarSheet()">Entendido</button>')
+  );
+}
+
+async function admConfirmTraerDuplicado(){
+  var c=_admDupCtx;
+  if(!c){ admCerrarSheet(); return; }
+  var cta=document.getElementById('adm-cta'), lbl=cta?cta.textContent:'';
+  if(cta){ cta.disabled=true; cta.textContent='Moviendo…'; }
+  try{
+    await loadFirebase();
+    var cambio={tienda:c.tienda};
+    // La region solo se toca si el destino trae una valida, para no ensuciar.
+    if(c.region && (typeof REGIONES_MX==='undefined' || REGIONES_MX.indexOf(String(c.region).toUpperCase())>=0)){
+      cambio.region=String(c.region).toUpperCase();
+    }
+    // Regla (4) de Firestore: hasOnly(['tienda','region']).
+    await firestoreFns.updateDoc(firestoreFns.doc(firestoreDB,'empleados',c.attuid), cambio);
+    if(_admGente[c.attuid]){ _admGente[c.attuid].tienda=c.tienda; if(cambio.region)_admGente[c.attuid].region=cambio.region; }
+    _admDupCtx=null;
+    admCerrarSheet();
+    admToast(c.attuid+' movido a '+c.tienda,'ok');
+    if(typeof adminCargarEquipo==='function') adminCargarEquipo();
+  }catch(e){
+    var m=(e&&e.message)?e.message:'Error';
+    admToast(/permission|insufficient/i.test(m)?'Sin permiso (revisa las reglas de Firestore).':m,'err');
+    if(cta){ cta.disabled=false; cta.textContent=lbl||'Traerlo a esta tienda'; }
+  }
+}
+
 function admSelUnico(el){
   const box=el.parentElement;
   Array.prototype.forEach.call(box.querySelectorAll('.adm-opt'), function(o){ o.classList.remove('sel'); });
@@ -12295,7 +12520,11 @@ async function admSheetTiendas(attuid){
   const actuales=Array.isArray(d.tiendasAsignadas)?d.tiendasAsignadas.map(String):[];
   admAbrirSheet(
     '<div class="adm-sheet-h">Editar tiendas</div>'
-    +'<div class="adm-sheet-sub"><b>'+_admEsc(d.nombre||attuid)+'</b> (regional) · '+_admEsc(region||'—')+'<br>Marca las tiendas que llevará.</div>'
+    +'<div class="adm-sheet-sub"><b>'+_admEsc(d.nombre||attuid)+'</b> ('+_admEsc(String(d.rol||'regional'))+') · '+_admEsc(region||'—')
+    + (String(d.rol||'').toLowerCase()==='gerente'
+        ? ('<br>Marca las tiendas que verá además de la suya. Su tienda base sigue siendo <b>'+_admEsc(String(d.tienda||'—'))+'</b>.')
+        : '<br>Marca las tiendas que llevará.')
+    +'</div>'
     +'<div class="adm-sheet-scroll" id="adm-tiendas-list"><div class="adm-msg">Cargando tiendas…</div></div>'
     +_admCampoPass()
     +'<button class="adm-sheet-cta" id="adm-cta" onclick="admConfirmTiendas(\''+attuid+'\')">Guardar tiendas</button>'
