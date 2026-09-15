@@ -12,7 +12,7 @@
      otro script, porque catalog.js/vendors.js la usan para el cache-busting y
      el registro del SW la compara. Si HTML y SW no coinciden → recarga forzada.
      Al empacar cada versión, este número se actualiza igual que el cache del SW. -->
-<script>window.BUILD_ID = '1790071200';
+<script>window.BUILD_ID = '1790074800';
 
   /* [v1.55] APP_JS_V se define AQUI, no al 88% del archivo, para poder emitir
      los preload con la URL exacta que despues pediran los document.write.
@@ -26,7 +26,7 @@
   document.write('<link rel="preload" as="script" href="app.js?v='+window.APP_JS_V+'">');
 // [v1.11.61] APP_VERSION vive aquí desde que el bloque principal salió a app.js.
 // El ritual de release NO cambia: 2 constantes aquí + 2 en sw.js.
-const APP_VERSION = 'v1.66.2';</script>
+const APP_VERSION = 'v1.66.3';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
