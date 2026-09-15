@@ -534,6 +534,8 @@ function show(id){
   // hacia adelante (Accesos, catalogo, etc.), para no deshacer el clic del usuario
   // recargando encima. El regreso a la app (visibilitychange) tambien la aplica.
   if(id==='s-home' && typeof aplicarActualizacionSiSegura === 'function') aplicarActualizacionSiSegura('nav:'+id);
+  // [v1.64] Al volver al home, los contadores se ponen al dia.
+  if(id==='s-home' && typeof refrescarContadoresHome === 'function') refrescarContadoresHome();
 }
 
 // [v1.10.63] ── MANEJO DEL BOTÓN "ATRÁS" DEL TELÉFONO (patrón centinela) ──────
@@ -5140,6 +5142,10 @@ async function registrarCotizacion(canal){
   }
   // [v1.10.3] Refrescar badge de pendientes (si quedan en cola)
   if(typeof updatePendientesBadge === 'function') updatePendientesBadge();
+  // [v1.64] Y los contadores del home, FORZADO: el asesor acaba de cotizar y va
+  // a volver al home en segundos. Sin el forzado, el freno de 20 s lo bloquearia
+  // justo cuando el dato cambio.
+  if(typeof refrescarContadoresHome === 'function') refrescarContadoresHome(true);
   return success;
 }
 
@@ -5197,6 +5203,18 @@ setInterval(function(){
 // medias → la cotización quedaba encolada pero sin persistir. El único reintento
 // era el setInterval de 2 min; si el asesor cerraba la app antes, no se contaba.
 // FIX: al volver la app al primer plano, procesar la cola de inmediato.
+// [v1.64] Al regresar a la app, refrescar los contadores del home. Va FORZADO
+// porque volver despues de un rato es justo cuando el dato esta mas viejo, y
+// cubre el caso de dejarla abierta y que cambie el dia.
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState !== 'visible') return;
+  if(!asesorData) return;
+  var home = document.getElementById('s-home');
+  if(home && home.classList.contains('active') && typeof refrescarContadoresHome === 'function'){
+    refrescarContadoresHome(true);
+  }
+});
+
 document.addEventListener('visibilitychange', function(){
   if(document.visibilityState !== 'visible') return;
   if(!asesorData) return;
@@ -7438,6 +7456,25 @@ function escapeHtml(s){
 }
 
 // Decide qué se ve en la tarjeta del home según el rol del usuario
+// [v1.64] REFRESCO DE LOS CONTADORES DEL HOME.
+// Antes solo se calculaban al iniciar sesion. Si el asesor cotizaba y volvia al
+// home, el numero seguia en lo de hace rato; y si dejaba la app abierta toda la
+// noche, "hoy" apuntaba al dia anterior. Habia que recargar a mano.
+// Ahora se refrescan al ENTRAR al home y al REGRESAR a la app, con un freno de
+// 20 s para que rebotar entre pantallas no dispare una lectura cada vez.
+var _homeUltimoRefresco = 0;
+function refrescarContadoresHome(forzar){
+  try{
+    if(!asesorData) return;
+    var ahora = Date.now();
+    if(!forzar && (ahora - _homeUltimoRefresco) < 20000) return;
+    _homeUltimoRefresco = ahora;
+    if(typeof updateDashHomeCard === 'function') updateDashHomeCard();
+    if(typeof preRefrescarTarjeta === 'function') preRefrescarTarjeta();
+  }catch(e){ console.warn('[home] refresco', e && e.message); }
+}
+window.refrescarContadoresHome = refrescarContadoresHome;
+
 function updateDashHomeCard(){
   const card=document.getElementById('dash-home-card');
   if(!card) return;
@@ -12468,7 +12505,9 @@ async function preGuardar(){
     _preEditando=null;
     admCerrarSheet();
     admToast(editando?'Registro actualizado.':('Interesado registrado. Llevas '+arr.length+'.'),'ok');
-    preRefrescarTarjeta();
+    // [v1.64] Forzado, por la misma razon que al cotizar.
+    if(typeof refrescarContadoresHome === 'function') refrescarContadoresHome(true);
+    else preRefrescarTarjeta();
   }catch(e){
     var msg=(e&&e.message)?e.message:'Error';
     admToast(/permission|insufficient/i.test(msg)?'Sin permiso (revisa las reglas de Firestore).':msg,'err');
@@ -13313,94 +13352,100 @@ function buildFlyerHTML(state){
   let h='<div class="flyer-v3">';
   h+=_flyerHead();
   h+=_flyerGreet(state);
-  h+=_flyerProducto(state);
-  
-  // ── Precio del equipo ───────────────────────────────────────────────
-  h+='<div class="flyer-v3-price-row">';
-  h+='<div class="flyer-v3-price-info">';
-  h+='<div class="flyer-v3-price-lbl">Precio del equipo</div>';
-  if(state.contado>state.promo){
-    h+='<div class="flyer-v3-strike">$'+fmx(state.contado)+'</div>';
+  // ── [v1.65] EQUIPO Y PRECIO, LADO A LADO ────────────────────────────
+  // Antes el equipo iba centrado con su foto de 200x200 y el precio venia
+  // debajo en otro bloque. Ahora comparten renglon: la foto gana presencia y el
+  // precio queda a su altura, que es como se lee una cotizacion.
+  // _flyerProducto() se conserva intacta por si vuelve a hacer falta.
+  const _dev=state.device;
+  const _img=IMG[_dev.id]
+    ? '<img src="'+IMG[_dev.id]+'" alt="" style="max-width:100%;max-height:100%;object-fit:contain">'
+    : '<div style="font-size:64px;line-height:1">\uD83D\uDCF1</div>';
+  h+='<div style="display:flex;gap:18px;align-items:center;padding:10px 28px 6px">';
+  h+='<div style="width:168px;height:188px;flex-shrink:0;display:flex;align-items:center;justify-content:center">'+_img+'</div>';
+  h+='<div style="flex:1;min-width:0;text-align:left">';
+  h+='<div style="font-size:10px;letter-spacing:.16em;color:#86868B;text-transform:uppercase;font-weight:600">'+_dev.brand+'</div>';
+  h+='<div style="font-size:21px;font-weight:800;color:#0B1A2B;line-height:1.15;margin-top:4px;letter-spacing:-.01em">'+_dev.name+'</div>';
+  h+='<div style="font-size:13px;color:#86868B;margin-top:2px">'+_dev.storage+'</div>';
+  h+='<div style="height:1px;background:#E8EBEF;margin:13px 0"></div>';
+  h+='<div style="font-size:10px;letter-spacing:.14em;color:#86868B;text-transform:uppercase;font-weight:600">Precio del equipo</div>';
+  if(state.contado>state.promo && state.promo>0){
+    h+='<div style="font-size:13px;color:#A0A8B5;text-decoration:line-through;margin-top:4px">$'+fmx(state.contado)+'</div>';
   }
-  // [v1.9.30] Flyer: "Incluido en el plan*" + leyenda legal pequeña.
   if(state.promo === 0){
-    h+='<div class="flyer-v3-price-big" style="color:#16A34A;font-size:30px">Incluido en el plan*</div>';
-    h+='<div class="flyer-v3-save" style="font-size:11px;line-height:1.3;font-style:italic;color:#555;margin-top:4px">*Equipo sin costo sujeto a permanencia. Cancelación anticipada genera cobro del equipo.</div>';
+    h+='<div style="font-size:22px;font-weight:800;color:#16A34A;margin-top:3px;line-height:1.15">Incluido en el plan*</div>';
+    h+='<div style="font-size:10px;line-height:1.35;font-style:italic;color:#6B7A90;margin-top:5px">*Equipo sin costo sujeto a permanencia. Cancelación anticipada genera cobro del equipo.</div>';
   } else {
-    h+='<div class="flyer-v3-price-big">$'+fmx(Math.round(state.promo))+'</div>';
+    h+='<div style="display:flex;align-items:center;gap:8px;margin-top:2px;flex-wrap:wrap">';
+    h+='<span style="font-size:29px;font-weight:800;color:#0B1A2B;letter-spacing:-.02em">$'+fmx(Math.round(state.promo))+'</span>';
+    if(desc>=10){
+      h+='<span style="background:'+planAccent+';color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:13px">\u2212'+desc+'%</span>';
+    }
+    h+='</div>';
     if(ahorro>0){
-      h+='<div class="flyer-v3-save">Ahorras $'+fmx(ahorro)+'</div>';
+      h+='<div style="font-size:13px;color:#16A34A;font-weight:600;margin-top:4px">Ahorras $'+fmx(ahorro)+'</div>';
     }
   }
-  h+='</div>';
-  // [v1.9.28] Badge de descuento: ocultar para $0 (que ya dice "Incluido")
-  if(desc>=10 && state.promo > 0){
-    h+='<div class="flyer-v3-disc-badge" style="background:'+planAccent+'"><div class="flyer-v3-disc-num">−'+desc+'%</div><div class="flyer-v3-disc-lbl">descuento</div></div>';
-  } else if(state.promo === 0){
-    h+='<div class="flyer-v3-disc-badge" style="background:#16A34A"><div class="flyer-v3-disc-num" style="font-size:13px;letter-spacing:0">SIN COSTO</div><div class="flyer-v3-disc-lbl">de equipo</div></div>';
-  }
-  h+='</div>';
-  
-  // ── Plan ──────────────────────────────────────────────────────────────
-  h+='<div class="flyer-v3-plan" style="border-left:3px solid '+planAccent+'">';
-  h+='<div class="flyer-v3-plan-info">';
-  h+='<div class="flyer-v3-plan-lbl">Plan</div>';
-  h+='<div class="flyer-v3-plan-name">'+state.plan+'</div>';
-  h+='<div class="flyer-v3-plan-meta">'+state.plazo+' meses</div>';
-  h+='</div>';
-  h+='<div class="flyer-v3-plan-renta">';
-  h+='<div class="flyer-v3-plan-renta-lbl">Renta</div>';
-  h+='<div class="flyer-v3-plan-renta-val">$'+fmx(state.planRenta)+'</div>';
-  h+='<div class="flyer-v3-plan-renta-sub">/mes</div>';
-  h+='</div>';
-  h+='</div>';
-  
-  // ── Banner portabilidad (si aplica) ─────────────────────────────────
-  if(state.port){
-    h+='<div class="flyer-v3-port">';
-    h+='<div class="flyer-v3-port-icon">🔄</div>';
-    h+='<div class="flyer-v3-port-info">';
-    h+='<div class="flyer-v3-port-title">Promoción por portabilidad</div>';
-    if(portSavings > 0){
-      h+='<div class="flyer-v3-port-desc">'+(state.plan==='Titanio'?'10':'20')+'% descuento en plan · paga <b>$'+fmx(totalMensualWithPort)+'/mes</b> los primeros 6 meses · ahorras <b>$'+fmx(portSavings)+'/mes</b></div>';
-    } else {
-      h+='<div class="flyer-v3-port-desc">'+(state.plan==='Titanio'?'10':'20')+'% descuento en plan durante 6 meses</div>';
-    }
-    h+='</div>';
-    h+='</div>';
-  }
-  
-  // ── Pagos: pago hoy + mensualidad ────────────────────────────────────
-  h+='<div class="flyer-v3-pays">';
-  // Pago hoy
-  h+='<div class="flyer-v3-paycard">';
-  h+='<div class="flyer-v3-paycard-lbl">Pago inicial</div>';
-  h+='<div class="flyer-v3-paycard-amt">$'+fmx(totalInicial)+'<span class="ast">*</span></div>';
+  h+='</div></div>';
+
+  // ── [v1.65] LAS DOS CIFRAS QUE EL CLIENTE PREGUNTA PRIMERO ──────────
+  // Pago inicial y total mensual, grandes y lado a lado. Conservan el detalle
+  // que ya traian debajo: de que se compone el enganche y de que el mensual.
+  h+='<div style="display:flex;gap:11px;padding:14px 28px 4px">';
+  h+='<div style="flex:1;border:1px solid #E8EBEF;border-radius:12px;padding:13px">';
+  h+='<div style="font-size:10px;letter-spacing:.1em;color:#86868B;text-transform:uppercase;font-weight:600">Pago inicial</div>';
+  h+='<div style="font-size:23px;font-weight:800;color:#0B1A2B;margin-top:6px;letter-spacing:-.01em">$'+fmx(totalInicial)+'<span style="font-size:13px;color:#A0A8B5">*</span></div>';
   let detH='';
   if(engPay>0) detH+='$'+fmx(engPay)+' enganche';
   if(rentasGarantia>0){if(detH) detH+='<br>';detH+='+ $'+fmx(rentasGarantia)+' ('+state.rentas+' renta'+(state.rentas>1?'s':'')+' garantía)';}
   if(depositoGarantia>0){if(detH) detH+='<br>';detH+='+ $'+fmx(depositoGarantia)+' depósito de garantía';}
   if(!detH) detH='Sin pago inicial';
-  h+='<div class="flyer-v3-paycard-det">'+detH+'</div>';
+  h+='<div style="font-size:11px;color:#6B7A90;line-height:1.45;margin-top:3px">'+detH+'</div>';
   h+='</div>';
-  // Mensualidad
-  h+='<div class="flyer-v3-paycard">';
-  h+='<div class="flyer-v3-paycard-lbl">Mensualidad</div>';
-  h+='<div class="flyer-v3-paycard-amt">$'+fmx(totalMensual)+'</div>';
-  let mH='$'+fmx(state.planRenta)+' plan';
-  if(equipoMensual>0) mH+='<br>+ $'+fmx(equipoMensual)+' equipo a '+state.plazo+'m';
-  if(seguroPrice>0) mH+='<br>+ $'+fmx(seguroPrice)+' seguro';
-  if(controlPrice>0) mH+='<br>+ $'+fmx(controlPrice)+' control';
-  h+='<div class="flyer-v3-paycard-det">'+mH+'</div>';
+  h+='<div style="flex:1;border:1px solid #E8EBEF;border-radius:12px;padding:13px">';
+  h+='<div style="font-size:10px;letter-spacing:.1em;color:#86868B;text-transform:uppercase;font-weight:600">Total mensual</div>';
+  h+='<div style="font-size:23px;font-weight:800;color:#0B1A2B;margin-top:6px;letter-spacing:-.01em">$'+fmx(totalMensual)+'<span style="font-size:13px;color:#A0A8B5">/mes</span></div>';
+  h+='<div style="font-size:11px;color:#6B7A90;line-height:1.45;margin-top:3px">Durante '+state.plazo+' meses</div>';
+  h+='</div></div>';
+
+  // ── [v1.65] TU PLAN Y FINANCIAMIENTO ────────────────────────────────
+  // Sustituye tres bloques que antes iban por separado: la tarjeta de plan con
+  // la renta suelta, el banner de portabilidad y el total destacado al final.
+  // Ahora es un desglose renglon por renglon, que es como el cliente lo lee:
+  // de que se compone lo que va a pagar cada mes.
+  //
+  // OJO CON LA PORTABILIDAD: el descuento dura SOLO 6 MESES. Por eso NO va como
+  // un renglon mas que se reste del total —eso prometeria un precio permanente
+  // que no existe—, sino como una linea aparte DEBAJO del total, diciendo lo
+  // que paga los primeros 6 meses y lo que paga despues.
+  const rowStyle='display:flex;justify-content:space-between;align-items:center;padding:9px 0;font-size:13px;border-top:1px solid #E8EBEF';
+  h+='<div class="flyer-v3-fin" style="margin:14px 0 0">';
+  h+='<div style="font-size:15px;font-weight:800;color:#0B1A2B;letter-spacing:-.01em;margin-bottom:8px">Tu plan y financiamiento</div>';
+  h+='<div style="border:1px solid #E8EBEF;border-radius:12px;padding:2px 14px 6px;border-left:3px solid '+planAccent+'">';
+  h+='<div style="display:flex;align-items:center;gap:9px;padding:11px 0 9px">';
+  h+='<span style="font-size:16px;font-weight:800;color:#0B1A2B">Plan '+state.plan+'</span>';
+  h+='<span style="background:#F1F4F8;color:#55637A;font-size:11px;padding:3px 9px;border-radius:11px">'+state.plazo+' meses</span>';
   h+='</div>';
-  h+='</div>';
-  
-  // ── Total destacado ─────────────────────────────────────────────────
-  h+='<div class="flyer-v3-total" style="border-top:2px solid '+planAccent+'">';
-  h+='<div class="flyer-v3-total-lbl">Total mensual por '+state.plazo+' meses</div>';
-  h+='<div class="flyer-v3-total-big">$'+fmx(totalMensual)+'<span class="mes">/mes</span></div>';
-  h+='</div>';
-  
+  h+='<div style="'+rowStyle+'"><span style="color:#55637A">Renta del plan</span><span style="font-weight:700;color:#0B1A2B">$'+fmx(state.planRenta)+'</span></div>';
+  if(equipoMensual>0){
+    h+='<div style="'+rowStyle+'"><span style="color:#55637A">Equipo a '+state.plazo+' meses</span><span style="font-weight:700;color:#0B1A2B">$'+fmx(equipoMensual)+'</span></div>';
+  }
+  if(seguroPrice>0){
+    h+='<div style="'+rowStyle+'"><span style="color:#55637A">Seguro</span><span style="font-weight:700;color:#0B1A2B">$'+fmx(seguroPrice)+'</span></div>';
+  }
+  if(controlPrice>0){
+    h+='<div style="'+rowStyle+'"><span style="color:#55637A">Control</span><span style="font-weight:700;color:#0B1A2B">$'+fmx(controlPrice)+'</span></div>';
+  }
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 9px;font-size:14px;border-top:2px solid '+planAccent+'">';
+  h+='<span style="font-weight:800;color:#0B1A2B">Total mensual</span>';
+  h+='<span style="font-weight:800;color:#0B1A2B">$'+fmx(totalMensual)+'</span></div>';
+  if(state.port && portSavings>0){
+    h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0 10px;font-size:13px;border-top:1px solid #E8EBEF">';
+    h+='<span style="color:#16A34A;line-height:1.4">Con portabilidad<br><span style="font-size:11px;color:#6B7A90">primeros 6 meses, '+(state.plan==='Titanio'?'10':'20')+'% en el plan</span></span>';
+    h+='<span style="font-weight:800;color:#16A34A;white-space:nowrap">$'+fmx(totalMensualWithPort)+'</span></div>';
+  }
+  h+='</div></div>';
+
   h+=_flyerAccesorios();
   
   if(state.plan==='Titanio') h+=_flyerTitanio();
