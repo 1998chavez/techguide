@@ -503,9 +503,18 @@ var APP={
  renta:function(p){var r=null;(window.PLANS_DATA||[]).forEach(function(x){if(x.name===p)r=x.renta;});return r;},
  gbDe:function(p){var g=null;(window.PLANS_DATA||[]).forEach(function(x){if(x.name===p)g=x.gb;});return g;},
  baseOf:function(id){var SV=window.STORAGE_VARIANTS||{};for(var k in SV){var l=SV[k]||[];for(var i=0;i<l.length;i++){if(l[i][1]===id)return k;}}return id;},
- img:function(id){var T=window.IMG;if(!T)return null;var v=T[id];if(typeof v==='string'&&v.length<40&&T[v])v=T[v];
-  if(!(typeof v==='string'&&v.length>60)){var b=this.baseOf(id);if(b!==id){v=T[b];if(typeof v==='string'&&v.length<40&&T[v])v=T[v];}}
-  return (typeof v==='string'&&v.length>60)?v:null;},
+ /* [v1.69] Antes esto exigia length>60 para dar por buena una imagen, porque
+     IMG guardaba data-URI de miles de caracteres. Desde que son RUTAS
+     ("img/h400.webp", 17 caracteres) esa comprobacion las descartaba TODAS y el
+     catalogo publico salia sin fotos.
+     Ahora vale cualquier cadena no vacia, y el desvio de alias se resuelve
+     mirando si el valor apunta a otra entrada de IMG, no por su largo. */
+  img:function(id){var T=window.IMG;if(!T)return null;
+    var ok=function(x){return typeof x==='string'&&x.length>0;};
+    var deref=function(x){return (ok(x)&&T[x])?T[x]:x;};
+    var v=deref(T[id]);
+    if(!ok(v)){var b=this.baseOf(id);if(b!==id)v=deref(T[b]);}
+    return ok(v)?v:null;},
  findDev:function(id){var d=null,C=window.CAT||{};Object.keys(C).forEach(function(c){(C[c]||[]).forEach(function(x){if(x.id===id)d=x;});});return d;},
  promoDe:function(id,plan,plazo){var pr=window.PRICES[id];if(!pr||!pr.planes||!pr.planes[plan])return null;var v=pr.planes[plan][String(plazo)];return (v===null||v===undefined)?null:v;},
  descuento:function(id,plan,plazo){var pr=window.PRICES[id],promo=this.promoDe(id,plan,plazo);if(!pr||!pr.contado||promo===null)return 0;return Math.floor((pr.contado-promo)/pr.contado*100);},
