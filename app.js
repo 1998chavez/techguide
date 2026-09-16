@@ -13362,7 +13362,11 @@ function buildFlyerHTML(state){
     ? '<img src="'+IMG[_dev.id]+'" alt="" style="max-width:100%;max-height:100%;object-fit:contain">'
     : '<div style="font-size:64px;line-height:1">\uD83D\uDCF1</div>';
   h+='<div style="display:flex;gap:18px;align-items:center;padding:10px 28px 6px">';
-  h+='<div style="width:168px;height:188px;flex-shrink:0;display:flex;align-items:center;justify-content:center">'+_img+'</div>';
+  // [v1.68] Ya NO hace falta ampliar: los archivos de img/ se regeneraron sin
+  // el margen blanco, asi que el equipo llena su caja por si solo — aqui, en el
+  // grid, en la ficha, en momento y en las flash. Un solo cambio en los
+  // archivos en vez de un truco de CSS repetido en cada vista.
+  h+='<div style="width:180px;height:200px;flex-shrink:0;display:flex;align-items:center;justify-content:center">'+_img+'</div>';
   h+='<div style="flex:1;min-width:0;text-align:left">';
   h+='<div style="font-size:10px;letter-spacing:.16em;color:#86868B;text-transform:uppercase;font-weight:600">'+_dev.brand+'</div>';
   h+='<div style="font-size:21px;font-weight:800;color:#0B1A2B;line-height:1.15;margin-top:4px;letter-spacing:-.01em">'+_dev.name+'</div>';
