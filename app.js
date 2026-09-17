@@ -12749,9 +12749,53 @@ function admSelUnico(el){
   _admSel=el.getAttribute('data-v');
   const cta=document.getElementById('adm-cta'); if(cta) cta.disabled=false;
 }
-function admConfirmMover(attuid){
+// [v1.70] MOVER UN COLABORADOR DE TIENDA — ahora escribe DIRECTO.
+// Antes pasaba por la Cloud Function adminAccess, que responde "internal" y
+// dejaba a los regionales sin poder mover a su gente. Es el mismo camino que ya
+// usan dar de baja, editar nombre y mover tienda entre regionales, y la regla
+// (4) de Firestore ya permite exactamente estos dos campos: hasOnly(['tienda','region']).
+//
+// La region se ajusta a la de la tienda destino SOLO si es una region valida
+// del catalogo; si no se puede determinar, se mueve unicamente la tienda y se
+// deja la region como estaba, que es preferible a ensuciarla.
+async function admConfirmMover(attuid){
   if(!_admSel){ admToast('Elige una tienda.','err'); return; }
-  _admEjecutar({action:'mover',targetAttuid:attuid,destino:_admSel},'Colaborador movido');
+  attuid=String(attuid).toUpperCase();
+  var destino=String(_admSel);
+  var cta=document.getElementById('adm-cta'), lbl=cta?cta.textContent:'';
+  if(cta){ cta.disabled=true; cta.textContent='Moviendo…'; }
+  try{
+    await loadFirebase();
+    var cambio={tienda:destino};
+    // Region de la tienda destino, por mayoria de su gente. Misma fuente que
+    // usa el arbol de Accesos.
+    var votos={};
+    Object.keys(_admGente).forEach(function(id){
+      var d=_admGente[id]||{};
+      if(String(d.tienda||'').trim()!==destino) return;
+      var rg=(typeof _preRegionValida==='function')
+        ? _preRegionValida(d.region)
+        : ((typeof regionCanon==='function')?regionCanon(d.region):String(d.region||''));
+      if(rg) votos[rg]=(votos[rg]||0)+1;
+    });
+    var mejor='', mx=-1;
+    Object.keys(votos).forEach(function(r){ if(votos[r]>mx){mx=votos[r];mejor=r;} });
+    if(mejor) cambio.region=mejor;
+    await firestoreFns.updateDoc(firestoreFns.doc(firestoreDB,'empleados',attuid), cambio);
+    if(_admGente[attuid]){
+      _admGente[attuid].tienda=destino;
+      if(cambio.region) _admGente[attuid].region=cambio.region;
+    }
+    admCerrarSheet();
+    admToast('Colaborador movido a '+destino,'ok');
+    if(typeof adminCargarEquipo==='function') adminCargarEquipo();
+    var inp=document.getElementById('adm-attuid');
+    if(inp && inp.value.trim() && typeof adminBuscar==='function') adminBuscar();
+  }catch(e){
+    var m=(e&&e.message)?e.message:'Error';
+    admToast(/permission|insufficient/i.test(m)?'Sin permiso (revisa las reglas de Firestore).':m,'err');
+    if(cta){ cta.disabled=false; cta.textContent=lbl||'Mover aquí'; }
+  }
 }
 
 function admSheetMoverRegion(attuid){
