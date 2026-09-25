@@ -7,6 +7,8 @@
 // un src, asi que los consumidores de app.js, index.html y catalogo.html
 // siguen funcionando sin tocarse.
 window.IMG = {
+  "ss26fe":"img/ss26fe.webp",
+  "hx7e":"img/hx7e.webp",
   "ip18promax_512":"img/ip18promax.webp",
   "ip18promax":"img/ip18promax.webp",
   "ip18pro_512":"img/ip18pro.webp",
