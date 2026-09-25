@@ -11534,7 +11534,10 @@ async function admConfirmMigrarPacifico(){
 //     region{} y tienda{}. Un solo documento, una sola lectura, y las reglas
 //     de /resumenes ya lo permiten — no hizo falta abrir nada nuevo.
 // ══════════════════════════════════════════════════════════════════════════
-window.PRERREGISTRO_OFF = false;
+// [v1.71.1] APAGADO el 26-sep-2026 por decision de Diego: la campana termino.
+// No se borra nada: el codigo, las listas de los asesores y los resumenes por
+// dia siguen en Firestore. Para reactivarlo basta con volver a false.
+window.PRERREGISTRO_OFF = true;
 // [v1.47] PRE_DOC quedo fuera de uso: era el documento de contadores
 // incrementales. Se conserva el nombre solo como referencia historica por si
 // hay que limpiarlo a mano en la consola. Nada lo lee ni lo escribe.
@@ -11892,6 +11895,10 @@ function _preDiasPeriodo(p){
 // Al cambiar solo el periodo NO se relee: la estructura no cambio en esos dos
 // segundos y son ~2,900 lecturas que no hacen falta.
 async function showPrerregistro(soloPeriodo){
+  // [v1.71.1] Candado del interruptor. Antes solo revisaba el rol, y es la
+  // funcion que lee los ~2,900 empleados: con el modulo apagado no debe correr
+  // aunque alguien llegue a llamarla.
+  if(!preActivo()) return;
   if(!preVeConcentrado()) return;
   if(!soloPeriodo){ _preJerarquia=null; _preJerarquiaDe=null; }
   _preRuta=[]; _preVerTodos=false;
