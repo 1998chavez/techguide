@@ -703,27 +703,10 @@ var APP={
  homeHTML:function(){var self=this,s=this.s,devs=this.equipos();
   var info={};devs.forEach(function(d){info[d.id]={desde:self.desdeGlobal(d.id),pct:self.descMax(d.id),contado:window.PRICES[d.id].contado};});
   var bset={};devs.forEach(function(d){bset[d.brand]=(bset[d.brand]||0)+1;});
-  /* [v1.51] Banda de preventa del iPhone 18. Va ARRIBA DE TODO, antes del
-     heroe: es la prioridad de estas semanas.
-     Sin icono y sin descripcion por decision de Diego — el titulo y el boton
-     bastan, y en movil el icono apretaba el titulo hasta partirlo en cuatro
-     renglones. Lleva flex-wrap para que el boton caiga debajo en pantallas
-     angostas en vez de estrujar el texto.
-     PARA QUITARLA cuando cierre la preventa: borrar este bloque completo. */
-  var h='<section class="wrap"><a href="https://tu.att.com.mx/preventa" target="_blank" rel="noopener"'
-   +' style="display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;margin-top:18px;padding:20px 24px;'
-   +'border-radius:18px;background:linear-gradient(120deg,var(--color-neutral-900) 0%,#0b2540 55%,var(--color-accent) 100%);'
-   +'color:#fff;text-decoration:none">'
-   +'<span style="flex:1 1 240px;min-width:0">'
-   +'<span style="display:block;font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-400)">Preventa abierta</span>'
-   +'<span style="display:block;font-family:var(--font-heading);font-weight:800;font-size:clamp(20px,4.2vw,26px);letter-spacing:-.02em;line-height:1.15;margin-top:4px">iPhone 18 Pro y Pro Max</span>'
-   +'</span>'
-   +'<span style="flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:999px;'
-   +'background:rgba(255,255,255,.14);font-size:14.5px;font-weight:700;white-space:nowrap">Ir a la preventa'
-   +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>'
-   +'</a></section>';
-
-  h+='<section class="wrap"><div class="hero"><div>'
+  /* [v1.71.2] Banda de preventa del iPhone 18 RETIRADA: la preventa cerro.
+     El heroe vuelve a ser lo primero y recupera la declaracion de h, que la
+     banda le habia quitado al ir antes que el. */
+  var h='<section class="wrap"><div class="hero"><div>'
   /* [v1.22.1] Sin fecha: una fecha en pantalla envejece mal y los precios
      cambian cada semana. La vigencia se atiende en los legales. */
   +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-700)">Catálogo de equipos</div>'
