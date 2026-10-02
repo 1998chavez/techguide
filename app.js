@@ -13394,7 +13394,9 @@ function buildFlyerHTML(state){
   const totalMensual = totalMensualBase;
   
   const desc=Math.round((1-state.promo/state.contado)*100);
-  const ahorro=state.contado-state.promo;
+  // [v1.72] Redondeado, igual que en la comparativa. Sin esto la cotizacion
+  // mostraba "Ahorras $3,119.9" cuando el promo traia decimales.
+  const ahorro=Math.round(state.contado-state.promo);
   
   // [v1.11.78] Colores, encabezado, saludo y producto salieron a piezas
   // compartidas (ver arriba). La cotización comparativa usa las MISMAS.

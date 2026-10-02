@@ -9,7 +9,7 @@
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v1715-precios-1oct';
+const CACHE_NAME = 'techguide-v1720-fotos-ia';
 // [v1.11.103] Caché SEPARADO y ESTABLE para los pesados que NO cambian entre
 // versiones: vendors.js (999KB, html2canvas+jsPDF) y catalog-img.js (866KB,
 // las fotos del catálogo). Antes vivían en CACHE_NAME, así que CADA bump
@@ -26,7 +26,9 @@ const SCOPE = '/techguide/';
 // vieja para siempre. Ahora se compara este sello: solo cuando cambian las
 // FOTOS se vuelve a bajar catalog-img.js. vendors.js sigue intacto.
 // Subir SOLO al agregar o reemplazar imagenes en catalog-img.js.
-const IMG_BUILD = '2026-08-29-redmi17';
+// [v1.72] Version de las fotos. DEBE coincidir con el ?v= de las rutas en
+// catalog-img.js. El activate borra del cache estable las fotos de otra version.
+const IMG_BUILD = '20261001';
 // [v1.38] APP_JS_V — sello de CONTENIDO de app.js (sha1 corto).
 // app.js pesa 579 KB y su clave de precache llevaba el BUILD_ID, asi que cada
 // bump lo re-bajaba completo AUNQUE EL ARCHIVO FUERA IDENTICO. En la ultima
@@ -36,11 +38,11 @@ const IMG_BUILD = '2026-08-29-redmi17';
 // cuando app.js cambia de verdad.
 // DEBE coincidir con window.APP_JS_V del index.html. Al editar app.js hay que
 // subir este valor en LOS DOS archivos.
-const APP_JS_V = 'b9c3bc77e5';
+const APP_JS_V = '4f46f8c775';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1790114400';
+const BUILD_ID = '1790118000';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la
@@ -223,6 +225,23 @@ self.addEventListener('activate', function(event){
         })
       );
     }).then(function(){
+      /* [v1.72] Limpieza del cache estable, que nunca se vaciaba:
+         - catalog-img.js viejo (incluido el de 904 KB con fotos en base64 que
+           aun conservan quienes instalaron antes de v1.63);
+         - fotos de img/ de una version anterior a IMG_BUILD.
+         Va envuelta en catch: si algo falla, la activacion sigue igual. */
+      return caches.open(CACHE_ESTABLE).then(function(c){
+        return c.keys().then(function(reqs){
+          return Promise.all(reqs.map(function(r){
+            try{
+              var u=new URL(r.url);
+              if(/\/catalog-img\.js$/i.test(u.pathname)) return c.delete(r);
+              if(/\/img\/[^/]+\.(webp|jpg|png)$/i.test(u.pathname) && u.search !== '?v=' + IMG_BUILD) return c.delete(r);
+            }catch(e){}
+          }));
+        });
+      }).catch(function(err){ console.warn('[SW] limpieza del cache estable:', err && err.message); });
+    }).then(function(){
       return self.clients.claim();
     }).then(function(){
       // [v1.9.19] Tell every open tab to reload itself to pick up the new code.
@@ -360,7 +379,13 @@ self.addEventListener('fetch', function(event){
     // arranque; y si la red fallaba, el respaldo con ignoreSearch encontraba la
     // copia VIEJA guardada en CACHE_ESTABLE y servia esa. Por eso una version
     // nueva de app.js podia no llegar nunca.
-    const esEstable = /\/(app|vendors|catalog-img)\.js/i.test(url.pathname);
+    /* [v1.72] catalog-img.js YA NO es estable. Desde v1.63 pesa 4 KB y cambia
+       cada vez que se agrega un equipo, pero seguia marcado como estable: se
+       guardaba por nombre, sin version, y se servia del cache para siempre. Un
+       asesor que nunca usaba "Actualizar app" se quedaba con el mapa viejo, y
+       los equipos nuevos le salian sin foto. Ahora va al cache del build y cada
+       bump lo trae fresco. */
+    const esEstable = /\/(app|vendors)\.js/i.test(url.pathname);
     const destino = esEstable ? CACHE_ESTABLE : CACHE_NAME;
     const clave = esEstable ? (url.origin + url.pathname) : req;
 
