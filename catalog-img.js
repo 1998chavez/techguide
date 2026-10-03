@@ -11,6 +11,8 @@
 // preguntar. Sin la version, los asesores seguirian viendo las viejas.
 // Debe coincidir con IMG_BUILD en sw.js.
 window.IMG = {
+  "mg47":"img/mg47.webp?v=20261001",
+  "mg37":"img/mg37.webp?v=20261001",
   "ss26fe":"img/ss26fe.webp?v=20261001",
   "hx7e":"img/hx7e.webp?v=20261001",
   "ip18promax_512":"img/ip18promax.webp?v=20261001",
