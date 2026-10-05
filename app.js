@@ -3288,10 +3288,18 @@ function calculateFlashByBrand(){
   }
 }
 
+// [v1.72.4] OFERTAS FLASH DE HOY — APAGADO el 5-oct-2026 por decision de Diego.
+// No se borra nada: el calculo, la tarjeta y su pantalla siguen en el codigo.
+// Para reactivarlo basta con volver a false: renderFlashCard la vuelve a
+// mostrar con display:flex en cuanto tenga ofertas.
+window.FLASH_OFF = true;
+
 function renderFlashCard(){
   try {
     const card = document.getElementById('flash-card');
     if(!card) return;
+    // Interruptor primero: con el modulo apagado no se calcula nada.
+    if(window.FLASH_OFF){ card.style.display = 'none'; return; }
     if(typeof PRICES === 'undefined' || typeof CAT === 'undefined' ||
        typeof getPlanCommission !== 'function' || typeof getEquipmentIncentive !== 'function'){
       card.style.display = 'none';
@@ -3334,6 +3342,7 @@ function renderFlashCard(){
 }
 
 function showFlashOffers(){
+  if(window.FLASH_OFF) return;   // [v1.72.4] apagado junto con la tarjeta
   try {
     if(typeof topCommSelectedPlan !== 'undefined') topCommSelectedPlan = 'Black';
     show('s-top-comm');
