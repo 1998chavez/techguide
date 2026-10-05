@@ -1983,16 +1983,29 @@ function renderCommission(){
     }
   }
   
-  if(c.accessoriesBase > 0 || c.accessoriesIncentives > 0){
+  // [v1.72.5] Accesorios por marca, según el esquema 2026.
+  if(c.accessoriesBase > 0){
     h += '<div style="height:6px"></div>';
-    h += '<div class="comm-row"><span class="comm-row-label">Accesorios (10%)</span><span class="comm-row-amount">$' + fmx(c.accessoriesBase) + '</span></div>';
-    if(c.accessoriesIncentives > 0){
-      h += '<div class="comm-row"><span class="comm-row-label">Incentivos accesorios</span><span class="comm-row-amount" style="color:#FF6F00">+$' + fmx(c.accessoriesIncentives) + '</span></div>';
+    if(c.accessoriesAlpha > 0){
+      h += '<div class="comm-row"><span class="comm-row-label">Accesorios ALPHACOMM (10%)</span><span class="comm-row-amount">$' + fmx(c.accessoriesAlpha) + '</span></div>';
+    }
+    if(c.accessoriesOtras > 0){
+      h += '<div class="comm-row"><span class="comm-row-label">Accesorios otras marcas (2%)</span><span class="comm-row-amount">$' + fmx(c.accessoriesOtras) + '</span></div>';
     }
   }
   
   h += '<div class="comm-row total"><span class="comm-row-label">Total estimado</span><span class="comm-row-amount">$' + fmx(c.total) + '</span></div>';
-  h += '<div class="comm-disclaimer">Estimado · sujeto a cumplimiento de cuota de tienda ≥80%</div>';
+  // [v1.72.5] Bono de valor: aparte del total y en verde, porque solo se cobra
+  // si la tienda llega al 100%. Sumarlo haria creer al asesor que ya lo gano.
+  if(c.bonoValor > 0){
+    h += '<div style="margin-top:10px;background:rgba(22,163,74,0.10);border-radius:8px;padding:9px 11px">';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">';
+    h += '<span style="font-size:12.5px;font-weight:700;color:#16A34A">Si tu tienda llega al 100%</span>';
+    h += '<span style="font-size:15px;font-weight:800;color:#16A34A">+$' + fmx(c.bonoValor) + '</span></div>';
+    h += '<div style="font-size:11px;color:#16A34A;margin-top:2px">Bono de valor plan ' + cotState.plan + ' · pago semanal</div>';
+    h += '</div>';
+  }
+  h += '<div class="comm-disclaimer">Estimado · sujeto a 80% de cuota de tienda y mínimo 2 ventas a la semana</div>';
   h += '<div class="comm-section-private-note">Esta información no aparece en la cotización del cliente</div>';
   
   document.getElementById('comm-body-inner').innerHTML = h;
@@ -2540,21 +2553,27 @@ function getEquipmentIncentive(deviceId, planName){
   return 0;
 }
 
+// [v1.72.5 · Esquema 2026] ALPHACOMM paga 10% del valor y otras marcas 2%.
+// Ya no hay incentivos por SKU (los $50 de Speck y Ultra Liquid terminaron);
+// 'incentives' se conserva en 0 para no romper a quien lo lea.
 function getAccessoriesCommission(cart, planName){
-  if(!cart || cart.length === 0) return {base: 0, incentives: 0, total: 0};
-  let base = 0, incentives = 0;
+  if(!cart || cart.length === 0) return {base: 0, alpha: 0, otras: 0, incentives: 0, total: 0};
+  const marcas = (typeof ALPHACOMM_BRANDS !== 'undefined') ? ALPHACOMM_BRANDS : [];
+  const rA = (typeof ACC_RATE_ALPHACOMM !== 'undefined') ? ACC_RATE_ALPHACOMM : 0.10;
+  const rO = (typeof ACC_RATE_OTRAS !== 'undefined') ? ACC_RATE_OTRAS : 0.02;
+  let alpha = 0, otras = 0;
   cart.forEach(function(a){
-    const baseAmt = Math.round(a.price * 0.10);
-    base += baseAmt;
-    let incAmt = 0;
-    if(SPECK_INCENTIVE_SKUS.indexOf(a.sku) >= 0){
-      incAmt = SPECK_INCENTIVE;
-    } else if(a.sku === ULTRA_LIQUID_SKU && planName && ULTRA_LIQUID_ELIGIBLE_PLANS.indexOf(planName) >= 0){
-      incAmt = ULTRA_LIQUID_INCENTIVE;
-    }
-    incentives += incAmt;
+    if(marcas.indexOf(a.brand) >= 0) alpha += Math.round(a.price * rA);
+    else otras += Math.round(a.price * rO);
   });
-  return {base: base, incentives: incentives, total: base + incentives};
+  return {base: alpha + otras, alpha: alpha, otras: otras, incentives: 0, total: alpha + otras};
+}
+
+// [v1.72.5 · Esquema 2026] Bono de valor del plan: Plata $100, Oro $150,
+// Black y superiores $200. Azul 1 a 3 no tienen bono.
+function getBonoValor(planName){
+  if(typeof BONO_VALOR === 'undefined' || !planName) return 0;
+  return BONO_VALOR[planName] || 0;
 }
 
 function calculateTotalCommission(state){
@@ -2576,7 +2595,11 @@ function calculateTotalCommission(state){
     plan: planComm,
     equipment: eqIncentive,
     accessoriesBase: accComm.base,
+    accessoriesAlpha: accComm.alpha,
+    accessoriesOtras: accComm.otras,
     accessoriesIncentives: accComm.incentives,
+    // El bono NO entra al total: solo se cobra si la tienda llega al 100%.
+    bonoValor: getBonoValor(state.plan),
     seguro: seguroComm,
     control: controlComm,
     total: planComm + eqIncentive + accComm.total + seguroComm + controlComm
@@ -9225,7 +9248,7 @@ const AI_APP_CAPABILITIES = {
     categorias: ["cables (Lightning, USB-C)", "cargadores PD25W/PD35W de pared y carro", "fundas (Speck, Tech21, Nomad, QuikCell)", "vidrios templados 9H y micas líquidas"],
     marcas: ["QuikCell", "Speck", "Tech21", "Nomad"],
     compatibilidad: "Cada accesorio tiene compat[] que indica qué equipos lo soportan. Algunos son 'all' (universal).",
-    comision: "Los accesorios pagan 10% de comisión base + posibles incentivos por SKU."
+    comision: "Los accesorios ALPHACOMM (QuikCell, Speck, Tech21, Nomad) pagan 10% de su valor; otras marcas, 2%."
   },
   calculadora_presupuesto: {
     descripcion: "Pantalla 'Calculadora' (botón en home) donde el cliente/asesor ingresa un monto y la app filtra equipos cuyo enganche es <= a ese presupuesto.",

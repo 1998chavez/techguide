@@ -15,9 +15,9 @@ var CAT={ios:[{id:'ip18pro',name:'iPhone 18 Pro',brand:'APPLE',storage:'256 GB',
 
 // ── CATALOG META ────────────────────────────────────────────────────────────
 var CATALOG_META = {
-  version: "1.11.9",
+  version: "1.11.10",
   catalog_date: "2026-10-05",
-  source: "precios_5_de_octubre.xlsx (A17, A57 y S26 Ultra desde 5-oct) + precios_octubre + 2_de_octubre + iphone_27_sept + V4"
+  source: "precios_5_de_octubre.xlsx (A17, A57 y S26 Ultra desde 5-oct) + esquema de comisiones 2026 + precios_octubre + 2_de_octubre + V4"
 };
 // [v1.11.105] OJO al próximo corte: varios equipos traen VARIAS ventanas de
 // precio escalonadas en el mismo archivo (el S26 Ultra trae 4). Hay que tomar
@@ -316,10 +316,15 @@ var PLAN_COMMISSION = {
 
 // ── INCENTIVE CONSTANTS ─────────────────────────────────────────────────────
 var INCENTIVE_ELIGIBLE_PLANS = ['Azul 3','Plata','Oro','Black','Platino','Diamante','Titanio'];
-var SPECK_INCENTIVE_SKUS = ['00729450','00729480','00729510','00729540','00729600','00729630','00729660','00729960','00729990'];
-var SPECK_INCENTIVE = 50;
-var ULTRA_LIQUID_SKU = '00729720';
-var ULTRA_LIQUID_INCENTIVE = 50;
-var ULTRA_LIQUID_ELIGIBLE_PLANS = ['Plata','Oro','Black','Platino','Diamante','Titanio'];
+// [v1.72.5 · Esquema de comisiones 2026] Accesorios: ALPHACOMM 10% de su
+// valor, otras marcas 2%. Las cuatro marcas del catalogo son ALPHACOMM
+// (confirmado por Diego, 5-oct-2026). Los $50 extra de Speck y Ultra Liquid
+// terminaron: ya no estan en el esquema.
+var ALPHACOMM_BRANDS = ['QuikCell','Speck','Tech21','Nomad'];
+var ACC_RATE_ALPHACOMM = 0.10;
+var ACC_RATE_OTRAS = 0.02;
+// [v1.72.5 · Esquema 2026] Bono de valor por unidad en pospago con equipo y
+// renovaciones. Solo se cobra si la tienda llega al 100%; pago semanal.
+var BONO_VALOR = {'Plata':100,'Oro':150,'Black':200,'Platino':200,'Diamante':200,'Titanio':200};
 var ADDON_COMMISSION_RATE = 0.80;
 var CONTROL_PRICE_FIXED = 50;
