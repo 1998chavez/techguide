@@ -7239,7 +7239,9 @@ async function obtenerDashboard(periodo, region, tienda, tiendasAsignadas){
       if(tienda){
         // Drill-down a una tienda específica (cualquier rol)
         asesoresTerritorio = await leerAsesoresDeTerritorio({tiendas: [tienda]});
-      } else if(rolActual === 'regional' && tiendasAsignadas && tiendasAsignadas.length){
+      } else if(tiendasAsignadas && tiendasAsignadas.length && (rolActual === 'regional' || dashState.regionalFiltro)){
+        // [v1.72.6] Tambien director/DN cuando entran al detalle de un regional:
+        // mismos asesores que ve ese regional, no los de toda la region.
         // Regional: por lista de tiendas asignadas
         asesoresTerritorio = await leerAsesoresDeTerritorio({tiendas: tiendasAsignadas});
       } else if(rolActual === 'director' || rolActual === 'director_nacional'){
@@ -7453,6 +7455,7 @@ function calcularActividadRegionales(regionales, consolidado, filterRegion){
       nombre: r.nombre,
       region: r.region,
       tiendasCount: (r.tiendas||[]).length,
+      tiendas: (r.tiendas||[]).slice(),   // [v1.72.6] para el detalle por regional
       cotizaciones: total,
       activo: total > 0
     });
@@ -7475,6 +7478,10 @@ let dashState={
   regionFiltro: null, // null = todas
   tiendaFiltro: null,
   tiendasAsignadasFiltro: null, // lista de tiendas si es regional
+  // [v1.72.6] Detalle por regional para director / DN: {attuid, nombre, tiendas}.
+  // Mientras esta activo, tiendasAsignadasFiltro trae SUS tiendas y el dashboard
+  // muestra exactamente la vista que ve ese regional.
+  regionalFiltro: null,
   cached: null,
   // [v1.9.10] Flags para expandir/colapsar Top tiendas y asesores
   topTiendasExpanded: false,
@@ -7657,6 +7664,10 @@ function abrirDashboardConSesionActual(){
   // Reset filtros
   dashState.regionFiltro=null;
   dashState.tiendaFiltro=null;
+  // [v1.72.6] Que el detalle por regional no se quede pegado al reabrir. Regional
+  // y gerente vuelven a poner sus tiendas abajo; director y DN quedan en null.
+  dashState.regionalFiltro=null;
+  dashState.tiendasAsignadasFiltro=null;
 
   if(rol==='director_nacional'){
     // Ve todo el país, selector de región editable
@@ -7716,6 +7727,7 @@ function onRegionChange(){
 }
 
 function setFiltroRegion(region){
+  if(dashState.regionalFiltro){ dashState.regionalFiltro=null; dashState.tiendasAsignadasFiltro=null; }
   dashState.regionFiltro=region;
   dashState.tiendaFiltro=null;
   const sel=document.getElementById('dash-region');
@@ -7733,7 +7745,32 @@ function limpiarFiltroTienda(){
   reloadDashboard();
 }
 
+// [v1.72.6] DETALLE POR REGIONAL (director y DN). Aplica el mismo filtro por
+// lista de tiendas que usa la vista del propio regional, asi que el detalle es
+// identico a lo que el ve: sus tiendas, sus asesores y sus alertas.
+function setFiltroRegional(attuid){
+  const r = (dashState._regionales||[]).find(function(x){ return String(x.attuid)===String(attuid); });
+  if(!r) return;
+  if(!r.tiendas || !r.tiendas.length){
+    if(typeof admToast==='function') admToast('Este regional no tiene tiendas asignadas.','err');
+    return;
+  }
+  dashState.regionalFiltro = {attuid:r.attuid, nombre:r.nombre, tiendas:r.tiendas.slice()};
+  dashState.tiendasAsignadasFiltro = r.tiendas.slice();
+  dashState.tiendaFiltro = null;
+  reloadDashboard();
+}
+
+function limpiarFiltroRegional(){
+  dashState.regionalFiltro = null;
+  dashState.tiendasAsignadasFiltro = null;   // director/DN no usan lista propia
+  dashState.tiendaFiltro = null;
+  reloadDashboard();
+}
+
 function limpiarFiltroRegion(){
+  // [v1.72.6] El regional vive dentro de la region: quitar una quita el otro.
+  if(dashState.regionalFiltro){ dashState.regionalFiltro=null; dashState.tiendasAsignadasFiltro=null; }
   dashState.regionFiltro=null;
   dashState.tiendaFiltro=null;
   const sel=document.getElementById('dash-region');
@@ -7772,6 +7809,10 @@ function calcularAlertas(data){
   if(!hayFiltroTiendaEspecifica && (rol === 'regional' || rol === 'gerente')){
     misTiendas = asesorData.tiendasAsignadas || [];
     if(rol === 'gerente' && asesorData.tienda) misTiendas = [asesorData.tienda];
+  }
+  // [v1.72.6] En el detalle por regional, las alertas son las de ESE regional.
+  if(!hayFiltroTiendaEspecifica && dashState.regionalFiltro){
+    misTiendas = dashState.regionalFiltro.tiendas || [];
   }
   
   if(misTiendas.length > 0){
@@ -7979,6 +8020,7 @@ async function exportarDashboardExcel(){
       [],
       ['Filtros aplicados:'],
       ['  Región:', dashState.regionFiltro || 'TODAS'],
+      ['  Regional:', dashState.regionalFiltro ? dashState.regionalFiltro.nombre : '—'],
       ['  Tienda:', (dashState.tiendaFiltro||'').replace(/_/g,' ') || '—'],
       [],
       ['INDICADORES'],
@@ -8266,6 +8308,7 @@ async function reloadDashboard(){
       const firstKey = Object.keys(dashCache)[0];
       const c = firstKey ? (dashCache[firstKey].data || dashCache[firstKey]) : null;
       data.regionales = calcularActividadRegionales(results[1], c, dirRegion);
+      dashState._regionales = data.regionales;   // [v1.72.6] para setFiltroRegional
     }
     const r=data.rango;
     sub.textContent=r.dias.length===1
@@ -8295,6 +8338,13 @@ function renderChips(){
     chip.className='dash-filter-chip';
     chip.innerHTML=escapeHtml(dashState.regionFiltro)+' <span class="dash-filter-chip-x">✕</span>';
     chip.onclick=limpiarFiltroRegion;
+    cont.appendChild(chip);
+  }
+  if(dashState.regionalFiltro){
+    const chip=document.createElement('span');
+    chip.className='dash-filter-chip';
+    chip.innerHTML='Regional: '+escapeHtml(dashState.regionalFiltro.nombre)+' · '+dashState.regionalFiltro.tiendas.length+' tiendas <span class="dash-filter-chip-x">✕</span>';
+    chip.onclick=limpiarFiltroRegional;
     cont.appendChild(chip);
   }
   if(dashState.tiendaFiltro){
@@ -8655,7 +8705,9 @@ function renderDashboardManager(data){
   }
 
   // [v1.9.5] ─── Top regionales (solo para directores) ─────────────────
-  if(data.regionales && data.regionales.length){
+  // [v1.72.6] Cada fila abre el detalle de ese regional. Mientras se ve uno, la
+  // lista se oculta: el aviso de arriba dice cual es y su ✕ regresa a todos.
+  if(data.regionales && data.regionales.length && !dashState.regionalFiltro){
     const regs = data.regionales;
     const activos = regs.filter(function(r){return r.activo;});
     const inactivos = regs.filter(function(r){return !r.activo;});
@@ -8667,7 +8719,7 @@ function renderDashboardManager(data){
     // Activos
     activos.forEach(function(r){
       const pct = Math.round(r.cotizaciones / maxRegional * 100);
-      html+='<div class="dash-row no-click">';
+      html+='<div class="dash-row" onclick="setFiltroRegional(\''+escapeHtml(r.attuid)+'\')">';
       html+=barHTML(pct);
       html+='<span class="dash-row-name"><b>'+escapeHtml(r.nombre)+'</b>';
       html+='<span>'+escapeHtml(r.region||'—')+' · '+r.tiendasCount+' tiendas</span>';
@@ -8678,7 +8730,7 @@ function renderDashboardManager(data){
     
     // Inactivos al final con badge
     inactivos.forEach(function(r){
-      html+='<div class="dash-row no-click dash-row-inactive">';
+      html+='<div class="dash-row dash-row-inactive" onclick="setFiltroRegional(\''+escapeHtml(r.attuid)+'\')">';
       html+='<span class="dash-row-name"><b>'+escapeHtml(r.nombre)+'</b>';
       html+='<span>'+escapeHtml(r.region||'—')+' · '+r.tiendasCount+' tiendas</span>';
       html+='</span>';
