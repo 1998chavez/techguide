@@ -14069,7 +14069,11 @@ function aplicarActualizacion(){
   var b=document.querySelector('.upd-btn');
   if(b){ b.textContent='Actualizando…'; b.disabled=true; }
   try{ sessionStorage.removeItem('_updOculto'); }catch(e){}
-  if(typeof hardRefresh==='function') hardRefresh();
+  /* [v1.72.7] Primero recarga normal (el SW nuevo ya trae todo). hardRefresh pedia confirmar y borraba
+     TODO el cache (fotos, Firebase, app.js): queda de respaldo si ya hubo una recarga y el aviso sigue. */
+  var n=0; try{ n=parseInt(sessionStorage.getItem('_swReloadCount')||'0',10)||0; sessionStorage.setItem('_swReloadCount', String(n+1)); }catch(e){}
+  if(n<1) location.replace(location.href.split('?')[0].split('#')[0]+'?_v='+Date.now());
+  else if(typeof hardRefresh==='function') hardRefresh();
   else location.reload(true);
 }
 

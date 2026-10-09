@@ -9,7 +9,7 @@
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v1726-detalle-regional';
+const CACHE_NAME = 'techguide-v1727-auditoria';
 // [v1.11.103] Caché SEPARADO y ESTABLE para los pesados que NO cambian entre
 // versiones: vendors.js (999KB, html2canvas+jsPDF) y catalog-img.js (866KB,
 // las fotos del catálogo). Antes vivían en CACHE_NAME, así que CADA bump
@@ -38,11 +38,11 @@ const IMG_BUILD = '20261001';
 // cuando app.js cambia de verdad.
 // DEBE coincidir con window.APP_JS_V del index.html. Al editar app.js hay que
 // subir este valor en LOS DOS archivos.
-const APP_JS_V = 'f834e07d78';
+const APP_JS_V = '19948be8ff';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1790139600';
+const BUILD_ID = '1791504000';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la
@@ -54,8 +54,8 @@ const OFFLINE_ASSETS = [
      (COMISIONES_OFF=true) y sumaban 302 KB que se bajaban en CADA bump sin que
      nadie las abriera. Siguen en el repo y se cachean solas la primera vez que
      alguien las visite, cuando se reactive el módulo. */
+  // [v1.72.7] index.html salió: es el MISMO archivo que SCOPE y se bajaba dos veces.
   SCOPE,
-  SCOPE + 'index.html',
   // [v1.13] Catálogo público para clientes. Va al precache para que el asesor
   // pueda abrirlo y verificarlo aunque esté sin señal en la tienda.
   SCOPE + 'catalogo.html',
@@ -86,7 +86,9 @@ self.addEventListener('install', function(event){
     caches.open(CACHE_NAME).then(function(cache){
       // Add each asset individually so one 404 doesn't break the whole install.
       return Promise.all(OFFLINE_ASSETS.map(function(url){
-        return cache.add(url).catch(function(err){
+        // [v1.72.7] no-cache: sin esto el SW nuevo tomaba el HTML VIEJO de la cache
+        // HTTP (max-age 10 min de GitHub) y el asesor se quedaba en la version anterior.
+        return cache.add(new Request(url, {cache: 'no-cache'})).catch(function(err){
           console.warn('[SW] Failed to pre-cache', url, err);
         });
       })).then(function(){
@@ -104,7 +106,7 @@ self.addEventListener('install', function(event){
            Ahora se REINTENTA con cache:'reload' y, si aun asi falta, se instala
            igual y se deja constancia en consola. */
         var CRITICOS = [
-          SCOPE + 'index.html',
+          SCOPE,
           SCOPE + 'catalog.js?v=' + BUILD_ID
         ];
         return Promise.all(CRITICOS.map(function(u){
@@ -126,20 +128,20 @@ self.addEventListener('install', function(event){
         });
       });
     }).then(function(){
-      // [v1.11.103] Los pesados se guardan en su propio caché y NO se esperan:
-      // la app queda usable de inmediato y estos llegan en segundo plano.
-      // Si ya estaban (versión anterior), no se vuelven a pedir.
-      caches.open(CACHE_ESTABLE).then(function(ce){
-        // Se guardan SIN ?v= para que la clave coincida con la del fetch.
+      // [v1.11.103] Los pesados se guardan en su propio caché, que sobrevive a
+      // los bumps: si ya estaban (versión anterior), no se vuelven a pedir.
+      return caches.open(CACHE_ESTABLE).then(function(ce){
         // [v1.37] Devuelve true SOLO si el archivo quedo guardado. Antes se
         // tragaba el error y devolvia undefined, asi que el sello de imagenes
         // se marcaba como al dia aunque la descarga hubiera fallado: las fotos
         // nuevas no llegaban nunca y no habia forma de reintentar.
         var bajarEstable = function(f){
           var url = SCOPE + f;
-          return fetch(url).then(function(r){
-            if(r && r.status === 200) return ce.put(url, r).then(function(){ return true; });
-            return false;
+          return ce.match(url).then(function(hit){
+            return hit ? true : fetch(url, {cache: 'no-cache'}).then(function(r){
+              if(r && r.status === 200) return ce.put(url, r).then(function(){ return true; });
+              return false;
+            });
           }).catch(function(err){
             console.warn('[SW] estable falló', f, err && err.message);
             return false;
@@ -156,24 +158,12 @@ self.addEventListener('install', function(event){
            uso real, por el fetch handler (esEstable lo cubre). Y para no
            perder el PDF sin senal, la pagina lo precarga en reposo mucho
            despues de arrancar — ver precargarVendors() en app.js. */
-        // [v1.38] app.js: mismo mecanismo que las fotos, sellado por el hash
-        // de su contenido. Si no cambio, no se vuelve a bajar nunca.
-        var selloApp = SCOPE + '__app_v';
-        ce.match(selloApp).then(function(hit){
-          return hit ? hit.text() : null;
-        }).then(function(prev){
-          return ce.match(SCOPE + 'app.js').then(function(tiene){
-            if(prev === APP_JS_V && tiene) return;
-            return bajarEstable('app.js').then(function(ok){
-              if(!ok) return;
-              return ce.put(selloApp, new Response(APP_JS_V, {
-                headers: {'Content-Type': 'text/plain'}
-              }));
-            });
-          });
-        }).catch(function(err){
-          console.warn('[SW] sello de app.js falló', err && err.message);
-        });
+        /* [v1.72.7] app.js se guarda CON ?v=APP_JS_V (la URL exacta que pide la
+           pagina) y el install lo ESPERA. Antes iba sin ?v= con un sello aparte y
+           sin esperarse: el SW nuevo se activaba, la pagina recargaba y recibia el
+           app.js VIEJO con el HTML nuevo; y si la descarga fallaba o venia vieja de
+           la cache HTTP, ese app.js viejo se quedaba hasta el siguiente cambio. */
+        return bajarEstable('app.js?v=' + APP_JS_V);
         /* [v1.63] catalog-img.js YA NO se precachea aqui.
            Antes pesaba 904 KB porque traia las 82 fotos en base64: habia que
            bajarlo entero aunque el asesor viera ocho equipos, y por eso existia
@@ -183,8 +173,7 @@ self.addEventListener('install', function(event){
            pintan — mismo patron que los modelos 3D.
            IMG_BUILD se conserva declarado por compatibilidad: el activate
            limpia solo las instalaciones viejas que aun tengan el archivo gordo. */
-      });
-      return self.skipWaiting();
+      }).catch(function(){}).then(function(){ return self.skipWaiting(); });
     })
   );
 });
@@ -228,15 +217,18 @@ self.addEventListener('activate', function(event){
       /* [v1.72] Limpieza del cache estable, que nunca se vaciaba:
          - catalog-img.js viejo (incluido el de 904 KB con fotos en base64 que
            aun conservan quienes instalaron antes de v1.63);
-         - fotos de img/ de una version anterior a IMG_BUILD.
+         - fotos de img/ de una version anterior a IMG_BUILD;
+         - [v1.72.7] app.js de otra version (y el sello __app_v ya sin uso), solo si
+           el actual ya esta guardado: sin señal, uno viejo es mejor que ninguno.
          Va envuelta en catch: si algo falla, la activacion sigue igual. */
       return caches.open(CACHE_ESTABLE).then(function(c){
-        return c.keys().then(function(reqs){
+        return Promise.all([c.keys(), c.match(SCOPE + 'app.js?v=' + APP_JS_V)]).then(function(x){ var reqs = x[0], appOk = !!x[1];
           return Promise.all(reqs.map(function(r){
             try{
               var u=new URL(r.url);
               if(/\/catalog-img\.js$/i.test(u.pathname)) return c.delete(r);
               if(/\/img\/[^/]+\.(webp|jpg|png)$/i.test(u.pathname) && u.search !== '?v=' + IMG_BUILD) return c.delete(r);
+              if(appOk && /\/(app\.js|__app_v)$/i.test(u.pathname) && u.search !== '?v=' + APP_JS_V) return c.delete(r);
             }catch(e){}
           }));
         });
@@ -276,6 +268,8 @@ self.addEventListener('fetch', function(event){
   if(url.protocol !== 'http:' && url.protocol !== 'https:') return;
 
   // Firebase SDK from gstatic.com — cache first, fall back to network.
+  // [v1.72.7] Al cache ESTABLE: la URL ya trae la version (10.13.0) y nunca cambia.
+  // En CACHE_NAME se borraba en cada actualizacion y el login volvia a bajar ~400 KB.
   if(url.hostname === 'www.gstatic.com' && url.pathname.indexOf('/firebasejs/') === 0){
     event.respondWith(
       caches.match(req).then(function(cached){
@@ -283,7 +277,7 @@ self.addEventListener('fetch', function(event){
         return fetch(req).then(function(response){
           if(response && response.status === 200){
             const clone = response.clone();
-            caches.open(CACHE_NAME).then(function(cache){
+            caches.open(CACHE_ESTABLE).then(function(cache){
               return cache.put(req, clone);
             }).catch(function(err){
               // [v1.9.25.3] Silenciar errores de cache (ej. quota, esquemas raros)
@@ -387,7 +381,9 @@ self.addEventListener('fetch', function(event){
        bump lo trae fresco. */
     const esEstable = /\/(app|vendors)\.js/i.test(url.pathname);
     const destino = esEstable ? CACHE_ESTABLE : CACHE_NAME;
-    const clave = esEstable ? (url.origin + url.pathname) : req;
+    // [v1.72.7] Solo vendors.js va sin ?v=. app.js usa su URL con version: con la
+    // clave pelona se servia la copia guardada aunque fuera de OTRA version.
+    const clave = /\/vendors\.js/i.test(url.pathname) ? (url.origin + url.pathname) : req;
 
     /* [v1.33] catalog.js pedido por el CATÁLOGO PÚBLICO (lleva ?d=fecha) va a
        RED PRIMERO. Antes caía en cache-first como cualquier bundle: el cliente
@@ -503,7 +499,7 @@ self.addEventListener('fetch', function(event){
              URL exacta no está en caché, así que caía aquí. Ahora el catálogo
              usa su propia copia sin query. */
           if(esCatalogo) return caches.match(SCOPE + 'catalogo.html');
-          return cached || caches.match(SCOPE + 'index.html');
+          return cached || caches.match(SCOPE);
         });
         /* El catálogo ignora la query al buscar en caché: el enlace de cada
            asesor es distinto pero el archivo es el mismo. */
