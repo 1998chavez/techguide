@@ -6788,6 +6788,8 @@ function getDateRange(periodo){
     case 'ultimos_30':
       desde=new Date(hoy); desde.setDate(desde.getDate()-29);
       hasta=new Date(hoy); break;
+    case 'todas': // [v1.72.9] desde el 11-may-2026, primer dia con cotizaciones registradas
+      desde=new Date(2026,4,11); hasta=new Date(hoy); break;
     default:
       desde=new Date(hoy); hasta=new Date(hoy);
   }
@@ -7841,7 +7843,7 @@ function calcularAlertas(data){
       const periodoLbl = {
         'hoy':'hoy', 'ayer':'ayer', 'semana':'esta semana',
         'semana_pasada':'semana pasada', 'mes':'este mes',
-        'mes_pasado':'mes pasado', 'ultimos_30':'últimos 30 días'
+        'mes_pasado':'mes pasado', 'ultimos_30':'últimos 30 días', 'todas':'desde el inicio'
       }[data.periodo] || data.periodo;
       
       tiendasInactivas.slice(0, 5).forEach(function(tnda){
@@ -7995,7 +7997,8 @@ async function exportarDashboardExcel(){
       'semana_pasada': 'Semana pasada',
       'mes': 'Este mes',
       'mes_pasado': 'Mes pasado',
-      'ultimos_30': 'Últimos 30 días'
+      'ultimos_30': 'Últimos 30 días',
+      'todas': 'Todas'
     }[data.periodo] || data.periodo;
     
     const wb = XLSX.utils.book_new();
