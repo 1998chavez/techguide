@@ -11,6 +11,7 @@
 // preguntar. Sin la version, los asesores seguirian viendo las viejas.
 // Debe coincidir con IMG_BUILD en sw.js.
 window.IMG = {
+  "honor600elite":"img/honor600elite.webp?v=20261001",
   "mg47":"img/mg47.webp?v=20261001",
   "mg37":"img/mg37.webp?v=20261001",
   "ss26fe":"img/ss26fe.webp?v=20261001",
@@ -19,8 +20,6 @@ window.IMG = {
   "ip18promax":"img/ip18promax.webp?v=20261001",
   "ip18pro_512":"img/ip18pro.webp?v=20261001",
   "ip18pro":"img/ip18pro.webp?v=20261001",
-  "h400":"img/h400.webp?v=20261001",
-  "h400bal":"img/h400bal.webp?v=20261001",
   "hmagic7px8c":"img/hmagic7px8c.webp?v=20261001",
   "hmagic8lite":"img/hmagic8lite.webp?v=20261001",
   "hmagic8litejersey":"img/hmagic8litejersey.webp?v=20261001",
@@ -33,7 +32,6 @@ window.IMG = {
   "hx8d":"img/hx8d.webp?v=20261001",
   "ip15":"img/ip15.webp?v=20261001",
   "ip16":"img/ip16.webp?v=20261001",
-  "ip16promax":"img/ip16promax.webp?v=20261001",
   "ip17":"img/ip17.webp?v=20261001",
   "ip17_512":"img/ip17_512.webp?v=20261001",
   "ip17e":"img/ip17e.webp?v=20261001",
