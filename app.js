@@ -2055,7 +2055,8 @@ function cotSend(){
   // [v1.10.37] Saludo personalizado según tipo de operación (POSPAGO/RENOVACION).
   // [v1.10.67] Saludo cordial al cliente al inicio del mensaje. Si el ejecutivo
   // no puso el nombre del cliente, se omite el nombre pero el saludo se mantiene.
-  const _clienteNombreTxt = (cotState.cliente||'').trim().split(/\s+/)[0] || '';
+  // [v1.72.14] Hasta 2 nombres del cliente ("Juan Pérez"), no solo el primero.
+  const _clienteNombreTxt = (cotState.cliente||'').trim().split(/\s+/).slice(0,2).join(' ') || '';
   const _esRenovacion = (cotState.tipo === 'RENOVACION');
   const _asesorPrimerNombre = (asesorData && asesorData.name) ? asesorData.name.split(/\s+/)[0] : 'su asesor';
   if(_clienteNombreTxt){
@@ -13074,7 +13075,7 @@ function _flyerHead(){
 }
 
 function _flyerGreet(state){
-  const nombre=(state.cliente||'').trim().split(/\s+/)[0]||'';
+  const nombre=(state.cliente||'').trim().split(/\s+/).slice(0,2).join(' ')||''; // [v1.72.14] hasta 2 nombres
   let h='<div class="flyer-v3-greet">';
   if(nombre){
     h+='<div class="flyer-v3-greet-sub">Hola '+nombre+',</div>';
@@ -13319,7 +13320,7 @@ function _flyerTituloV4(state){
      cliente capturado (v1.11.88). */
   let h='<div style="text-align:center;padding:18px 26px 4px">';
   h+='<div style="font-size:24px;font-weight:800;letter-spacing:-.03em;color:#1D1D1F">Tu <span style="color:#0091C2">cotizaci\u00f3n</span> personalizada</div>';
-  const _nom=(state.cliente||'').trim().split(/\s+/)[0].replace(/[<>&]/g,'');
+  const _nom=(state.cliente||'').trim().split(/\s+/).slice(0,2).join(' ').replace(/[<>&]/g,''); // [v1.72.14] hasta 2 nombres
   if(_nom){
     h+='<div style="font-size:12px;color:#86868B;margin-top:7px">Preparada para <span style="font-weight:700;color:#1D1D1F">'+_nom+'</span></div>';
   }
