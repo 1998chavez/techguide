@@ -12,6 +12,7 @@
 // Debe coincidir con IMG_BUILD en sw.js.
 window.IMG = {
   "hx6e":"img/hx6e.webp?v=20261001",
+  "hx6e_256":"img/hx6e.webp?v=20261001",
   "honor600elite":"img/honor600elite.webp?v=20261001",
   "mg47":"img/mg47.webp?v=20261001",
   "mg37":"img/mg37.webp?v=20261001",
