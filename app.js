@@ -114,6 +114,14 @@ function daysLeft(id){
   const end=new Date(v+'T00:00:00');
   return Math.ceil((end-now)/(1000*60*60*24));
 }
+// [v1.72.20] % de descuento que se MUESTRA (ficha, cotización, calculadora,
+// Descuentos y Equipos del momento). Redondeado, pero lo que no llega a 70 %
+// nunca se muestra como 70 %: 70 % o más = rentas; 69.9 % para abajo = enganche.
+// Las reglas siguen decidiendo con el % exacto, no con este.
+function pctMostrar(d){
+  const r=Math.round(d);
+  return (d<70 && r>=70) ? 69 : r;
+}
 
 // ── [v1.11.62] ALERTAS DE VIGENCIA ──────────────────────────────────────────
 // Problema que resuelve: las vigencias vencen sin avisar. Un equipo vencido se
@@ -474,7 +482,7 @@ function initMomento(){
       const descText=m.desc>=70?'#1D9E75':'#5BA3E8';
       const onClick="showCatalog\'"+os+"\');setTimeout(function(){showFicha\'"+m.id+"\');var t=document.querySelector\'.tb[onclick*=plans]\');if(t)swTab\'plans\',t);},150)";
 
-      html+='<div class="momento-card" onclick="(function(){showCatalog(\''+os+'\');setTimeout(function(){showFicha(\''+m.id+'\');setTimeout(function(){var tabs=document.querySelectorAll(\'.tb\');tabs.forEach(function(t){if(t.textContent.includes(\'Planes\'))swTab(\'plans\',t);});},100);},150);})()">'; 
+      html+='<div class="momento-card" onclick="abrirMomento(\''+os+'\',\''+m.id+'\',\''+plan.name+'\','+m.plazo+')">';
       html+='<div class="momento-img">'+imgHtml+'</div>';
       html+='<div class="momento-name">'+dev.name+'</div>';
       html+='<div class="momento-plazo">'+m.plazo+' meses</div>';
@@ -488,6 +496,20 @@ function initMomento(){
   });
 
   el.innerHTML=html;
+}
+// [v1.72.20] La tarjeta abre la ficha en SU plan y plazo. Antes abría en
+// Azul 1 a 24 meses y el precio no coincidía con el de la tarjeta.
+function abrirMomento(os,id,plan,plazo){
+  showCatalog(os);
+  setTimeout(function(){
+    showFicha(id);
+    setTimeout(function(){
+      document.querySelectorAll('.tb').forEach(function(t){if(t.textContent.includes('Planes'))swTab('plans',t);});
+      if(document.querySelector('.plan-chip[data-plan="'+plan+'"]')) selectPlan(plan);
+      const b=[...document.querySelectorAll('.plazo-btn')].find(function(x){return parseInt(x.textContent,10)===plazo;});
+      if(b) setPlazo(plazo,b);
+    },100);
+  },150);
 }
 
 let curOS='ios', curBrand='Todos', gridMode=true;
@@ -1267,7 +1289,7 @@ function renderPriceResult(){
   }
 
   const descExact=(1-promo/contado)*100;
-  const descPct=Math.round(descExact);
+  const descPct=pctMostrar(descExact);
   const rentaPlan=planObj.renta;
   const isHighDiscount=descExact>=70;
   const eng1=Math.round(rentaPlan);
@@ -1425,7 +1447,7 @@ function calcBudget(){
         const score=planScore+engScore;
         
         if(!bestMatch||score>bestMatch.score){
-          bestMatch={plan:plan.name,renta:plan.renta,plazo:plazo,promo:promo,desc:Math.round(desc),required:required,score:score,type:desc>=70?'rentas':'historial'};
+          bestMatch={plan:plan.name,renta:plan.renta,plazo:plazo,promo:promo,desc:pctMostrar(desc),required:required,score:score,type:desc>=70?'rentas':'historial'};
         }
       });
     });
@@ -1557,7 +1579,7 @@ function openCotModal(){
     port:false, control:false, seguro:false,
     engPct:0, engCustom:null, rentas:0, deposito:0,
     device:dev, plan:curPlan, plazo:curPlazo, promo:promo, contado:info.contado,
-    isHighDisc:desc>=70, descPct:Math.round(desc), planRenta:rentaPlan,
+    isHighDisc:desc>=70, descPct:pctMostrar(desc), planRenta:rentaPlan,
     isUpcoming:isUpcoming, futStart:fp?fp.start:null,
     cliente:'', // [v1.9.25] Reset del nombre del cliente al abrir modal
     tipo:null,  // [v1.10.25] Reset tipo de operación — obligatorio elegir
@@ -1709,7 +1731,7 @@ function _costoEntradaPlan(promo, contado, renta){
   // Devuelve {entrada, tipo, desc} = lo máximo que el cliente saca hoy en ese plan
   const desc = (1 - promo/contado)*100;
   if(desc >= 70) return {entrada: renta*3, tipo:'garantia', desc:desc};
-  return {entrada: Math.floor(promo*0.5), tipo:'enganche', desc:desc};
+  return {entrada: Math.round(promo*0.5), tipo:'enganche', desc:desc};   // [v1.72.20] igual que la ficha
 }
 function calcularMejorPlan(){
   // Usa el equipo y plazo actualmente cotizados; evalúa todos los planes.
@@ -2990,7 +3012,7 @@ function renderDescList(){
       const imgEl = (typeof IMG !== 'undefined' && IMG[it.d.id])
         ? '<img src="'+IMG[it.d.id]+'" alt="">'
         : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>';
-      const pctStr = it.promo === 0 ? 'Incluido' : '\u2212' + Math.round(it.pct) + '%';
+      const pctStr = it.promo === 0 ? 'Incluido' : '\u2212' + pctMostrar(it.pct) + '%';
       // storage en el detalle: distingue variantes que comparten nombre (Pixel 10 Pro 256/512).
       h += '<div class="top-comm-item" onclick="showFicha(\''+it.d.id+'\')">';
       h += '<div class="top-comm-thumb">'+imgEl+'</div>';
@@ -13481,7 +13503,7 @@ function buildFlyerHTML(state){
   const portSavings = state.port ? (totalMensualBase - totalMensualWithPort) : 0;
   const totalMensual = totalMensualBase;
   
-  const desc=Math.round((1-state.promo/state.contado)*100);
+  const desc=pctMostrar((1-state.promo/state.contado)*100);
   // [v1.72] Redondeado, igual que en la comparativa. Sin esto la cotizacion
   // mostraba "Ahorras $3,119.9" cuando el promo traia decimales.
   const ahorro=Math.round(state.contado-state.promo);
