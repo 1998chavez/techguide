@@ -8248,6 +8248,189 @@ async function exportarDashboardExcel(){
   }
 }
 
+// ── [v1.72.24] AVANCE EN IMAGEN PARA COMPARTIR (opción A, aprobada por Diego) ──
+// El botón de descarga del dashboard abre una hoja con dos opciones: "Imagen para
+// compartir" o "Excel". La imagen sale de los MISMOS datos del tablero
+// (dashState.cached) y del período elegido: cotizaciones, asesores activos, tiendas
+// activas y el ranking completo de tiendas (las sin actividad en rojo).
+// Al generarla se abre el menú de compartir del celular. Si el celular ya no deja
+// compartir en automático (tardó en generarse), se muestra la vista previa con su
+// botón "Compartir imagen". En computadora se descarga.
+const _AVZ_MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const _AVZ_DIAS=['dom','lun','mar','mié','jue','vie','sáb'];
+const _AVZ_PERIODOS={hoy:'Hoy',ayer:'Ayer',semana:'Esta semana',semana_pasada:'Semana pasada',mes:'Este mes',mes_pasado:'Mes pasado',ultimos_30:'Últimos 30 días',todas:'Todas'};
+const _AVZ_MAX_TIENDAS=40;   // tope de renglones para que la imagen no salga kilométrica (director / DN)
+let _avzBlob=null, _avzNombre='', _avzUrl=null, _avzGenerando=false;
+
+function abrirDescargaDash(){
+  const data=dashState.cached;
+  if(!data||!data.stats){ alert('Espera a que el dashboard termine de cargar.'); return; }
+  const sub=document.getElementById('dash-descarga-sub');
+  if(sub) sub.textContent=(_AVZ_PERIODOS[data.periodo]||data.periodo||'')+' · '+_avzRango(data.rango);
+  const ov=document.getElementById('dash-descarga-sheet');
+  if(ov) ov.classList.add('open');
+}
+function cerrarDescargaDash(e){
+  // Con evento: solo cierra si el toque fue en el fondo, no en la hoja
+  if(e && e.target && !e.target.classList.contains('hv2-sheet-overlay')) return;
+  const ov=document.getElementById('dash-descarga-sheet');
+  if(ov) ov.classList.remove('open');
+}
+function descargaDashExcel(){
+  cerrarDescargaDash();
+  exportarDashboardExcel();
+}
+function _avzFecha(iso, conDia){
+  const p=String(iso||'').split('-');
+  if(p.length<3) return String(iso||'');
+  const d=new Date(+p[0], +p[1]-1, +p[2]);
+  return (conDia?_AVZ_DIAS[d.getDay()]+' ':'')+d.getDate()+' '+_AVZ_MESES[d.getMonth()]+' '+d.getFullYear();
+}
+function _avzRango(r){
+  if(!r||!r.desde) return '';
+  if(r.desde===r.hasta) return _avzFecha(r.desde, true);
+  const a=r.desde.split('-'), b=String(r.hasta).split('-');
+  const ini=(a[0]!==b[0]) ? _avzFecha(r.desde) : (+a[2])+(a[1]!==b[1] ? ' '+_AVZ_MESES[+a[1]-1] : '');
+  return ini+' – '+_avzFecha(r.hasta);
+}
+function _avzTienda(n){
+  return String(n||'').replace(/_/g,' ').replace(/^PRM\s+TDA\s+/i,'').trim();
+}
+function _avzNombrePersona(n){
+  n=String(n||'').trim();
+  if(n && n===n.toUpperCase()){   // viene en mayúsculas: "DIEGO CHAVEZ" → "Diego Chavez"
+    n=n.toLowerCase().replace(/(^|\s)(\S)/g, function(m,sp,c){ return sp+c.toUpperCase(); });
+  }
+  return n;
+}
+function _avzAlcance(){
+  const rol=(asesorData && asesorData.rol ? asesorData.rol : 'asesor').toLowerCase();
+  const nombre=_avzNombrePersona(asesorData && asesorData.name);
+  const partes=[];
+  if(rol==='regional') partes.push('Regional '+nombre);
+  else if(rol==='gerente'){ partes.push('Gerente '+nombre); if(asesorData.tienda) partes.push(_avzTienda(asesorData.tienda)); }
+  else if(rol==='director') partes.push('Director '+nombre);
+  else if(rol==='director_nacional') partes.push('Dirección Nacional');
+  if(dashState.regionalFiltro && dashState.regionalFiltro.nombre) partes.push('Regional '+_avzNombrePersona(dashState.regionalFiltro.nombre));
+  else if(dashState.regionFiltro && (rol==='director' || rol==='director_nacional')) partes.push(String(dashState.regionFiltro).replace(/_/g,' '));
+  if(dashState.tiendaFiltro && rol!=='gerente') partes.push(_avzTienda(dashState.tiendaFiltro));
+  return partes.filter(function(x){ return x && x.trim(); }).join(' · ');
+}
+// Asesores activos y, si el dashboard trae el padrón del territorio, el total (activos + sin actividad)
+function _avzAsesores(data){
+  const s=data.stats, act=s.asesoresActivos||0;
+  if(!Array.isArray(data.asesoresTerritorio)) return {act:act, tot:null};
+  const cotizaron=new Set((s.topAsesores||[]).map(function(e){ return e[0]; }));
+  const sinAct=data.asesoresTerritorio.filter(function(emp){ return emp && !cotizaron.has(emp.attuid); }).length;
+  return {act:act, tot:act+sinAct};
+}
+function buildAvanceHTML(data){
+  const s=data.stats, total=s.total||0;
+  const tiendas=(s.topTiendas||[]).slice();
+  const activas=tiendas.filter(function(e){ return e[1]>0; });
+  const sinAct=tiendas.length-activas.length;
+  const ase=_avzAsesores(data);
+  const fmt=function(n){ return Number(n||0).toLocaleString('es-MX'); };
+  const ahora=new Date();
+  const corte=ahora.getDate()+' '+_AVZ_MESES[ahora.getMonth()]+' · '+String(ahora.getHours()).padStart(2,'0')+':'+String(ahora.getMinutes()).padStart(2,'0');
+  const alcance=_avzAlcance();
+  let h='<div class="avz">';
+  h+='<div class="avz-hd"><div class="avz-br">PR<span class="s">|</span>ME<span class="mx">MX</span></div><div class="avz-fe">Corte '+corte+'</div></div>';
+  h+='<div class="avz-ti"><div class="avz-h1">Avance de cotizaciones</div>';
+  h+='<div class="avz-p"><b>'+escapeHtml(_AVZ_PERIODOS[data.periodo]||data.periodo||'')+'</b> · '+escapeHtml(_avzRango(data.rango))+(alcance?' · '+escapeHtml(alcance):'')+'</div></div>';
+  h+='<div class="avz-kp">';
+  h+='<div class="avz-k"><div class="v">'+fmt(total)+'</div><div class="l">Cotizaciones</div></div>';
+  h+='<div class="avz-k"><div class="v">'+fmt(ase.act)+(ase.tot?'<small> /'+fmt(ase.tot)+'</small>':'')+'</div><div class="l">Asesores activos</div></div>';
+  h+='<div class="avz-k"><div class="v">'+fmt(activas.length)+'<small> /'+fmt(tiendas.length)+'</small></div><div class="l">Tiendas activas</div></div>';
+  h+='</div>';
+  h+='<div class="avz-se"><div class="avz-h2">Tiendas <span>'+activas.length+' activa'+(activas.length===1?'':'s')+(sinAct?' · '+sinAct+' sin actividad':'')+'</span></div>';
+  const max=activas.length ? activas[0][1] : 1;
+  tiendas.slice(0, _AVZ_MAX_TIENDAS).forEach(function(e, i){
+    const nom=escapeHtml(_avzTienda(e[0]));
+    if(!e[1]){
+      h+='<div class="avz-r in"><span class="n">–</span><span class="t">'+nom+'</span><span class="sa">SIN ACTIVIDAD</span></div>';
+      return;
+    }
+    const p=total ? e[1]/total : 0;
+    h+='<div class="avz-r'+(i<3?' top':'')+'"><div class="bar" style="width:'+Math.max(8, Math.round(e[1]/max*100))+'%"></div>'
+      +'<span class="n">'+(i+1)+'</span><span class="t">'+nom+'</span>'
+      +'<span class="pc">'+(p>=0.005 ? Math.round(p*100)+'%' : '&lt;1%')+'</span><span class="c">'+fmt(e[1])+'</span></div>';
+  });
+  if(tiendas.length>_AVZ_MAX_TIENDAS) h+='<div class="avz-mas">y '+(tiendas.length-_AVZ_MAX_TIENDAS)+' tiendas más</div>';
+  h+='</div><div class="avz-pie"></div></div>';
+  return h;
+}
+async function compartirAvanceImagen(){
+  cerrarDescargaDash();
+  const data=dashState.cached;
+  if(!data||!data.stats){ alert('Espera a que el dashboard termine de cargar.'); return; }
+  if(_avzGenerando) return;
+  _avzGenerando=true;
+  showCotizacionToast('info','Generando imagen…',1800);
+  const cont=document.getElementById('dash-avance-render');
+  try{
+    await loadVendors();
+    cont.innerHTML=buildAvanceHTML(data);
+    const el=cont.querySelector('.avz');
+    const canvas=await html2canvas(el, {scale:2, backgroundColor:'#FAFAF8', logging:false, width:540, windowWidth:540});
+    const blob=await new Promise(function(res){ canvas.toBlob(res, 'image/png'); });
+    if(!blob) throw new Error('el celular no pudo crear la imagen');
+    _avzBlob=blob;
+    _avzNombre='avance-'+(data.periodo||'periodo')+'-'+String((data.rango&&data.rango.hasta)||'').replace(/-/g,'')+'.png';
+    await _compartirAvance(true);
+  }catch(e){
+    console.error('[avance] imagen:', e);
+    showCotizacionToast('error','No se pudo generar la imagen: '+((e&&e.message)||'error'),4000);
+  }finally{
+    if(cont) cont.innerHTML='';
+    _avzGenerando=false;
+  }
+}
+async function _compartirAvance(directo){
+  if(!_avzBlob) return;
+  const file=new File([_avzBlob], _avzNombre, {type:'image/png'});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file], title:'Avance de cotizaciones'});
+      cerrarAvancePreview();
+      return;
+    }catch(e){
+      if(e && e.name==='AbortError') return;            // lo canceló el usuario
+      if(directo){ _mostrarAvancePreview(); return; }   // se venció el toque: que toque "Compartir imagen"
+    }
+  }
+  // Sin menú de compartir (computadora) o falló: se descarga
+  const url=URL.createObjectURL(_avzBlob);
+  const a=document.createElement('a');
+  a.href=url; a.download=_avzNombre;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+  cerrarAvancePreview();
+  showCotizacionToast('success','Imagen descargada',2500);
+}
+function _mostrarAvancePreview(){
+  let ov=document.getElementById('avance-preview-overlay');
+  if(!ov){
+    ov=document.createElement('div');
+    ov.className='cot-overlay'; ov.id='avance-preview-overlay';
+    ov.addEventListener('click', function(e){ if(e.target===ov) cerrarAvancePreview(); });
+    document.body.appendChild(ov);
+  }
+  if(_avzUrl) URL.revokeObjectURL(_avzUrl);
+  _avzUrl=URL.createObjectURL(_avzBlob);
+  ov.innerHTML='<div class="cot-modal" style="max-height:96vh"><div class="cot-handle"></div>'
+    +'<div class="cot-header"><div class="cot-title">Avance listo</div><div class="cot-sub">Toca compartir para enviarlo a tu equipo</div></div>'
+    +'<div class="cot-body" style="padding:14px;background:var(--surface2)"><div style="display:flex;justify-content:center;padding:8px">'
+    +'<img src="'+_avzUrl+'" alt="" style="max-width:100%;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.15)"></div></div>'
+    +'<div class="cot-actions"><button class="cot-btn cot-btn-cancel" onclick="cerrarAvancePreview()">Cerrar</button>'
+    +'<button class="cot-btn cot-btn-send" onclick="_compartirAvance(false)">Compartir imagen</button></div></div>';
+  ov.classList.add('show');
+}
+function cerrarAvancePreview(){
+  const ov=document.getElementById('avance-preview-overlay');
+  if(ov) ov.classList.remove('show');
+}
+
 // [v1.9.13 fix 4] Sistema de toasts ligeros para feedback inmediato de cotizaciones.
 // Tipos: 'success' (verde), 'queued' (naranja), 'info' (azul), 'error' (rojo).
 function showCotizacionToast(type, message, durationMs){

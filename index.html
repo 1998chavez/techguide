@@ -12,7 +12,7 @@
      otro script, porque catalog.js/vendors.js la usan para el cache-busting y
      el registro del SW la compara. Si HTML y SW no coinciden → recarga forzada.
      Al empacar cada versión, este número se actualiza igual que el cache del SW. -->
-<script>window.BUILD_ID = '1792886400';
+<script>window.BUILD_ID = '1792972800';
 
   /* [v1.55] APP_JS_V se define AQUI, no al 88% del archivo, para poder emitir
      los preload con la URL exacta que despues pediran los document.write.
@@ -21,12 +21,12 @@
      Con esto, catalog.js (169 KB) y app.js (654 KB) empiezan a bajar de
      inmediato en vez de esperar a que el parser llegue al final del body,
      solapandose con los 187 KB de CSS y los 61 KB de markup. */
-  window.APP_JS_V = 'b9e0b51053';
+  window.APP_JS_V = 'ef682f43d8';
   document.write('<link rel="preload" as="script" href="catalog.js?v='+window.BUILD_ID+'">');
   document.write('<link rel="preload" as="script" href="app.js?v='+window.APP_JS_V+'">');
 // [v1.11.61] APP_VERSION vive aquí desde que el bloque principal salió a app.js.
 // El ritual de release NO cambia: 2 constantes aquí + 2 en sw.js.
-const APP_VERSION = 'v1.72.23';</script>
+const APP_VERSION = 'v1.72.24';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -1950,6 +1950,41 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;co
 }
 
 /* [v1.9.25] ──────── Flyer v3: Estilo limpio claro (Apple-like) ──────── */
+/* [v1.72.24] Imagen "Avance de cotizaciones" del dashboard. Se pinta fuera de
+   pantalla y se convierte en PNG; colores fijos para que salga igual en modo oscuro. */
+#dash-avance-render{position:fixed;top:-10000px;left:-10000px;width:540px;background:#FAFAF8}
+/* La hoja y la vista previa van encima del botón flotante del asistente (.ai-bubble, 9998) */
+#dash-descarga-sheet,#avance-preview-overlay{z-index:10000}
+.avz{width:540px;background:#FAFAF8;color:#1D1D1F;line-height:1.3;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+.avz *{box-sizing:border-box}
+.avz-hd{display:flex;align-items:center;justify-content:space-between;padding:22px 28px 16px;border-bottom:1px solid #ECECEC}
+.avz-br{font-size:20px;font-weight:700;letter-spacing:-.02em;color:#1D1D1F}
+.avz-br .s{color:#C7C7CC;margin:0 3px;font-weight:400}
+.avz-br .mx{color:#0071E3;margin-left:4px;font-size:15px}
+.avz-fe{font-size:12px;color:#86868B;font-weight:500}
+.avz-ti{padding:22px 28px 6px}
+.avz-h1{font-size:27px;font-weight:800;letter-spacing:-.03em;color:#1D1D1F}
+.avz-p{margin-top:6px;font-size:14px;color:#515154;font-weight:500}
+.avz-p b{color:#0071E3;font-weight:700}
+.avz-kp{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:16px 28px 6px}
+.avz-k{background:#FFFFFF;border:1px solid #EDEDED;border-radius:14px;padding:12px 12px 11px}
+.avz-k .v{font-size:25px;font-weight:800;letter-spacing:-.03em;color:#1D1D1F}
+.avz-k .v small{font-size:14px;color:#86868B;font-weight:600}
+.avz-k .l{font-size:11.5px;color:#6E6E73;font-weight:600;margin-top:2px}
+.avz-se{padding:18px 28px 4px}
+.avz-h2{font-size:12px;letter-spacing:.09em;color:#86868B;font-weight:700;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between}
+.avz-h2 span{letter-spacing:0;text-transform:none;font-weight:600}
+.avz-r{position:relative;display:flex;align-items:center;height:34px;margin-bottom:5px;padding:0 10px 0 0}
+.avz-r .bar{position:absolute;left:0;top:3px;bottom:3px;background:#E7F0FC;border-left:3px solid #0071E3;border-radius:6px}
+.avz-r .n{position:relative;width:24px;text-align:center;font-size:12px;font-weight:700;color:#86868B}
+.avz-r .t{position:relative;flex:1;font-size:14.5px;font-weight:600;padding-left:6px;color:#1D1D1F;white-space:nowrap;overflow:hidden}
+.avz-r .pc{position:relative;font-size:12.5px;color:#86868B;font-weight:600;width:44px;text-align:right}
+.avz-r .c{position:relative;font-size:16px;font-weight:800;width:48px;text-align:right;color:#1D1D1F}
+.avz-r.in .t{color:#86868B}
+.avz-r.in .sa{position:relative;font-size:11px;font-weight:800;color:#D70015;background:#FFE9EB;border-radius:6px;padding:4px 8px}
+.avz-r.top .n{color:#FFFFFF;background:#0071E3;border-radius:7px;height:22px;line-height:22px;width:22px;margin:0 1px}
+.avz-mas{font-size:12px;color:#86868B;font-weight:600;padding:6px 0 0 30px}
+.avz-pie{height:22px}
 .flyer-v3{
   width:540px;background:#FAFAF8;color:#1D1D1F;
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;
@@ -5537,6 +5572,7 @@ document.write('<scr'+'ipt src="app.js?v='+window.APP_JS_V+'"></scr'+'ipt>');
 
 <!-- HIDDEN FLYER FOR IMAGE GENERATION -->
 <div id="cot-flyer-render"></div>
+<div id="dash-avance-render"></div>
 
 <!-- FLYER PREVIEW MODAL -->
 <div class="cot-overlay" id="flyer-preview-overlay">
@@ -5567,6 +5603,33 @@ document.write('<scr'+'ipt src="app.js?v='+window.APP_JS_V+'"></scr'+'ipt>');
   </div>
 </div>
 
+<!-- [v1.72.24] Hoja del botón de descarga del dashboard: imagen para compartir o Excel -->
+<div id="dash-descarga-sheet" class="hv2-sheet-overlay" onclick="cerrarDescargaDash(event)">
+  <div class="hv2-sheet" onclick="event.stopPropagation()">
+    <div class="hv2-sheet-grip"></div>
+    <div class="hv2-sheet-title">Descargar avance</div>
+    <div class="hv2-sheet-sub" id="dash-descarga-sub"></div>
+    <div class="hv2-sheet-opts">
+      <button class="hv2-sheet-opt" onclick="compartirAvanceImagen()">
+        <span class="hv2-sheet-opt-logo"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg></span>
+        <span class="hv2-sheet-opt-txt">
+          <span class="hv2-sheet-opt-name">Imagen para compartir</span>
+          <span class="hv2-sheet-opt-cnt">Lista para WhatsApp</span>
+        </span>
+        <span class="hv2-sheet-opt-arrow">→</span>
+      </button>
+      <button class="hv2-sheet-opt" onclick="descargaDashExcel()">
+        <span class="hv2-sheet-opt-logo"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M3 15h18M9 3v18"/></svg></span>
+        <span class="hv2-sheet-opt-txt">
+          <span class="hv2-sheet-opt-name">Excel</span>
+          <span class="hv2-sheet-opt-cnt">Reporte completo</span>
+        </span>
+        <span class="hv2-sheet-opt-arrow">→</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- [v1.6] DASHBOARD OVERLAY -->
 <div class="dash-overlay" id="dash-overlay">
   <div class="dash-screen">
@@ -5580,7 +5643,7 @@ document.write('<scr'+'ipt src="app.js?v='+window.APP_JS_V+'"></scr'+'ipt>');
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
         <span class="dash-bell-badge" id="dash-bell-badge" style="display:none">0</span>
       </button>
-      <button class="dash-refresh" onclick="exportarDashboardExcel()" aria-label="Descargar Excel" title="Descargar Excel" id="dash-download-btn" style="margin-right:6px">
+      <button class="dash-refresh" onclick="abrirDescargaDash()" aria-label="Descargar avance" title="Descargar avance" id="dash-download-btn" style="margin-right:6px">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       </button>
       <button class="dash-refresh" onclick="forceReloadDashboard()" aria-label="Actualizar datos" title="Actualizar (forzar lectura)">↻</button>
