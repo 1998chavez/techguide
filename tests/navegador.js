@@ -238,9 +238,37 @@ async function hoja(nav, base) {
   await ctx.close();
 }
 
+// Precio y "Enganche máx" de la tarjeta = lo que muestra la ficha en ese plan y plazo.
+async function ficha(nav, base) {
+  const { ctx, p } = await abrir(nav, base);
+  await p.locator('#reco-home .hv3-btn').click();
+  const lista = await p.evaluate(() => recoCalcular(2500, 'Plata', 'Oro', 36).lista.slice(0, 6).map((x) => ({ id: x.id, nombre: x.nombre, promo: x.a.promo, eng: x.a.eng, pct: x.a.pct })));
+  for (const i of [0, 3, 5]) {
+    const x = lista[i];
+    if (!x) continue;
+    await p.evaluate(() => { show('s-reco'); recoRender(); });
+    await p.locator('#reco-res .hv3-rcard').nth(i).click();
+    await p.waitForTimeout(900);
+    const f = await p.evaluate(() => {
+      const t = (s) => (document.querySelector(s) || {}).textContent || '';
+      const filas = [...document.querySelectorAll('.enganche-row')].map((r) => [(r.querySelector('.eng-lbl') || {}).textContent || '', (r.querySelector('.eng-val') || {}).textContent || '']);
+      return { plan: t('.price-result-plan'), promo: t('.price-promo'), badge: t('.price-desc-badge'), filas };
+    });
+    const promoFicha = f.promo.includes('Incluido') ? 0 : Number(f.promo.replace(/[^0-9.]/g, ''));
+    const fila = f.filas.find((r) => /3 rentas|50%/.test(r[0]));
+    const engFicha = fila ? Number(fila[1].replace(/[^0-9.]/g, '')) : null;
+    chk(x.nombre + ': la ficha abre en Plata a 36 meses', f.plan.includes('Plan Plata · 36 meses'), f.plan);
+    chk(x.nombre + ': mismo precio que la tarjeta', Math.abs(promoFicha - x.promo) < 0.005, [promoFicha, x.promo]);
+    chk(x.nombre + ': mismo % que la tarjeta', f.badge.trim() === (x.promo === 0 ? 'SIN COSTO' : x.pct + '% desc.'), [f.badge, x.pct]);
+    chk(x.nombre + ': mismo enganche máx que la tarjeta', engFicha === x.eng, [fila, x.eng]);
+  }
+  chk('ficha: sin errores de página', p.errores.length === 0, p.errores);
+  await ctx.close();
+}
+
 (async () => {
   const modo = process.argv[2];
-  const modos = { inicio, reco, hoja };
+  const modos = { inicio, reco, hoja, ficha };
   if (!modos[modo]) { console.error('modo desconocido: ' + modo); process.exit(2); }
   const srv = await servir(RAIZ);
   const base = 'http://127.0.0.1:' + srv.address().port + '/techguide/';
