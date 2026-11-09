@@ -259,6 +259,125 @@ const APP_VERSION = 'v1.72.26';</script>
 .hv2-footer-brand{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--hv2-ink2)}
 .hv2-footer-brand span{opacity:.5}
 .hv2-footer-meta{font-size:10px;color:var(--hv2-ink3);margin-top:3px;letter-spacing:.04em}
+
+/* ═══ [v1.73.0] INICIO ANDROID ════════════════════════════════════════════════
+   Campaña con los Android más nuevos, Equipos del momento por pestañas y la
+   Recomendación por presupuesto (formulario del inicio + pantalla #s-reco).
+   Estilo hoja AT&T: wordmark del plan con degradado, sello de descuento y
+   "Enganche máx". Claro y oscuro con las variables --hv2-*. La hoja para
+   WhatsApp (.hoja-reco) NO usa estas variables: siempre sale en claro. */
+:root{--hv3-campo:#CBD5E1;--hv3-rojo:#C8102E;--hv3-urg:#B91C1C;--hv3-dot:#C5CCD8;--hv3-dot-on:#15213F}
+[data-theme="dark"]{--hv3-campo:rgba(237,242,248,.18);--hv3-rojo:#FF6B7F;--hv3-urg:#F2827A;--hv3-dot:rgba(237,242,248,.2);--hv3-dot-on:#EDF2F8}
+.pw{display:inline-block;font-weight:900;line-height:1;letter-spacing:.02em;white-space:nowrap;
+  background:linear-gradient(180deg,var(--pw1),var(--pw2));-webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:transparent}
+.pw-azul{--pw1:#2F9BEA;--pw2:#0B5CAD;--pink:#0B5CAD}
+.pw-plata{--pw1:#8E9AA8;--pw2:#4E5B69;--pink:#4E5B69}
+.pw-oro{--pw1:#C99A1B;--pw2:#8A5A00;--pink:#8A5A00}
+.pw-black{--pw1:#3A3A3A;--pw2:#0A0A0A;--pink:#111111}
+.pw-platino{--pw1:#9A93B3;--pw2:#4C4570;--pink:#4C4570}
+.pw-diamante{--pw1:#22A3B5;--pw2:#0B4F5A;--pink:#0B4F5A}
+[data-theme="dark"] .pw-azul{--pw1:#7CC4FF;--pw2:#3B95E6;--pink:#7CC4FF}
+[data-theme="dark"] .pw-plata{--pw1:#DCE3EA;--pw2:#9AA7B4;--pink:#C9D2DC}
+[data-theme="dark"] .pw-oro{--pw1:#F4CF62;--pw2:#C99A1B;--pink:#F0C24B}
+[data-theme="dark"] .pw-black{--pw1:#F5F5F5;--pw2:#A3A3A3;--pink:#EDEDED}
+[data-theme="dark"] .pw-platino{--pw1:#D9D2F2;--pw2:#9A93B3;--pink:#CFC7EE}
+[data-theme="dark"] .pw-diamante{--pw1:#7FE3F0;--pw2:#22A3B5;--pink:#6FD8E6}
+.hv3-camp-card,.hv3-mcard,.hv3-rcard,.hv3-form{background:var(--hv2-card);border:1px solid var(--hv2-line);box-shadow:var(--hv2-shadow-1)}
+.hv3-check{flex:0 0 auto}
+.hv3-sello{position:relative;display:inline-block;flex:0 0 auto}
+.hv3-sello svg{position:absolute;left:0;top:0}
+.hv3-sello span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:-.02em;color:#0B1524}
+.hv3-antes{font-size:12px;color:var(--hv2-ink3);text-decoration:line-through}
+.hv3-eng{font-size:12.5px;color:var(--hv2-ink2)}
+.hv3-eng b{color:var(--hv2-ink);font-weight:800}
+.hv3-vig{font-size:12px;font-weight:700;color:var(--hv2-ink)}
+.hv3-vig.urg{color:var(--hv3-urg)}
+.hv3-precio{font-weight:800;letter-spacing:-.02em;color:var(--pink);font-variant-numeric:tabular-nums;line-height:1.05;white-space:nowrap}
+.hv3-precio small{font-size:.58em;font-weight:800}
+.hv3-incl{font-weight:900;letter-spacing:.02em;color:var(--pink);line-height:1.05}
+.hv3-info{font-size:12px;font-weight:600;color:var(--pink)}
+.hv3-plazo{font-size:13px;color:var(--hv2-ink3);margin-top:6px}
+.hv3-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;border:0;border-radius:14px;
+  background:var(--hv2-navy);color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:transform .12s ease}
+[data-theme="dark"] .hv3-btn{background:#1B2C4A}
+.hv3-btn:active{transform:scale(.985)}
+.hv3-btn svg{width:18px;height:18px;flex:0 0 18px}
+/* Campaña */
+.hv3-camp{margin-top:16px}
+.hv3-camp[hidden]{display:none}
+.hv3-camp-track{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.hv3-camp-track::-webkit-scrollbar{display:none}
+.hv3-camp-card{flex:0 0 100%;box-sizing:border-box;scroll-snap-align:center;border-radius:22px;padding:18px 16px 16px;
+  display:flex;flex-direction:column;gap:12px;cursor:pointer;transition:transform .16s ease}
+.hv3-camp-card:active{transform:scale(.99)}
+.hv3-camp-name{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;text-align:center}
+.hv3-camp-name b{font-size:17px;font-weight:800;color:var(--hv2-ink);letter-spacing:-.01em}
+.hv3-camp-name span{font-size:13px;font-weight:600;color:var(--hv2-ink2)}
+.hv3-camp-foto{height:150px;display:flex;align-items:center;justify-content:center}
+/* Las fotos traen fondo blanco: van en recuadro blanco en los dos temas, como la tarjeta de momento de antes. */
+.hv3-camp-foto img{width:150px;height:150px;object-fit:contain;border-radius:14px}
+.hv3-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid var(--hv2-line);padding-top:12px}
+.hv3-col{display:flex;flex-direction:column;gap:3px;min-width:0}
+.hv3-col:first-child{padding-right:10px}
+.hv3-col+.hv3-col{border-left:1px solid var(--hv2-line);padding-left:12px}
+.hv3-col-camp .pw{font-size:30px}
+.hv3-col-camp .hv3-precio{font-size:24px}
+.hv3-col-camp .hv3-incl{font-size:22px}
+.hv3-antes-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.hv3-camp-pie{display:flex;flex-direction:column;align-items:center;gap:4px;border-top:1px solid var(--hv2-line);padding-top:12px;text-align:center}
+.hv3-camp-pie .hv3-vig{font-size:14px}
+.hv3-seg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--hv2-ink2)}
+.hv3-seg svg{width:14px;height:14px;flex:0 0 14px}
+.hv3-dots{display:flex;justify-content:center;gap:6px;margin-top:12px}
+.hv3-dot{width:6px;height:6px;border-radius:3px;background:var(--hv3-dot);transition:width .2s ease,background .2s ease}
+.hv3-dot.on{width:18px;background:var(--hv3-dot-on)}
+/* Equipos del momento */
+.hv3-tabs{display:flex;gap:2px;margin-top:10px;border-bottom:1px solid var(--hv2-line);overflow-x:auto;scrollbar-width:none}
+.hv3-tabs::-webkit-scrollbar{display:none}
+.hv3-tab{flex:0 0 auto;min-height:44px;padding:0 8px;border:0;border-bottom:3px solid transparent;background:transparent;
+  color:var(--hv2-ink3);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.hv3-tab[aria-selected="true"]{color:var(--pink);border-bottom-color:var(--pink);font-weight:800}
+.hv3-planhead{display:flex;align-items:flex-end;gap:12px;margin:14px 0 8px}
+.hv3-planhead .pw{font-size:30px}
+.hv3-planhead>span:last-child{font-size:13px;font-weight:600;color:var(--pink);padding-bottom:3px}
+.hv3-mtrack{display:flex;gap:12px;overflow-x:auto;margin:0 -16px;padding:4px 16px 6px;scroll-snap-type:x proximity;scroll-padding:0 16px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.hv3-mtrack::-webkit-scrollbar{display:none}
+.hv3-mcard{flex:0 0 232px;box-sizing:border-box;scroll-snap-align:start;border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:6px;
+  cursor:pointer;transition:transform .16s ease}
+.hv3-mcard:active{transform:scale(.985)}
+.hv3-mfoto{height:150px;border-radius:14px;background:#FFFFFF;box-shadow:inset 0 0 0 1px rgba(11,21,36,.06);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.hv3-mfoto img{width:130px;height:130px;object-fit:contain}
+.hv3-mname{display:flex;align-items:center;gap:6px;margin-top:4px}
+.hv3-mname b{font-size:15px;font-weight:800;line-height:1.2;color:var(--hv2-ink)}
+.hv3-msub{font-size:13px;color:var(--hv2-ink3)}
+.hv3-mprecio{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.hv3-mprecio-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.hv3-mcard .hv3-precio{font-size:26px}
+.hv3-mcard .hv3-incl{font-size:24px}
+.hv3-mcard .hv3-eng{font-size:13px}
+.hv3-mpie{border-top:1px solid var(--hv2-line);margin-top:4px;padding-top:8px}
+/* Formulario de la recomendación (inicio y pantalla) */
+.hv3-form{margin-top:12px;border-radius:22px;padding:18px 16px;display:flex;flex-direction:column;gap:14px}
+.hv3-field{display:flex;flex-direction:column;gap:6px}
+.hv3-lbl{font-size:13px;font-weight:600;color:var(--hv2-ink2)}
+.hv3-money{display:flex;align-items:center;gap:8px;min-height:52px;padding:0 14px;border:1px solid var(--hv3-campo);border-radius:14px;background:var(--hv2-card)}
+.hv3-money:focus-within,.hv3-pick:focus-within{border-color:var(--hv2-accent);box-shadow:0 0 0 3px var(--hv2-accent-soft)}
+.hv3-money span{font-size:17px;font-weight:700;color:var(--hv2-ink2)}
+.hv3-money input{flex:1;min-width:0;border:0;outline:none;padding:0;background:transparent;font:inherit;font-size:17px;font-weight:700;color:var(--hv2-ink)}
+.hv3-2col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.hv3-pick{position:relative;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:52px;padding:0 12px 0 14px;
+  border:1px solid var(--hv3-campo);border-radius:14px;background:var(--hv2-card)}
+.hv3-pick>span{font-size:16px;font-weight:700;color:var(--hv2-ink)}
+.hv3-pick .pw{font-size:18px}
+.hv3-pick svg{width:18px;height:18px;flex:0 0 18px;color:var(--hv2-ink2)}
+.hv3-pick select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px;-webkit-appearance:none;appearance:none}
+.hv3-msg{font-size:12.5px;font-weight:600;color:var(--hv2-neg)}
+.hv3-msg:empty{display:none}
+@media (min-width:1080px){
+  .hv3-mtrack{margin:0;padding:4px 0 6px;scroll-padding:0}
+}
 .home-v2 .crm-home-badge{position:absolute;top:-4px;right:-4px;background:#E24B4A;color:#fff;font-size:10px;
   font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px}
 
@@ -4959,6 +5078,10 @@ html.con-upd body{padding-top:52px}
       <span class="hv2-cta-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
     </button>
 
+    <!-- [v1.73.0] CAMPAÑA: los Android más nuevos (NPI) en Plata y Oro a 36 meses.
+         Sin título a propósito; se oculta sola si no hay NPI vigentes. -->
+    <div id="camp-wrap" class="hv3-camp hv2-rise" style="--d:0.26s" hidden></div>
+
     <!-- [v1.12.1] COMISIONES vive SOLO en el menú hamburguesa, por decisión
          de Diego. Este CTA queda oculto a propósito: no reactivarlo. -->
     <button class="hv2-cta hv2-rise" onclick="abrirComisiones()" style="--d:0.3s;margin-top:14px;display:none">
@@ -4992,6 +5115,15 @@ html.con-upd body{padding-top:52px}
     </div>
 
     <div class="hv2-side">
+    <!-- [v1.73.0] EQUIPOS DEL MOMENTO: pestañas por plan, tarjeta estilo hoja AT&T.
+         El id momento-cards se conserva: el menú lateral hace scroll aquí. -->
+    <div class="hv2-seclabel hv2-rise" style="--d:0.34s"><span>Equipos del momento</span></div>
+    <div id="momento-cards" class="hv2-rise" style="--d:0.38s"></div>
+
+    <!-- [v1.73.0] RECOMENDACIÓN POR PRESUPUESTO: abre #s-reco con estos valores -->
+    <div class="hv2-seclabel hv2-rise" style="--d:0.46s"><span>Recomendación por presupuesto</span></div>
+    <div id="reco-home" class="hv3-form hv2-rise" style="--d:0.5s"></div>
+
     <!-- CATÁLOGO: STATS -->
     <div class="hv2-seclabel hv2-rise" style="--d:0.58s"><span>Catálogo</span></div>
     <div class="hv2-stats hv2-rise" style="--d:0.64s">
@@ -5000,13 +5132,6 @@ html.con-upd body{padding-top:52px}
       <div class="hv2-stat"><div class="hv2-stat-num hv2-stat-purple" id="st-bun">—</div><div class="hv2-stat-lbl">Bundles</div></div>
       <div class="hv2-stat"><div class="hv2-stat-num hv2-stat-amber" id="st-lim">—</div><div class="hv2-stat-lbl">Inv. limitado</div></div>
     </div>
-
-    <!-- EQUIPOS DEL MOMENTO -->
-    <div class="hv2-seclabel hv2-rise" style="--d:0.7s">
-      <span>Equipos del momento</span>
-    </div>
-    <div class="hv2-momento-hint hv2-rise" style="--d:0.74s">Menor enganche por plan · desliza para ver más</div>
-    <div id="momento-cards" class="hv2-rise" style="--d:0.78s"></div>
 
     </div>
 
@@ -5385,6 +5510,8 @@ window._onCatalogImgReady=function(){
     var home=document.getElementById('s-home');
     if(home && home.classList.contains('active') && typeof initMomento==='function'){
       initMomento();
+      // [v1.73.0] La campaña también pinta fotos: repintarla al llegar.
+      if(typeof initCampana==='function') initCampana();
     }
     // [v1.10.49] Re-renderizar las ofertas flash del home — sus miniaturas
     // se pintan con IMG y, si las imágenes llegaron después, hay que

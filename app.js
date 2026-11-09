@@ -448,55 +448,47 @@ async function openAdopcion(){
 
 // ── EQUIPOS DEL MOMENTO V2 ──────────────────────────────────────────────────
 
+// [v1.73.0] Pestañas por plan y tarjeta estilo hoja AT&T. Los datos no cambian:
+// la RESERVA de 15 por plan de catalog.js se filtra por vigencia y se corta a 8
+// ([v1.11.61]); "Enganche máx: $X" sin variantes, como siempre.
+var _momPlan = 'Plata';
 function initMomento(){
   const el=document.getElementById('momento-cards');
   if(!el) return;
   const all=[...CAT.ios,...CAT.android];
-  const fmx=n=>n.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
-
-  let html='';
-  MOMENTO_PLANS.forEach(function(plan){
-    const devices=MOMENTO_BY_PLAN[plan.name];
-    if(!devices||!devices.length) return;
-    // Check at least one device is vigent
-    // [v1.11.61] catalog.js guarda una RESERVA de 15 por plan; aquí se filtra
-    // por vigencia y se corta a 8. Antes se guardaban exactamente 8: cada equipo
-    // que vencía dejaba un hueco (7, 6, 5 tarjetas) hasta la siguiente
-    // regeneración manual. Ahora el hueco lo tapa solo el siguiente de la reserva.
-    const vigentDevices=devices.filter(function(m){return isVigent(m.id);}).slice(0,8);
-    if(!vigentDevices.length) return;
-
-    html+='<div class="momento-plan-block">';
-    html+='<div class="momento-plan-header">';
-    html+='<span class="momento-plan-pill" style="background:'+plan.color+'">'+plan.name+'</span>';
-    html+='<span class="momento-plan-label">$'+plan.renta+'/mes · Mejores opciones</span>';
-    html+='</div>';
-    html+='<div class="momento-scroll">';
-
-    vigentDevices.forEach(function(m){
-      const dev=all.find(function(d){return d.id===m.id;});
-      if(!dev) return;
-      const os=CAT.ios.find(function(d){return d.id===m.id;})?'ios':'android';
-      const imgHtml=IMG[m.id]?'<img src="'+IMG[m.id]+'" alt="" style="width:84%;height:84%;object-fit:contain">':'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>';
-      const descColor=m.desc>=70?'rgba(29,158,117,.16)':'rgba(56,138,221,.16)';
-      const descText=m.desc>=70?'#1D9E75':'#5BA3E8';
-      const onClick="showCatalog\'"+os+"\');setTimeout(function(){showFicha\'"+m.id+"\');var t=document.querySelector\'.tb[onclick*=plans]\');if(t)swTab\'plans\',t);},150)";
-
-      html+='<div class="momento-card" onclick="abrirMomento(\''+os+'\',\''+m.id+'\',\''+plan.name+'\','+m.plazo+')">';
-      html+='<div class="momento-img">'+imgHtml+'</div>';
-      html+='<div class="momento-name">'+dev.name+'</div>';
-      html+='<div class="momento-plazo">'+m.plazo+' meses</div>';
-      html+='<div class="momento-promo">$'+fmx(m.promo)+'</div>';
-      html+='<div class="momento-eng">Enganche máx: <span>$'+m.max_eng.toLocaleString('es-MX')+'</span></div>';
-      html+='<span class="momento-badge" style="background:'+descColor+';color:'+descText+'">'+m.desc+'% desc.</span>';
-      html+='</div>';
-    });
-
-    html+='</div></div>';
+  const vigentes=function(plan){ return (MOMENTO_BY_PLAN[plan]||[]).filter(function(m){return isVigent(m.id);}).slice(0,8); };
+  const planes=MOMENTO_PLANS.filter(function(p){ return vigentes(p.name).length && planVis(p.name); });
+  if(!planes.length){ el.innerHTML=''; return; }
+  if(!planes.some(function(p){return p.name===_momPlan;})) _momPlan=planes[0].name;
+  const v=planVis(_momPlan);
+  let h='<div class="hv3-tabs" role="tablist" aria-label="Plan">';
+  planes.forEach(function(p){
+    h+='<button type="button" role="tab" class="hv3-tab '+planVis(p.name).cls+'" aria-selected="'+(p.name===_momPlan)+'" onclick="momentoTab(\''+p.name+'\')">'+p.name+'</button>';
   });
-
-  el.innerHTML=html;
+  h+='</div>';
+  h+='<div class="hv3-planhead '+v.cls+'">'+wordmarkHTML(_momPlan,30)+'<span>'+v.gb+' GB | $'+v.renta+' al mes</span></div>';
+  h+='<div class="hv3-mtrack">';
+  vigentes(_momPlan).forEach(function(m){
+    const dev=all.find(function(d){return d.id===m.id;});
+    if(!dev) return;
+    const os=CAT.ios.find(function(d){return d.id===m.id;})?'ios':'android';
+    const mon=fmtMoneda(m.promo), vg=vigLargo(m.id);
+    h+='<article class="hv3-mcard '+v.cls+'" onclick="abrirMomento(\''+os+'\',\''+m.id+'\',\''+_momPlan+'\','+m.plazo+')">';
+    h+='<div class="hv3-mfoto">'+fotoHTML(m.id)+'</div>';
+    h+='<div class="hv3-mname"><b>'+dev.name+'</b>'+checkHTML(16)+'</div>';
+    h+='<span class="hv3-msub">'+(dev.storage?dev.storage+' · ':'')+m.plazo+' meses</span>';
+    h+='<div class="hv3-mprecio"><div class="hv3-mprecio-txt">';
+    h+=m.promo===0?'<span class="hv3-incl">INCLUIDO</span>':'<span class="hv3-precio">'+mon.ent+'<small>'+mon.dec+'</small></span>';
+    if(m.desc>0) h+='<span class="hv3-antes">Antes $'+m.contado.toLocaleString('es-MX')+'</span>';
+    h+='</div>'+(m.desc>0?selloHTML(m.desc,50):'')+'</div>';
+    h+='<span class="hv3-eng">Enganche máx: <b>$'+m.max_eng.toLocaleString('es-MX')+'</b></span>';
+    h+='<div class="hv3-mpie"><span class="hv3-vig'+(vg.ultimo?' urg':'')+'">'+vg.txt+'</span></div>';
+    h+='</article>';
+  });
+  h+='</div>';
+  el.innerHTML=h;
 }
+function momentoTab(plan){ _momPlan=plan; initMomento(); }
 // [v1.72.20] La tarjeta abre la ficha en SU plan y plazo. Antes abría en
 // Azul 1 a 24 meses y el precio no coincidía con el de la tarjeta.
 function abrirMomento(os,id,plan,plazo){
@@ -624,6 +616,118 @@ function fmtMoneda(n){
   return {ent:'$' + s.slice(0, k), dec:s.slice(k)};
 }
 // </reco-puro> ────────────────────────────────────────────────────────────────
+
+// ── [v1.73.0] INICIO ANDROID — render (usa el bloque <reco-puro>) ───────────
+var SELLO_PUNTOS='32.0,1.0 36.1,5.8 41.6,2.5 44.0,8.4 50.2,6.9 50.7,13.3 57.1,13.8 55.6,20.0 61.5,22.4 58.2,27.9 63.0,32.0 58.2,36.1 61.5,41.6 55.6,44.0 57.1,50.2 50.7,50.7 50.2,57.1 44.0,55.6 41.6,61.5 36.1,58.2 32.0,63.0 27.9,58.2 22.4,61.5 20.0,55.6 13.8,57.1 13.3,50.7 6.9,50.2 8.4,44.0 2.5,41.6 5.8,36.1 1.0,32.0 5.8,27.9 2.5,22.4 8.4,20.0 6.9,13.8 13.3,13.3 13.8,6.9 20.0,8.4 22.4,2.5 27.9,5.8';
+var ICO_ESCUDO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>';
+var ICO_FLECHA='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>';
+var ICO_CHEVRON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+function checkHTML(px){
+  px=px||16;
+  return '<svg class="hv3-check" width="'+px+'" height="'+px+'" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#1D8CF0"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+function selloHTML(pct, px){
+  px=px||44;
+  return '<span class="hv3-sello" style="width:'+px+'px;height:'+px+'px"><svg width="'+px+'" height="'+px+'" viewBox="0 0 64 64" aria-hidden="true"><polygon points="'+SELLO_PUNTOS+'" fill="#FFFFFF" stroke="#D61F45" stroke-width="2.5" stroke-linejoin="round"/></svg><span style="font-size:'+Math.round(px*0.25)+'px">-'+pct+'%</span></span>';
+}
+function wordmarkHTML(plan, px){
+  var v=planVis(plan);
+  return v ? '<span class="pw '+v.cls+'" style="font-size:'+px+'px">'+plan.toUpperCase()+'</span>' : '';
+}
+// El tamaño lo da el CSS de cada tarjeta. Sin foto todavía (catalog-img.js es
+// diferido) va el ícono de respaldo; _onCatalogImgReady repinta al llegar.
+function fotoHTML(id){
+  var src=(typeof imgSrc==='function')?imgSrc(id):'';
+  if(src) return '<img data-img-id="'+id+'" src="'+src+'" alt="">';
+  return '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>';
+}
+function columnaPlanHTML(of, variante){
+  var v=planVis(of.plan), m=fmtMoneda(of.promo), eng='$'+of.eng.toLocaleString('es-MX');
+  var precio=of.incluido?'<span class="hv3-incl">INCLUIDO</span>':'<span class="hv3-precio">'+m.ent+'<small>'+m.dec+'</small></span>';
+  if(variante==='reco'){
+    return '<div class="hv3-col hv3-col-reco '+v.cls+'">'+wordmarkHTML(of.plan,14)+precio+'<span class="hv3-pct">-'+of.pct+'%</span><span class="hv3-eng">Enganche máx <b>'+eng+'</b></span></div>';
+  }
+  return '<div class="hv3-col hv3-col-camp '+v.cls+'">'+wordmarkHTML(of.plan,30)+'<span class="hv3-info">'+v.gb+' GB | $'+v.renta+'</span><span class="hv3-plazo">a '+of.plazo+' meses</span>'+precio
+    +'<div class="hv3-antes-row"><span class="hv3-antes">Antes $'+of.contado.toLocaleString('es-MX')+'</span>'+(of.pct>0?selloHTML(of.pct,44):'')+'</div>'
+    +'<span class="hv3-eng">Enganche máx: <b>'+eng+'</b></span></div>';
+}
+function initCampana(){
+  var el=document.getElementById('camp-wrap');
+  if(!el) return;
+  var lista=campanaEquipos();
+  if(!lista.length){ el.innerHTML=''; el.hidden=true; return; }
+  var h='<div class="hv3-camp-track">';
+  lista.forEach(function(x){
+    var vg=vigLargo(x.id);
+    h+='<article class="hv3-camp-card" onclick="abrirMomento(\'android\',\''+x.id+'\',\'Plata\',36)">';
+    h+='<div class="hv3-camp-name"><b>'+x.nombre+'</b>'+(x.capacidad?'<span>'+x.capacidad+'</span>':'')+checkHTML(18)+'</div>';
+    h+='<div class="hv3-camp-foto">'+fotoHTML(x.id)+'</div>';
+    h+='<div class="hv3-cols">'+columnaPlanHTML(x.a,'camp')+columnaPlanHTML(x.b,'camp')+'</div>';
+    h+='<div class="hv3-camp-pie"><span class="hv3-vig'+(vg.ultimo?' urg':'')+'">'+vg.txt+'</span>';
+    h+='<span class="hv3-seg">'+ICO_ESCUDO+'Protégelo por sólo $'+getSeguroPrice(x.contado)+' al mes</span></div>';
+    h+='</article>';
+  });
+  h+='</div>';
+  if(lista.length>1){
+    h+='<div class="hv3-dots" aria-hidden="true">';
+    lista.forEach(function(_, i){ h+='<span class="hv3-dot'+(i===0?' on':'')+'"></span>'; });
+    h+='</div>';
+  }
+  el.innerHTML=h;
+  el.hidden=false;
+  var tr=el.querySelector('.hv3-camp-track');
+  if(lista.length>1) tr.addEventListener('scroll', function(){
+    var paso=(tr.firstElementChild ? tr.firstElementChild.offsetWidth : tr.clientWidth)+12;
+    var i=Math.round(tr.scrollLeft/Math.max(1,paso));
+    el.querySelectorAll('.hv3-dot').forEach(function(d, j){ d.classList.toggle('on', j===i); });
+  }, {passive:true});
+}
+
+// Estado de la Recomendación por presupuesto: lo comparten el formulario del
+// inicio y la pantalla #s-reco; vive mientras la app esté abierta.
+var recoState={monto:2500, planes:['Plata','Oro'], plazo:36, todos:false};
+function _recoPickPlan(id, aria, plan, i){
+  var v=planVis(plan);
+  var ops=recoPlanes().map(function(p){ return '<option value="'+p+'"'+(p===plan?' selected':'')+'>'+p+'</option>'; }).join('');
+  return '<div class="hv3-pick '+v.cls+'">'+wordmarkHTML(plan,18)+ICO_CHEVRON+'<select id="'+id+'" aria-label="'+aria+'" onchange="recoHomePlan('+i+',this.value)">'+ops+'</select></div>';
+}
+function recoHomeRender(){
+  var el=document.getElementById('reco-home');
+  if(!el) return;
+  var s=recoState;
+  var h='<div class="hv3-field"><label class="hv3-lbl" for="reco-monto-home">Enganche disponible</label>';
+  h+='<div class="hv3-money"><span>$</span><input id="reco-monto-home" type="text" inputmode="numeric" autocomplete="off" value="'+(s.monto>0?s.monto.toLocaleString('es-MX'):'')+'"';
+  h+=' oninput="recoState.monto=recoParseMonto(this.value)" onblur="if(recoState.monto>0)this.value=recoState.monto.toLocaleString(\'es-MX\')" onkeydown="if(event.key===\'Enter\')recoVer()"></div></div>';
+  h+='<div class="hv3-field"><span class="hv3-lbl">Planes</span><div class="hv3-2col">'+_recoPickPlan('reco-plan-a','Primer plan',s.planes[0],0)+_recoPickPlan('reco-plan-b','Segundo plan',s.planes[1],1)+'</div></div>';
+  h+='<div class="hv3-field"><span class="hv3-lbl">Plazo</span><div class="hv3-pick"><span>'+s.plazo+' meses</span>'+ICO_CHEVRON;
+  h+='<select id="reco-plazo" aria-label="Plazo" onchange="recoState.plazo=Number(this.value);recoHomeRender()">'+[24,30,36].map(function(z){ return '<option value="'+z+'"'+(z===s.plazo?' selected':'')+'>'+z+' meses</option>'; }).join('')+'</select></div></div>';
+  h+='<span class="hv3-msg" id="reco-home-msg" role="alert"></span>';
+  h+='<button type="button" class="hv3-btn" onclick="recoVer()">Ver equipos'+ICO_FLECHA+'</button>';
+  el.innerHTML=h;
+}
+// Un plan no se repite: si el asesor elige en un selector el plan del otro, se intercambian.
+function recoHomePlan(i, valor){
+  var p=recoState.planes.slice();
+  if(p[1-i]===valor) p[1-i]=p[i];
+  p[i]=valor;
+  recoState.planes=p;
+  recoHomeRender();
+}
+function recoVer(){
+  var inp=document.getElementById('reco-monto-home');
+  var msg=document.getElementById('reco-home-msg');
+  var monto=recoParseMonto(inp?inp.value:recoState.monto);
+  if(!monto){
+    if(msg) msg.textContent='Escribe el enganche del cliente';
+    if(inp) inp.focus();
+    return;
+  }
+  if(msg) msg.textContent='';
+  recoState.monto=monto;
+  recoState.todos=false;
+  // La pantalla llega en la tarea siguiente; mientras, el botón no hace nada.
+  if(typeof recoRender==='function' && document.getElementById('s-reco')){ show('s-reco'); recoRender(); }
+}
 
 let curOS='ios', curBrand='Todos', gridMode=true;
 const cmpSet=new Set();
@@ -1465,6 +1569,8 @@ document.getElementById('ios-cnt').textContent=`${CAT.ios.length} equipos`;
 document.getElementById('and-cnt').textContent=`${CAT.android.length} equipos`;
 document.getElementById('st-tot').textContent=all.length;
 initMomento();
+initCampana();    // [v1.73.0]
+recoHomeRender(); // [v1.73.0]
 document.getElementById('st-npi').textContent=all.filter(d=>d.status==='NPI').length;
 document.getElementById('st-bun').textContent=all.filter(d=>d.bundle).length;
 document.getElementById('st-lim').textContent=all.filter(d=>d.status==='INV. LIMITADO EN CANAL').length;
