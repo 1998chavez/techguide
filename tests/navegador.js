@@ -127,9 +127,72 @@ async function inicio(nav, base) {
   await ctx.close();
 }
 
+async function reco(nav, base) {
+  let { ctx, p } = await abrir(nav, base);
+  const activa = () => p.evaluate(() => (document.querySelector('.screen.active') || {}).id);
+  const titulo = () => p.locator('#reco-res .hv3-rtitulo').innerText();
+  const nombres = () => p.locator('#reco-res .hv3-rcard .hv3-rname b').allInnerTexts();
+  const esperado = (m, a, b, z) => p.evaluate(([m, a, b, z]) => {
+    const r = recoCalcular(m, a, b, z);
+    const n = r.lista.length;
+    return { titulo: n === 0 ? 'Sin equipos' : (n === 1 ? '1 equipo' : n + ' equipos'), n, seis: r.lista.slice(0, 6).map((x) => x.nombre), minimo: r.minimo };
+  }, [m, a, b, z]);
+
+  await p.locator('#reco-home .hv3-btn').click();
+  chk('Ver equipos abre la pantalla', (await activa()) === 's-reco');
+  let e = await esperado(2500, 'Plata', 'Oro', 36);
+  chk('$2,500 Plata y Oro: título', (await titulo()).trim() === e.titulo, [await titulo(), e.titulo]);
+  chk('$2,500 Plata y Oro: los 6 primeros', JSON.stringify(await nombres()) === JSON.stringify(e.seis), await nombres());
+  chk('hay botón de compartir', (await p.locator('#reco-res .hv3-compartir').count()) === 1);
+  await captura(p, OUT + '/reco-claro-390.png');
+  if (e.n > 6) {
+    await p.locator('#reco-res .hv3-mas').click();
+    chk('Ver los N muestra todos', (await p.locator('#reco-res .hv3-rcard').count()) === e.n, e.n);
+  }
+
+  await p.fill('#reco-monto', '2000');
+  e = await esperado(2000, 'Plata', 'Oro', 36);
+  chk('$2,000 Plata y Oro: Sin equipos', (await titulo()).trim() === 'Sin equipos' && e.n === 0, await titulo());
+  chk('$2,000: dice el enganche mínimo', (await p.locator('#reco-res .hv3-rmin').innerText()).trim() === 'Enganche mínimo para Plata y Oro: $' + e.minimo.toLocaleString('es-MX'));
+  chk('sin equipos no hay compartir', (await p.locator('#reco-res .hv3-compartir').count()) === 0);
+  await captura(p, OUT + '/reco-vacia-390.png');
+
+  await p.locator('#reco-ctrl .hv3-planbtn', { hasText: 'Azul 3' }).click();
+  const presionados = await p.locator('#reco-ctrl .hv3-planbtn[aria-pressed=true]').allInnerTexts();
+  chk('Azul 3 reemplaza al plan más antiguo', JSON.stringify(presionados.sort()) === JSON.stringify(['Azul 3', 'Oro']), presionados);
+  e = await esperado(2000, 'Azul 3', 'Oro', 36);
+  chk('$2,000 Azul 3 y Oro: coincide con el cálculo', (await titulo()).trim() === e.titulo && JSON.stringify(await nombres()) === JSON.stringify(e.seis), [await titulo(), e.titulo]);
+
+  await p.goBack();
+  await p.waitForTimeout(300);
+  chk('atrás del teléfono regresa al inicio', (await activa()) === 's-home', await activa());
+  chk('el inicio recuerda el último monto', (await p.inputValue('#reco-monto-home')) === '2,000', await p.inputValue('#reco-monto-home'));
+  await p.fill('#reco-monto-home', '');
+  await p.locator('#reco-home .hv3-btn').click();
+  chk('sin enganche no avanza', (await activa()) === 's-home');
+  chk('sin enganche lo dice', (await p.locator('#reco-home-msg').innerText()).trim() === 'Escribe el enganche del cliente');
+  chk('reco claro: sin errores de página', p.errores.length === 0, p.errores);
+  await ctx.close();
+
+  ({ ctx, p } = await abrir(nav, base, { tema: 'dark' }));
+  await p.locator('#reco-home .hv3-btn').click();
+  await captura(p, OUT + '/reco-oscuro-390.png');
+  chk('reco oscuro: sin errores de página', p.errores.length === 0, p.errores);
+  await ctx.close();
+
+  ({ ctx, p } = await abrir(nav, base, { ancho: 360, alto: 780 }));
+  await p.locator('#reco-home .hv3-btn').click();
+  await p.locator('#reco-res .hv3-mas').click().catch(() => {});
+  const d = await desbordes(p, '.hv3-rcard, .hv3-mcard');
+  chk('360 px: tarjetas sin desbordes', d.length === 0, d.slice(0, 5));
+  chk('360 px: sin scroll horizontal', await p.evaluate(() => document.documentElement.scrollWidth <= 360));
+  await captura(p, OUT + '/reco-claro-360.png');
+  await ctx.close();
+}
+
 (async () => {
   const modo = process.argv[2];
-  const modos = { inicio };
+  const modos = { inicio, reco };
   if (!modos[modo]) { console.error('modo desconocido: ' + modo); process.exit(2); }
   const srv = await servir(RAIZ);
   const base = 'http://127.0.0.1:' + srv.address().port + '/techguide/';

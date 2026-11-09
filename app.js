@@ -621,6 +621,7 @@ function fmtMoneda(n){
 var SELLO_PUNTOS='32.0,1.0 36.1,5.8 41.6,2.5 44.0,8.4 50.2,6.9 50.7,13.3 57.1,13.8 55.6,20.0 61.5,22.4 58.2,27.9 63.0,32.0 58.2,36.1 61.5,41.6 55.6,44.0 57.1,50.2 50.7,50.7 50.2,57.1 44.0,55.6 41.6,61.5 36.1,58.2 32.0,63.0 27.9,58.2 22.4,61.5 20.0,55.6 13.8,57.1 13.3,50.7 6.9,50.2 8.4,44.0 2.5,41.6 5.8,36.1 1.0,32.0 5.8,27.9 2.5,22.4 8.4,20.0 6.9,13.8 13.3,13.3 13.8,6.9 20.0,8.4 22.4,2.5 27.9,5.8';
 var ICO_ESCUDO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>';
 var ICO_FLECHA='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>';
+var ICO_COMPARTIR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>';
 var ICO_CHEVRON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
 function checkHTML(px){
   px=px||16;
@@ -664,7 +665,7 @@ function initCampana(){
     h+='<div class="hv3-camp-foto">'+fotoHTML(x.id)+'</div>';
     h+='<div class="hv3-cols">'+columnaPlanHTML(x.a,'camp')+columnaPlanHTML(x.b,'camp')+'</div>';
     h+='<div class="hv3-camp-pie"><span class="hv3-vig'+(vg.ultimo?' urg':'')+'">'+vg.txt+'</span>';
-    h+='<span class="hv3-seg">'+ICO_ESCUDO+'Protégelo por sólo $'+getSeguroPrice(x.contado)+' al mes</span></div>';
+    h+='<span class="hv3-seguro">'+ICO_ESCUDO+'Protégelo por sólo $'+getSeguroPrice(x.contado)+' al mes</span></div>';
     h+='</article>';
   });
   h+='</div>';
@@ -728,6 +729,61 @@ function recoVer(){
   // La pantalla llega en la tarea siguiente; mientras, el botón no hace nada.
   if(typeof recoRender==='function' && document.getElementById('s-reco')){ show('s-reco'); recoRender(); }
 }
+
+// Pantalla #s-reco. Los controles se repintan solo cuando cambian planes o plazo;
+// al escribir el monto se repintan solo los resultados, para no mover el cursor.
+function _recoCtrlRender(){
+  var el=document.getElementById('reco-ctrl');
+  if(!el) return;
+  var s=recoState;
+  var h='<div class="hv3-field"><label class="hv3-lbl" for="reco-monto">Enganche disponible</label>';
+  h+='<div class="hv3-money"><span>$</span><input id="reco-monto" type="text" inputmode="numeric" autocomplete="off" value="'+(s.monto>0?s.monto.toLocaleString('es-MX'):'')+'"';
+  h+=' oninput="recoSetMonto(this.value)" onblur="if(recoState.monto>0)this.value=recoState.monto.toLocaleString(\'es-MX\')"></div></div>';
+  h+='<div class="hv3-field"><span class="hv3-lbl">Planes</span><div class="hv3-planes" role="group" aria-label="Planes">';
+  recoPlanes().forEach(function(p){
+    h+='<button type="button" class="hv3-planbtn '+planVis(p).cls+'" aria-pressed="'+(s.planes.indexOf(p)>=0)+'" onclick="recoTogglePlan(\''+p+'\')">'+p+'</button>';
+  });
+  h+='</div></div>';
+  h+='<div class="hv3-field"><span class="hv3-lbl">Plazo</span><div class="hv3-seg" role="group" aria-label="Plazo">';
+  [24,30,36].forEach(function(z){ h+='<button type="button" aria-pressed="'+(z===s.plazo)+'" onclick="recoSetPlazo('+z+')">'+z+' meses</button>'; });
+  h+='</div></div>';
+  el.innerHTML=h;
+}
+function _recoResRender(){
+  var el=document.getElementById('reco-res');
+  if(!el) return;
+  var s=recoState, r=recoCalcular(s.monto, s.planes[0], s.planes[1], s.plazo), n=r.lista.length;
+  var h='<span class="hv3-rtitulo">'+(n===0?'Sin equipos':(n===1?'1 equipo':n+' equipos'))+'</span>';
+  if(n===0 && r.minimo!==null) h+='<span class="hv3-rmin">Enganche mínimo para '+r.planes[0]+' y '+r.planes[1]+': $'+r.minimo.toLocaleString('es-MX')+'</span>';
+  h+='<div class="hv3-rlista">';
+  (s.todos?r.lista:r.lista.slice(0,6)).forEach(function(x){
+    var vg=vigLargo(x.id);
+    h+='<article class="hv3-rcard" onclick="abrirMomento(\'android\',\''+x.id+'\',\''+r.planes[0]+'\','+s.plazo+')">';
+    h+='<div class="hv3-rfoto">'+fotoHTML(x.id)+'</div><div class="hv3-rinfo">';
+    h+='<div class="hv3-rname"><b>'+x.nombre+'</b>'+checkHTML(16)+'</div>';
+    h+='<span class="hv3-rsub">'+(x.capacidad?x.capacidad+' · ':'')+'<s>Antes $'+x.contado.toLocaleString('es-MX')+'</s></span>';
+    h+='<div class="hv3-rcols">'+columnaPlanHTML(x.a,'reco')+columnaPlanHTML(x.b,'reco')+'</div>';
+    h+='<span class="hv3-vig'+(vg.ultimo?' urg':'')+'">'+vg.txt+'</span>';
+    h+='</div></article>';
+  });
+  h+='</div>';
+  if(n>6 && !s.todos) h+='<button type="button" class="hv3-mas" onclick="recoVerTodos()">Ver los '+n+'</button>';
+  // recoGenerarHoja llega en la tarea siguiente; mientras, el botón no hace nada.
+  if(n>0) h+='<button type="button" class="hv3-btn hv3-compartir" onclick="if(typeof recoGenerarHoja===\'function\')recoGenerarHoja()">'+ICO_COMPARTIR+'Compartir por WhatsApp</button>';
+  el.innerHTML=h;
+}
+function recoRender(){ _recoCtrlRender(); _recoResRender(); }
+// Cada cambio también repinta el formulario del inicio: así recuerda lo último usado.
+function recoSetMonto(texto){ recoState.monto=recoParseMonto(texto); recoState.todos=false; _recoResRender(); recoHomeRender(); }
+function recoTogglePlan(nombre){
+  var p=recoState.planes;
+  if(p.indexOf(nombre)>=0) return;
+  recoState.planes=[p[1], nombre];
+  recoState.todos=false;
+  recoRender(); recoHomeRender();
+}
+function recoSetPlazo(z){ recoState.plazo=Number(z); recoState.todos=false; recoRender(); recoHomeRender(); }
+function recoVerTodos(){ recoState.todos=true; _recoResRender(); }
 
 let curOS='ios', curBrand='Todos', gridMode=true;
 const cmpSet=new Set();

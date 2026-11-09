@@ -327,8 +327,8 @@ const APP_VERSION = 'v1.72.26';</script>
 .hv3-antes-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .hv3-camp-pie{display:flex;flex-direction:column;align-items:center;gap:4px;border-top:1px solid var(--hv2-line);padding-top:12px;text-align:center}
 .hv3-camp-pie .hv3-vig{font-size:14px}
-.hv3-seg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--hv2-ink2)}
-.hv3-seg svg{width:14px;height:14px;flex:0 0 14px}
+.hv3-seguro{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--hv2-ink2)}
+.hv3-seguro svg{width:14px;height:14px;flex:0 0 14px}
 .hv3-dots{display:flex;justify-content:center;gap:6px;margin-top:12px}
 .hv3-dot{width:6px;height:6px;border-radius:3px;background:var(--hv3-dot);transition:width .2s ease,background .2s ease}
 .hv3-dot.on{width:18px;background:var(--hv3-dot-on)}
@@ -375,6 +375,43 @@ const APP_VERSION = 'v1.72.26';</script>
 .hv3-pick select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px;-webkit-appearance:none;appearance:none}
 .hv3-msg{font-size:12.5px;font-weight:600;color:var(--hv2-neg)}
 .hv3-msg:empty{display:none}
+/* Pantalla #s-reco */
+.hv3-reco{padding:calc(var(--safe-top) + 10px) 16px calc(var(--safe-bot) + 28px);max-width:640px;margin:0 auto}
+.hv3-reco-top{display:flex;align-items:center;gap:6px;margin:0 0 4px -8px}
+.hv3-reco-top h1{margin:0;font-size:19px;font-weight:800;letter-spacing:-.01em;color:var(--hv2-ink)}
+.hv3-atras{width:44px;height:44px;flex:0 0 44px;border:0;border-radius:22px;background:transparent;color:var(--hv2-ink);
+  display:flex;align-items:center;justify-content:center;cursor:pointer}
+.hv3-atras svg{width:22px;height:22px}
+.hv3-planes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.hv3-planbtn{min-height:44px;border-radius:12px;border:1px solid var(--hv3-campo);background:var(--hv2-card);color:var(--hv2-ink2);
+  font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:0 4px;white-space:nowrap}
+.hv3-planbtn[aria-pressed="true"]{background:var(--pink);border-color:var(--pink);color:#FFFFFF}
+[data-theme="dark"] .hv3-planbtn[aria-pressed="true"]{color:#0B1524}
+.hv3-seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--hv3-campo);border:1px solid var(--hv3-campo);border-radius:12px;overflow:hidden}
+.hv3-seg button{min-height:44px;border:0;background:var(--hv2-card);color:var(--hv2-ink);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.hv3-seg button[aria-pressed="true"]{background:var(--hv2-navy);color:#FFFFFF}
+[data-theme="dark"] .hv3-seg button[aria-pressed="true"]{background:#EDF2F8;color:#0B1524}
+.hv3-rtitulo{display:block;margin:24px 0 12px;font-size:18px;font-weight:800;letter-spacing:-.01em;color:var(--hv2-ink)}
+.hv3-rmin{display:block;margin:-6px 0 12px;font-size:14px;font-weight:600;color:var(--hv2-ink2)}
+.hv3-rlista{display:flex;flex-direction:column;gap:12px}
+.hv3-rcard{border-radius:20px;padding:14px;display:flex;gap:12px;align-items:stretch;cursor:pointer;transition:transform .16s ease}
+.hv3-rcard:active{transform:scale(.99)}
+.hv3-rfoto{width:88px;flex:0 0 88px;border-radius:14px;background:#FFFFFF;box-shadow:inset 0 0 0 1px rgba(11,21,36,.06);
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+.hv3-rfoto img{width:80px;height:80px;object-fit:contain}
+.hv3-rinfo{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
+.hv3-rname{display:flex;align-items:center;gap:6px}
+.hv3-rname b{font-size:15px;font-weight:800;line-height:1.2;color:var(--hv2-ink)}
+.hv3-rsub{font-size:12px;color:var(--hv2-ink3)}
+.hv3-rcols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:6px 0 4px}
+.hv3-col-reco{gap:2px}
+.hv3-col-reco .hv3-precio{font-size:17px}
+.hv3-col-reco .hv3-incl{font-size:15px}
+.hv3-col-reco .hv3-eng{font-size:11px}
+.hv3-pct{font-size:12px;font-weight:800;color:var(--hv3-rojo)}
+.hv3-mas{width:100%;min-height:48px;margin-top:12px;border-radius:14px;border:1px solid var(--hv3-campo);background:var(--hv2-card);
+  color:var(--hv2-ink);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.hv3-compartir{margin-top:16px}
 @media (min-width:1080px){
   .hv3-mtrack{margin:0;padding:4px 0 6px;scroll-padding:0}
 }
@@ -5288,6 +5325,21 @@ html.con-upd body{padding-top:52px}
   </div>
 </div>
 
+<!-- [v1.73.0] RECOMENDACIÓN POR PRESUPUESTO: el cliente dice cuánto trae de
+     enganche, el asesor elige 2 planes y plazo, y salen los Android que alcanzan. -->
+<div id="s-reco" class="screen">
+  <div class="scroll-area home-v2-scroll">
+    <div class="hv3-reco">
+      <div class="hv3-reco-top">
+        <button type="button" class="hv3-atras" onclick="show('s-home')" aria-label="Volver al inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <h1>Recomendación por presupuesto</h1>
+      </div>
+      <div id="reco-ctrl" class="hv3-form"></div>
+      <div id="reco-res" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
+
 <div id="s-accesos" class="screen">
   <div class="adm-hero">
     <button class="nav-back" onclick="show('s-home')" aria-label="Inicio">‹</button>
@@ -5513,6 +5565,9 @@ window._onCatalogImgReady=function(){
       // [v1.73.0] La campaña también pinta fotos: repintarla al llegar.
       if(typeof initCampana==='function') initCampana();
     }
+    // [v1.73.0] Recomendación por presupuesto abierta: repintar sus fotos.
+    var reco=document.getElementById('s-reco');
+    if(reco && reco.classList.contains('active') && typeof recoRender==='function') recoRender();
     // [v1.10.49] Re-renderizar las ofertas flash del home — sus miniaturas
     // se pintan con IMG y, si las imágenes llegaron después, hay que
     // repintarlas (sin esto, en escritorio quedaban con el ícono de respaldo).
