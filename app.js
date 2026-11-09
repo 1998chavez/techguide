@@ -448,55 +448,47 @@ async function openAdopcion(){
 
 // ── EQUIPOS DEL MOMENTO V2 ──────────────────────────────────────────────────
 
+// [v1.73.0] Pestañas por plan y tarjeta estilo hoja AT&T. Los datos no cambian:
+// la RESERVA de 15 por plan de catalog.js se filtra por vigencia y se corta a 8
+// ([v1.11.61]); "Enganche máx: $X" sin variantes, como siempre.
+var _momPlan = 'Plata';
 function initMomento(){
   const el=document.getElementById('momento-cards');
   if(!el) return;
   const all=[...CAT.ios,...CAT.android];
-  const fmx=n=>n.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
-
-  let html='';
-  MOMENTO_PLANS.forEach(function(plan){
-    const devices=MOMENTO_BY_PLAN[plan.name];
-    if(!devices||!devices.length) return;
-    // Check at least one device is vigent
-    // [v1.11.61] catalog.js guarda una RESERVA de 15 por plan; aquí se filtra
-    // por vigencia y se corta a 8. Antes se guardaban exactamente 8: cada equipo
-    // que vencía dejaba un hueco (7, 6, 5 tarjetas) hasta la siguiente
-    // regeneración manual. Ahora el hueco lo tapa solo el siguiente de la reserva.
-    const vigentDevices=devices.filter(function(m){return isVigent(m.id);}).slice(0,8);
-    if(!vigentDevices.length) return;
-
-    html+='<div class="momento-plan-block">';
-    html+='<div class="momento-plan-header">';
-    html+='<span class="momento-plan-pill" style="background:'+plan.color+'">'+plan.name+'</span>';
-    html+='<span class="momento-plan-label">$'+plan.renta+'/mes · Mejores opciones</span>';
-    html+='</div>';
-    html+='<div class="momento-scroll">';
-
-    vigentDevices.forEach(function(m){
-      const dev=all.find(function(d){return d.id===m.id;});
-      if(!dev) return;
-      const os=CAT.ios.find(function(d){return d.id===m.id;})?'ios':'android';
-      const imgHtml=IMG[m.id]?'<img src="'+IMG[m.id]+'" alt="" style="width:84%;height:84%;object-fit:contain">':'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>';
-      const descColor=m.desc>=70?'rgba(29,158,117,.16)':'rgba(56,138,221,.16)';
-      const descText=m.desc>=70?'#1D9E75':'#5BA3E8';
-      const onClick="showCatalog\'"+os+"\');setTimeout(function(){showFicha\'"+m.id+"\');var t=document.querySelector\'.tb[onclick*=plans]\');if(t)swTab\'plans\',t);},150)";
-
-      html+='<div class="momento-card" onclick="abrirMomento(\''+os+'\',\''+m.id+'\',\''+plan.name+'\','+m.plazo+')">';
-      html+='<div class="momento-img">'+imgHtml+'</div>';
-      html+='<div class="momento-name">'+dev.name+'</div>';
-      html+='<div class="momento-plazo">'+m.plazo+' meses</div>';
-      html+='<div class="momento-promo">$'+fmx(m.promo)+'</div>';
-      html+='<div class="momento-eng">Enganche máx: <span>$'+m.max_eng.toLocaleString('es-MX')+'</span></div>';
-      html+='<span class="momento-badge" style="background:'+descColor+';color:'+descText+'">'+m.desc+'% desc.</span>';
-      html+='</div>';
-    });
-
-    html+='</div></div>';
+  const vigentes=function(plan){ return (MOMENTO_BY_PLAN[plan]||[]).filter(function(m){return isVigent(m.id);}).slice(0,8); };
+  const planes=MOMENTO_PLANS.filter(function(p){ return vigentes(p.name).length && planVis(p.name); });
+  if(!planes.length){ el.innerHTML=''; return; }
+  if(!planes.some(function(p){return p.name===_momPlan;})) _momPlan=planes[0].name;
+  const v=planVis(_momPlan);
+  let h='<div class="hv3-tabs" role="tablist" aria-label="Plan">';
+  planes.forEach(function(p){
+    h+='<button type="button" role="tab" class="hv3-tab '+planVis(p.name).cls+'" aria-selected="'+(p.name===_momPlan)+'" onclick="momentoTab(\''+p.name+'\')">'+p.name+'</button>';
   });
-
-  el.innerHTML=html;
+  h+='</div>';
+  h+='<div class="hv3-planhead '+v.cls+'">'+wordmarkHTML(_momPlan,30)+'<span>'+v.gb+' GB | $'+v.renta.toLocaleString('es-MX')+' al mes</span></div>';
+  h+='<div class="hv3-mtrack">';
+  vigentes(_momPlan).forEach(function(m){
+    const dev=all.find(function(d){return d.id===m.id;});
+    if(!dev) return;
+    const os=CAT.ios.find(function(d){return d.id===m.id;})?'ios':'android';
+    const mon=fmtMoneda(m.promo), vg=vigLargo(m.id);
+    h+='<article class="hv3-mcard '+v.cls+'" onclick="abrirMomento(\''+os+'\',\''+m.id+'\',\''+_momPlan+'\','+m.plazo+')">';
+    h+='<div class="hv3-mfoto">'+fotoHTML(m.id)+'</div>';
+    h+='<div class="hv3-mname"><b>'+dev.name+'</b>'+checkHTML(16)+'</div>';
+    h+='<span class="hv3-msub">'+(dev.storage?dev.storage+' · ':'')+m.plazo+' meses</span>';
+    h+='<div class="hv3-mprecio"><div class="hv3-mprecio-txt">';
+    h+=m.promo===0?'<span class="hv3-incl">INCLUIDO</span>':'<span class="hv3-precio">'+mon.ent+'<small>'+mon.dec+'</small></span>';
+    if(m.desc>0) h+='<span class="hv3-antes">Antes $'+m.contado.toLocaleString('es-MX')+'</span>';
+    h+='</div>'+(m.desc>0?selloHTML(m.desc,50):'')+'</div>';
+    h+='<span class="hv3-eng">Enganche máx: <b>$'+m.max_eng.toLocaleString('es-MX')+'</b></span>';
+    h+='<div class="hv3-mpie"><span class="hv3-vig'+(vg.ultimo?' urg':'')+'">'+vg.txt+'</span></div>';
+    h+='</article>';
+  });
+  h+='</div>';
+  el.innerHTML=h;
 }
+function momentoTab(plan){ _momPlan=plan; initMomento(); }
 // [v1.72.20] La tarjeta abre la ficha en SU plan y plazo. Antes abría en
 // Azul 1 a 24 meses y el precio no coincidía con el de la tarjeta.
 function abrirMomento(os,id,plan,plazo){
@@ -510,6 +502,397 @@ function abrirMomento(os,id,plan,plazo){
       if(b) setPlazo(plazo,b);
     },100);
   },150);
+}
+
+// <reco-puro> ─────────────────────────────────────────────────────────────────
+// [v1.73.0] INICIO ANDROID — lógica sin DOM de la campaña del inicio y de la
+// Recomendación por presupuesto. Todo se deriva al momento de PRICES, VIGENCY,
+// CAT y PLANS_DATA: cero datos nuevos en catalog.js. El precio sale de
+// resolvePrice (misma regla que ficha y flyer), el % de pctMostrar y el
+// enganche máx de la regla de siempre: 3 rentas con 70 % o más; si no, 50 %.
+// tests/inicio-android.test.js carga SOLO este bloque en node: aquí no va DOM.
+var PLAN_VIS = {
+  'Azul 1':   {cls:'pw-azul',     g1:'#2F9BEA', g2:'#0B5CAD', ink:'#0B5CAD'},
+  'Azul 2':   {cls:'pw-azul',     g1:'#2F9BEA', g2:'#0B5CAD', ink:'#0B5CAD'},
+  'Azul 3':   {cls:'pw-azul',     g1:'#2F9BEA', g2:'#0B5CAD', ink:'#0B5CAD'},
+  'Plata':    {cls:'pw-plata',    g1:'#8E9AA8', g2:'#4E5B69', ink:'#4E5B69'},
+  'Oro':      {cls:'pw-oro',      g1:'#C99A1B', g2:'#8A5A00', ink:'#8A5A00'},
+  'Black':    {cls:'pw-black',    g1:'#3A3A3A', g2:'#0A0A0A', ink:'#111111'},
+  'Platino':  {cls:'pw-platino',  g1:'#9A93B3', g2:'#4C4570', ink:'#4C4570'},
+  'Diamante': {cls:'pw-diamante', g1:'#22A3B5', g2:'#0B4F5A', ink:'#0B4F5A'}
+};
+var MESES_LARGOS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+// Planes de la recomendación, en el orden de PLANS_DATA (Titanio no tiene visual: queda fuera).
+function recoPlanes(){
+  return PLANS_DATA.filter(function(p){ return PLAN_VIS[p.name]; }).map(function(p){ return p.name; });
+}
+function planVis(nombre){
+  var v = PLAN_VIS[nombre];
+  var p = PLANS_DATA.find(function(x){ return x.name === nombre; });
+  if(!v || !p) return null;
+  return {nombre:nombre, gb:p.gb, renta:p.renta, cls:v.cls, g1:v.g1, g2:v.g2, ink:v.ink};
+}
+// Oferta de un equipo en un plan y plazo, con las mismas reglas de la ficha.
+function ofertaPlan(id, plan, plazo){
+  var info = PRICES[id];
+  var pv = planVis(plan);
+  if(!info || !info.contado || !pv) return null;
+  var promo = resolvePrice(id, plan, plazo);
+  if(promo === null || promo === undefined) return null;
+  var desc = (1 - promo / info.contado) * 100;
+  return {
+    plan: plan, plazo: Number(plazo), promo: promo, contado: info.contado,
+    pct: pctMostrar(desc),
+    eng: desc >= 70 ? pv.renta * 3 : Math.round(promo * 0.5),
+    incluido: promo === 0
+  };
+}
+// "Moto Edge 60 Pro + Watch" y "Moto Edge 60 Pro" son el mismo modelo para el cliente.
+function modeloBase(nombre){
+  return String(nombre || '').replace(/\s*\+.*$/, '').trim();
+}
+function recoParseMonto(texto){
+  var d = String(texto == null ? '' : texto).split('.')[0].replace(/\D/g, '');
+  return d ? parseInt(d, 10) : 0;
+}
+function _porId(x, y){ return x.d.id < y.d.id ? -1 : (x.d.id > y.d.id ? 1 : 0); }
+// Ya ordenados: deja el primero de cada modelo y arma la salida pública.
+function _unoPorModelo(cand){
+  var visto = {}, out = [];
+  cand.forEach(function(x){
+    var k = modeloBase(x.d.name);
+    if(visto[k]) return;
+    visto[k] = true;
+    out.push({id:x.d.id, nombre:x.d.name, capacidad:x.d.storage || '', contado:x.c, a:x.a, b:x.b});
+  });
+  return out;
+}
+// Criterio de la Calculadora (calcBudget) con los 2 planes y el plazo que elige
+// el asesor: entra lo que alcanza con el enganche en LOS DOS planes y gana lo que
+// queda más cerca del monto. Empate: mayor precio de lista. Un modelo por tarjeta.
+function recoCalcular(monto, planA, planB, plazo){
+  var orden = recoPlanes();
+  var par = [planA, planB].sort(function(x, y){ return orden.indexOf(x) - orden.indexOf(y); });
+  var m = Number(monto) || 0;
+  var cand = [], minimo = null;
+  CAT.android.forEach(function(d){
+    if(!isVigent(d.id)) return;
+    var a = ofertaPlan(d.id, par[0], plazo), b = ofertaPlan(d.id, par[1], plazo);
+    if(!a || !b) return;
+    var req = Math.max(a.eng, b.eng);
+    if(minimo === null || req < minimo) minimo = req;
+    if(m <= 0 || a.eng > m || b.eng > m) return;
+    // Puntaje de la Calculadora promediado en los 2 planes: 1 - (2m - (a+b)) / 2m.
+    // Con el monto fijo ordena igual que la suma de enganches, que es entera:
+    // así dos equipos igual de cerca empatan de verdad (sin ruido de decimales).
+    cand.push({d:d, a:a, b:b, s:a.eng + b.eng, c:a.contado});
+  });
+  cand.sort(function(x, y){ return (y.s - x.s) || (y.c - x.c) || _porId(x, y); });
+  return {planes:par, lista:_unoPorModelo(cand), minimo:minimo};
+}
+// Campaña del inicio: los Android más nuevos (estatus NPI de la lista de precios),
+// del mayor al menor precio de lista, en Plata y Oro a 36 meses.
+function campanaEquipos(){
+  var cand = [];
+  CAT.android.forEach(function(d){
+    if(d.status !== 'NPI' || !isVigent(d.id)) return;
+    var a = ofertaPlan(d.id, 'Plata', 36), b = ofertaPlan(d.id, 'Oro', 36);
+    if(!a || !b) return;
+    cand.push({d:d, a:a, b:b, c:a.contado});
+  });
+  cand.sort(function(x, y){ return (y.c - x.c) || _porId(x, y); });
+  return _unoPorModelo(cand);
+}
+function vigLargo(id){
+  var v = VIGENCY[id];
+  if(!v || v === 'indefinido') return {txt:'Vigente hasta nuevo aviso', ultimo:false};
+  var p = String(v).split('-');
+  var txt = 'Vigente al ' + parseInt(p[2], 10) + ' de ' + MESES_LARGOS[parseInt(p[1], 10) - 1];
+  var ultimo = daysLeft(id) === 0;
+  return {txt: ultimo ? txt + ' · último día' : txt, ultimo: ultimo};
+}
+function fmtMoneda(n){
+  var s = Number(n || 0).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
+  var k = s.lastIndexOf('.');
+  return {ent:'$' + s.slice(0, k), dec:s.slice(k)};
+}
+// </reco-puro> ────────────────────────────────────────────────────────────────
+
+// ── [v1.73.0] INICIO ANDROID — render (usa el bloque <reco-puro>) ───────────
+var SELLO_PUNTOS='32.0,1.0 36.1,5.8 41.6,2.5 44.0,8.4 50.2,6.9 50.7,13.3 57.1,13.8 55.6,20.0 61.5,22.4 58.2,27.9 63.0,32.0 58.2,36.1 61.5,41.6 55.6,44.0 57.1,50.2 50.7,50.7 50.2,57.1 44.0,55.6 41.6,61.5 36.1,58.2 32.0,63.0 27.9,58.2 22.4,61.5 20.0,55.6 13.8,57.1 13.3,50.7 6.9,50.2 8.4,44.0 2.5,41.6 5.8,36.1 1.0,32.0 5.8,27.9 2.5,22.4 8.4,20.0 6.9,13.8 13.3,13.3 13.8,6.9 20.0,8.4 22.4,2.5 27.9,5.8';
+var ICO_ESCUDO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>';
+var ICO_FLECHA='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>';
+var ICO_COMPARTIR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>';
+var ICO_CHEVRON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+function checkHTML(px){
+  px=px||16;
+  return '<svg class="hv3-check" width="'+px+'" height="'+px+'" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#1D8CF0"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+function selloHTML(pct, px){
+  px=px||44;
+  return '<span class="hv3-sello" style="width:'+px+'px;height:'+px+'px"><svg width="'+px+'" height="'+px+'" viewBox="0 0 64 64" aria-hidden="true"><polygon points="'+SELLO_PUNTOS+'" fill="#FFFFFF" stroke="#D61F45" stroke-width="2.5" stroke-linejoin="round"/></svg><span style="font-size:'+Math.round(px*0.25)+'px">-'+pct+'%</span></span>';
+}
+function wordmarkHTML(plan, px){
+  var v=planVis(plan);
+  return v ? '<span class="pw '+v.cls+'" style="font-size:'+px+'px">'+plan.toUpperCase()+'</span>' : '';
+}
+// El tamaño lo da el CSS de cada tarjeta. Sin foto todavía (catalog-img.js es
+// diferido) va el ícono de respaldo; _onCatalogImgReady repinta al llegar.
+function fotoHTML(id){
+  var src=(typeof imgSrc==='function')?imgSrc(id):'';
+  if(src) return '<img data-img-id="'+id+'" src="'+src+'" alt="">';
+  return '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>';
+}
+function columnaPlanHTML(of, variante){
+  var v=planVis(of.plan), m=fmtMoneda(of.promo), eng='$'+of.eng.toLocaleString('es-MX');
+  var precio=of.incluido?'<span class="hv3-incl">INCLUIDO</span>':'<span class="hv3-precio">'+m.ent+'<small>'+m.dec+'</small></span>';
+  if(variante==='reco'){
+    return '<div class="hv3-col hv3-col-reco '+v.cls+'">'+wordmarkHTML(of.plan,14)+precio+'<span class="hv3-pct">-'+of.pct+'%</span><span class="hv3-eng">Enganche máx <b>'+eng+'</b></span></div>';
+  }
+  return '<div class="hv3-col hv3-col-camp '+v.cls+'">'+wordmarkHTML(of.plan,30)+'<span class="hv3-info">'+v.gb+' GB | $'+v.renta.toLocaleString('es-MX')+'</span><span class="hv3-plazo">a '+of.plazo+' meses</span>'+precio
+    +'<div class="hv3-antes-row"><span class="hv3-antes">Antes $'+of.contado.toLocaleString('es-MX')+'</span>'+(of.pct>0?selloHTML(of.pct,44):'')+'</div>'
+    +'<span class="hv3-eng">Enganche máx: <b>'+eng+'</b></span></div>';
+}
+function initCampana(){
+  var el=document.getElementById('camp-wrap');
+  if(!el) return;
+  var lista=campanaEquipos();
+  if(!lista.length){ el.innerHTML=''; el.hidden=true; return; }
+  var h='<div class="hv3-camp-track">';
+  lista.forEach(function(x){
+    var vg=vigLargo(x.id);
+    h+='<article class="hv3-camp-card" onclick="abrirMomento(\'android\',\''+x.id+'\',\'Plata\',36)">';
+    h+='<div class="hv3-camp-name"><b>'+x.nombre+'</b>'+(x.capacidad?'<span>'+x.capacidad+'</span>':'')+checkHTML(18)+'</div>';
+    h+='<div class="hv3-camp-foto">'+fotoHTML(x.id)+'</div>';
+    h+='<div class="hv3-cols">'+columnaPlanHTML(x.a,'camp')+columnaPlanHTML(x.b,'camp')+'</div>';
+    h+='<div class="hv3-camp-pie"><span class="hv3-vig'+(vg.ultimo?' urg':'')+'">'+vg.txt+'</span>';
+    h+='<span class="hv3-seguro">'+ICO_ESCUDO+'Protégelo por sólo $'+getSeguroPrice(x.contado)+' al mes</span></div>';
+    h+='</article>';
+  });
+  h+='</div>';
+  if(lista.length>1){
+    h+='<div class="hv3-dots" aria-hidden="true">';
+    lista.forEach(function(_, i){ h+='<span class="hv3-dot'+(i===0?' on':'')+'"></span>'; });
+    h+='</div>';
+  }
+  el.innerHTML=h;
+  el.hidden=false;
+  var tr=el.querySelector('.hv3-camp-track');
+  if(lista.length>1) tr.addEventListener('scroll', function(){
+    var paso=(tr.firstElementChild ? tr.firstElementChild.offsetWidth : tr.clientWidth)+12;
+    var i=Math.round(tr.scrollLeft/Math.max(1,paso));
+    el.querySelectorAll('.hv3-dot').forEach(function(d, j){ d.classList.toggle('on', j===i); });
+  }, {passive:true});
+}
+
+// Estado de la Recomendación por presupuesto: lo comparten el formulario del
+// inicio y la pantalla #s-reco; vive mientras la app esté abierta.
+var recoState={monto:2500, planes:['Plata','Oro'], plazo:36, todos:false};
+function _recoPickPlan(id, aria, plan, i){
+  var v=planVis(plan);
+  var ops=recoPlanes().map(function(p){ return '<option value="'+p+'"'+(p===plan?' selected':'')+'>'+p+'</option>'; }).join('');
+  return '<div class="hv3-pick '+v.cls+'">'+wordmarkHTML(plan,18)+ICO_CHEVRON+'<select id="'+id+'" aria-label="'+aria+'" onchange="recoHomePlan('+i+',this.value)">'+ops+'</select></div>';
+}
+function recoHomeRender(){
+  var el=document.getElementById('reco-home');
+  if(!el) return;
+  var s=recoState;
+  var h='<div class="hv3-field"><label class="hv3-lbl" for="reco-monto-home">Enganche disponible</label>';
+  h+='<div class="hv3-money"><span>$</span><input id="reco-monto-home" type="text" inputmode="numeric" autocomplete="off" value="'+(s.monto>0?s.monto.toLocaleString('es-MX'):'')+'"';
+  h+=' oninput="recoState.monto=recoParseMonto(this.value)" onblur="if(recoState.monto>0)this.value=recoState.monto.toLocaleString(\'es-MX\')" onkeydown="if(event.key===\'Enter\')recoVer()"></div></div>';
+  h+='<div class="hv3-field"><span class="hv3-lbl">Planes</span><div class="hv3-2col">'+_recoPickPlan('reco-plan-a','Primer plan',s.planes[0],0)+_recoPickPlan('reco-plan-b','Segundo plan',s.planes[1],1)+'</div></div>';
+  h+='<div class="hv3-field"><span class="hv3-lbl">Plazo</span><div class="hv3-pick"><span>'+s.plazo+' meses</span>'+ICO_CHEVRON;
+  h+='<select id="reco-plazo" aria-label="Plazo" onchange="recoState.plazo=Number(this.value);recoHomeRender()">'+[24,30,36].map(function(z){ return '<option value="'+z+'"'+(z===s.plazo?' selected':'')+'>'+z+' meses</option>'; }).join('')+'</select></div></div>';
+  h+='<span class="hv3-msg" id="reco-home-msg" role="alert"></span>';
+  h+='<button type="button" class="hv3-btn" onclick="recoVer()">Ver equipos'+ICO_FLECHA+'</button>';
+  el.innerHTML=h;
+}
+// Un plan no se repite: si el asesor elige en un selector el plan del otro, se intercambian.
+function recoHomePlan(i, valor){
+  var p=recoState.planes.slice();
+  if(p[1-i]===valor) p[1-i]=p[i];
+  p[i]=valor;
+  recoState.planes=p;
+  recoHomeRender();
+}
+function recoVer(){
+  var inp=document.getElementById('reco-monto-home');
+  var msg=document.getElementById('reco-home-msg');
+  var monto=recoParseMonto(inp?inp.value:recoState.monto);
+  if(!monto){
+    if(msg) msg.textContent='Escribe el enganche del cliente';
+    if(inp) inp.focus();
+    return;
+  }
+  if(msg) msg.textContent='';
+  recoState.monto=monto;
+  recoState.todos=false;
+  // La pantalla llega en la tarea siguiente; mientras, el botón no hace nada.
+  if(typeof recoRender==='function' && document.getElementById('s-reco')){ show('s-reco'); recoRender(); }
+}
+
+// Pantalla #s-reco. Los controles se repintan solo cuando cambian planes o plazo;
+// al escribir el monto se repintan solo los resultados, para no mover el cursor.
+function _recoCtrlRender(){
+  var el=document.getElementById('reco-ctrl');
+  if(!el) return;
+  var s=recoState;
+  var h='<div class="hv3-field"><label class="hv3-lbl" for="reco-monto">Enganche disponible</label>';
+  h+='<div class="hv3-money"><span>$</span><input id="reco-monto" type="text" inputmode="numeric" autocomplete="off" value="'+(s.monto>0?s.monto.toLocaleString('es-MX'):'')+'"';
+  h+=' oninput="recoSetMonto(this.value)" onblur="if(recoState.monto>0)this.value=recoState.monto.toLocaleString(\'es-MX\')"></div></div>';
+  h+='<div class="hv3-field"><span class="hv3-lbl">Planes</span><div class="hv3-planes" role="group" aria-label="Planes">';
+  recoPlanes().forEach(function(p){
+    h+='<button type="button" class="hv3-planbtn '+planVis(p).cls+'" aria-pressed="'+(s.planes.indexOf(p)>=0)+'" onclick="recoTogglePlan(\''+p+'\')">'+p+'</button>';
+  });
+  h+='</div></div>';
+  h+='<div class="hv3-field"><span class="hv3-lbl">Plazo</span><div class="hv3-seg" role="group" aria-label="Plazo">';
+  [24,30,36].forEach(function(z){ h+='<button type="button" aria-pressed="'+(z===s.plazo)+'" onclick="recoSetPlazo('+z+')">'+z+' meses</button>'; });
+  h+='</div></div>';
+  el.innerHTML=h;
+}
+function _recoResRender(){
+  var el=document.getElementById('reco-res');
+  if(!el) return;
+  var s=recoState, r=recoCalcular(s.monto, s.planes[0], s.planes[1], s.plazo), n=r.lista.length;
+  var h='<span class="hv3-rtitulo">'+(n===0?'Sin equipos':(n===1?'1 equipo':n+' equipos'))+'</span>';
+  if(n===0 && r.minimo!==null) h+='<span class="hv3-rmin">Enganche mínimo para '+r.planes[0]+' y '+r.planes[1]+': $'+r.minimo.toLocaleString('es-MX')+'</span>';
+  h+='<div class="hv3-rlista">';
+  (s.todos?r.lista:r.lista.slice(0,6)).forEach(function(x){
+    var vg=vigLargo(x.id);
+    h+='<article class="hv3-rcard" onclick="abrirMomento(\'android\',\''+x.id+'\',\''+r.planes[0]+'\','+s.plazo+')">';
+    h+='<div class="hv3-rfoto">'+fotoHTML(x.id)+'</div><div class="hv3-rinfo">';
+    h+='<div class="hv3-rname"><b>'+x.nombre+'</b>'+checkHTML(16)+'</div>';
+    h+='<span class="hv3-rsub">'+(x.capacidad?x.capacidad+' · ':'')+'<s>Antes $'+x.contado.toLocaleString('es-MX')+'</s></span>';
+    h+='<div class="hv3-rcols">'+columnaPlanHTML(x.a,'reco')+columnaPlanHTML(x.b,'reco')+'</div>';
+    h+='<span class="hv3-vig'+(vg.ultimo?' urg':'')+'">'+vg.txt+'</span>';
+    h+='</div></article>';
+  });
+  h+='</div>';
+  if(n>6 && !s.todos) h+='<button type="button" class="hv3-mas" onclick="recoVerTodos()">Ver los '+n+'</button>';
+  // recoGenerarHoja llega en la tarea siguiente; mientras, el botón no hace nada.
+  if(n>0) h+='<button type="button" class="hv3-btn hv3-compartir" onclick="if(typeof recoGenerarHoja===\'function\')recoGenerarHoja()">'+ICO_COMPARTIR+'Compartir por WhatsApp</button>';
+  el.innerHTML=h;
+}
+function recoRender(){ _recoCtrlRender(); _recoResRender(); }
+// Cada cambio también repinta el formulario del inicio: así recuerda lo último usado.
+function recoSetMonto(texto){ recoState.monto=recoParseMonto(texto); recoState.todos=false; _recoResRender(); recoHomeRender(); }
+function recoTogglePlan(nombre){
+  var p=recoState.planes;
+  if(p.indexOf(nombre)>=0) return;
+  recoState.planes=[p[1], nombre];
+  recoState.todos=false;
+  recoRender(); recoHomeRender();
+}
+function recoSetPlazo(z){ recoState.plazo=Number(z); recoState.todos=false; recoRender(); recoHomeRender(); }
+function recoVerTodos(){ recoState.todos=true; _recoResRender(); }
+
+// ── [v1.73.0] HOJA PARA WHATSAPP ─────────────────────────────────────────────
+// Mismo camino del flyer de cotización (vendors.js + html2canvas + vista previa +
+// navigator.share), pero NO registra cotización: el registro y los tableros son
+// de 1 equipo, 1 plan y 1 plazo. _flyerModo le dice al botón de la vista previa
+// qué compartir; se regresa a 'cot' al cerrar y al abrir el flyer de cotización.
+var _flyerModo='cot';
+var _hojaGenerando=false;
+var HOJA_LEYENDA='* Pago inicial sujeto a aprobación crediticia · Consulta términos y condiciones · Precios sujetos a cambio sin previo aviso';
+// Wordmark en SVG con degradado: html2canvas no pinta background-clip:text.
+// Se mide con canvas en la misma fuente; si no cabe en la columna (~150 px,
+// p. ej. DIAMANTE), se achica la letra en vez de salirse.
+var _hojaMedidor=null;
+function _hojaAncho(t, fs){
+  try{
+    if(!_hojaMedidor) _hojaMedidor=document.createElement('canvas').getContext('2d');
+    _hojaMedidor.font='900 '+fs+'px "Helvetica Neue", Helvetica, Arial, sans-serif';
+    return _hojaMedidor.measureText(t).width + 0.5*(t.length-1);
+  }catch(e){ return t.length*fs*0.78; }
+}
+function _hojaWordmark(plan){
+  var v=planVis(plan), t=plan.toUpperCase(), fs=25, w=_hojaAncho(t, fs), id='hg'+plan.replace(/\s/g,'');
+  if(w>146){ fs=Math.floor(fs*146/w); w=_hojaAncho(t, fs); }
+  w=Math.ceil(w)+4;
+  return '<svg class="hoja-pw" width="'+w+'" height="27" viewBox="0 0 '+w+' 27" aria-hidden="true"><defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+v.g1+'"/><stop offset="1" stop-color="'+v.g2+'"/></linearGradient></defs>'
+    +'<text x="0" y="23" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="'+fs+'" font-weight="900" letter-spacing="0.5" fill="url(#'+id+')">'+t+'</text></svg>';
+}
+function _hojaColumna(of, plazo){
+  var v=planVis(of.plan), m=fmtMoneda(of.promo);
+  var precio=of.incluido?'<span class="hoja-incl" style="color:'+v.ink+'">INCLUIDO</span>':'<span class="hoja-precio" style="color:'+v.ink+'">'+m.ent+'<small>'+m.dec+'</small></span>';
+  return '<div class="hoja-col">'+_hojaWordmark(of.plan)+'<span class="hoja-info" style="color:'+v.ink+'">'+v.gb+' GB | $'+v.renta.toLocaleString('es-MX')+'</span>'
+    +'<span class="hoja-plazo">a '+plazo+' meses</span><div class="hoja-precio-row">'+precio+(of.pct>0?selloHTML(of.pct,40):'')+'</div>'
+    +'<span class="hoja-antes">Antes $'+of.contado.toLocaleString('es-MX')+'</span></div>';
+}
+function recoHojaHTML(lista, plazo, perfil){
+  var h='<div class="hoja-reco">';
+  lista.forEach(function(x){
+    var vg=vigLargo(x.id), src=(typeof imgSrc==='function')?imgSrc(x.id):'';
+    h+='<article class="hoja-card"><div class="hoja-nombre"><b>'+x.nombre+'</b>'+(x.capacidad?'<span>'+x.capacidad+'</span>':'')+checkHTML(17)+'</div>';
+    h+='<div class="hoja-cuerpo"><div class="hoja-foto">'+(src?'<img src="'+src+'" alt="">':'')+'</div>'+_hojaColumna(x.a, plazo)+_hojaColumna(x.b, plazo)+'</div>';
+    h+='<div class="hoja-pie"><span class="hoja-vig'+(vg.ultimo?' urg':'')+'">'+vg.txt+'</span><span class="hoja-seg">'+ICO_ESCUDO+'Protégelo por sólo $'+getSeguroPrice(x.contado)+' al mes</span></div></article>';
+  });
+  var p=perfil||{}, extra=[p.sucursal, p.phone].filter(Boolean).join(' · ');
+  h+='<footer class="hoja-firma">';
+  if(p.name) h+='<div class="hoja-asesor"><b>'+p.name+'</b>'+(extra?'<span>'+extra+'</span>':'')+'</div>';
+  h+='<div class="hoja-marca"><b>PR<i>I</i>ME<em>MX</em></b><span>Distribuidor autorizado AT&amp;T</span></div></footer>';
+  h+='<p class="hoja-legal">'+HOJA_LEYENDA+'</p></div>';
+  return h;
+}
+async function recoGenerarHoja(){
+  if(_hojaGenerando) return; // doble toque: una sola imagen
+  _hojaGenerando=true;
+  try{
+    try{ await loadVendors(); }catch(e){ alert(e.message); return; }
+    _flyerModo='reco';
+    var s=recoState, r=recoCalcular(s.monto, s.planes[0], s.planes[1], s.plazo);
+    var cargando=document.getElementById('flyer-preview-loading');
+    var cont=document.getElementById('flyer-preview-container');
+    var btn=document.getElementById('flyer-share-btn');
+    cargando.innerHTML='<div>Generando imagen...</div>';
+    cargando.style.display='block';
+    cont.innerHTML='';
+    btn.disabled=true;
+    lastGeneratedBlob=null;
+    document.getElementById('flyer-preview-overlay').classList.add('show');
+    var render=document.getElementById('cot-flyer-render');
+    render.innerHTML=recoHojaHTML(r.lista.slice(0,6), s.plazo, getPerfilEfectivo());
+    await Promise.all(Array.from(render.querySelectorAll('img')).map(function(img){
+      if(img.complete) return Promise.resolve();
+      return new Promise(function(res){ img.onload=res; img.onerror=res; setTimeout(res,2000); });
+    }));
+    var canvas=await html2canvas(render.querySelector('.hoja-reco'), {scale:2, backgroundColor:'#FFFFFF', logging:false, useCORS:true, allowTaint:true, width:540, windowWidth:540});
+    var vista=document.createElement('img');
+    vista.src=canvas.toDataURL('image/png');
+    vista.style.cssText='max-width:100%;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,0.15)';
+    cont.appendChild(vista);
+    cargando.style.display='none';
+    canvas.toBlob(function(blob){ lastGeneratedBlob=blob; btn.disabled=false; }, 'image/png');
+  }catch(e){
+    console.error('[hoja] falló:', e);
+    var c2=document.getElementById('flyer-preview-loading');
+    if(c2) c2.innerHTML='<div style="color:var(--ios-red)">Error generando imagen: '+((e&&e.message)||'desconocido')+'</div>';
+  }finally{
+    _hojaGenerando=false;
+  }
+}
+async function recoCompartirHoja(){
+  if(!lastGeneratedBlob){ alert('Imagen no lista'); return; }
+  var nombre='recomendacion-primemx-'+Date.now()+'.png';
+  var file=new File([lastGeneratedBlob], nombre, {type:'image/png'});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file], title:'Equipos recomendados · Prime MX'});
+      closeFlyerPreview();
+      return;
+    }catch(e){
+      if(e && e.name==='AbortError') return; // el asesor canceló: la vista previa sigue abierta
+    }
+  }
+  // Sin share del sistema (escritorio) o falló: se descarga.
+  var url=URL.createObjectURL(lastGeneratedBlob);
+  var a=document.createElement('a');
+  a.href=url; a.download=nombre;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  closeFlyerPreview();
+  alert('📥 Imagen descargada\n\nAdjúntala al WhatsApp del cliente.');
 }
 
 let curOS='ios', curBrand='Todos', gridMode=true;
@@ -1352,6 +1735,8 @@ document.getElementById('ios-cnt').textContent=`${CAT.ios.length} equipos`;
 document.getElementById('and-cnt').textContent=`${CAT.android.length} equipos`;
 document.getElementById('st-tot').textContent=all.length;
 initMomento();
+initCampana();    // [v1.73.0]
+recoHomeRender(); // [v1.73.0]
 document.getElementById('st-npi').textContent=all.filter(d=>d.status==='NPI').length;
 document.getElementById('st-bun').textContent=all.filter(d=>d.bundle).length;
 document.getElementById('st-lim').textContent=all.filter(d=>d.status==='INV. LIMITADO EN CANAL').length;
@@ -13807,6 +14192,7 @@ function buildFlyerHTML(state){
 }
 
 async function generateFlyerImage(){
+  _flyerModo='cot'; // [v1.73.0] la vista previa vuelve a ser del flyer de cotización
   // [v1.9.22] Lazy-load vendors.js si no está cargado
   try{
     await loadVendors();
@@ -13896,9 +14282,12 @@ async function generateFlyerImage(){
 
 function closeFlyerPreview(){
   document.getElementById('flyer-preview-overlay').classList.remove('show');
+  _flyerModo='cot'; // [v1.73.0]
 }
 
 async function shareFlyerImage(){
+  // [v1.73.0] La vista previa también sirve a la hoja de recomendación.
+  if(_flyerModo==='reco') return recoCompartirHoja();
   if(!lastGeneratedBlob){alert('Imagen no lista');return;}
   
   const fileName = 'cotizacion-primemx-' + Date.now() + '.png';
