@@ -10,13 +10,13 @@ Crédito endureció criterios a nivel nacional y un iPhone ya casi no se aprueba
 **Éxito**
 - Del inicio a la hoja lista para WhatsApp en 3 pasos: escribir el enganche → Ver equipos → Compartir por WhatsApp.
 - Precio, % y enganche idénticos a la ficha y a Equipos del momento (mismas funciones, no copias).
-- Los datos del catálogo no cambian, salvo lo que diga la decisión B (§9).
+- Los datos del catálogo no cambian: todo se deriva al momento de PRICES, VIGENCY y CAT.
 
 ## 2. Lo que pidió Diego y lo que se supone
 
 **Pidió:** opción 2 (Android al frente) y opción 3 (recomendación por presupuesto); estilo formal tipo hoja AT&T; sin texto redundante; 6 equipos; el asesor escoge 2 planes y el plazo de una vez; sin "Mayor valor"; criterio de la Calculadora (lo que alcanza y lo más parecido al monto), sin rango de ±$500 ni tope de $10 mil.
 
-**Se supone** (confirmar en §9): el pulso del día se queda; los equipos de la campaña los elige Diego; la hoja no cuenta como cotización.
+**Confirmó (9 nov):** el pulso del día se queda; la campaña muestra los Android más nuevos; la hoja no cuenta como cotización; diseño aprobado para construir.
 
 ## 3. Alcance
 
@@ -32,7 +32,7 @@ De arriba abajo, en celular:
 2. Saludo — igual (updateGreeting).
 3. Pulso del día y racha — igual (decisión A).
 4. "Nueva cotización" — igual (abrirPlatSheet).
-5. **Tarjeta de campaña**, sin título de sección. Carrusel deslizable; los puntos solo aparecen con 2 o más equipos. Por equipo: nombre + capacidad + palomita; foto; dos columnas de plan (plan menor a la izquierda) con wordmark (PLATA, ORO…), "GB | $renta", "a N meses", precio o INCLUIDO, "Antes $contado" tachado + sello -X %, "Enganche máx: $X"; pie con vigencia y "Protégelo por sólo $X al mes". Tocar abre la ficha en el plan de la izquierda y su plazo. Qué equipos salen: decisión B.
+5. **Tarjeta de campaña**, sin título de sección. Carrusel deslizable; los puntos solo aparecen con 2 o más equipos. Por equipo: nombre + capacidad + palomita; foto; dos columnas de plan (plan menor a la izquierda) con wordmark (PLATA, ORO…), "GB | $renta", "a N meses", precio o INCLUIDO, "Antes $contado" tachado + sello -X %, "Enganche máx: $X"; pie con vigencia y "Protégelo por sólo $X al mes". Tocar abre la ficha en el plan de la izquierda y su plazo. Equipos: los Android más nuevos (decisión B), en Plata y Oro a 36 meses.
 6. **Equipos del momento**: pestañas por plan (Azul 1 → Black; abre en Plata); encabezado con wordmark del plan y "GB | $renta al mes"; tarjetas horizontales con foto, nombre + palomita, capacidad · plazo, precio o INCLUIDO, Antes tachado + sello, "Enganche máx: $X" (sin variantes, regla vigente) y vigencia. Mismos datos que hoy: MOMENTO_BY_PLAN filtrado por vigencia, 8 por plan. Tocar → abrirMomento (igual). Sale el texto "Menor enganche por plan · desliza para ver más". Se conserva id="momento-cards" (el menú lateral hace scroll ahí).
 7. **Recomendación por presupuesto** (formulario): Enganche disponible ($, solo números), Planes (2 selectores con los 8 planes Azul 1 → Diamante; no se puede repetir el mismo), Plazo (24, 30, 36) y botón "Ver equipos". Abre en $2,500 · Plata · Oro · 36 meses y recuerda lo último usado mientras la app esté abierta. Sin enganche, el botón no avanza y lo dice en una línea.
 8. Catálogo: las 4 cifras de hoy.
@@ -72,7 +72,7 @@ Arriba van los mismos controles: enganche, 8 botones de plan (se eligen 2; tocar
 - **app.js**, sección nueva "INICIO ANDROID v1.73": utilidades visuales compartidas (wordmark de plan claro/oscuro, sello, vigencia larga, columna de plan); campaña; Equipos del momento (reemplaza el render de initMomento; abrirMomento queda igual); recomendación (cálculo puro + pantalla); hoja (HTML, imagen y compartir); y una guarda mínima en shareFlyerImage y closeFlyerPreview.
 - **index.html:** bloque de CSS v1.73 con las variables --hv2-*, markup del inicio reordenado, pantalla #s-reco y ritual (BUILD_ID, APP_VERSION, APP_JS_V).
 - **sw.js:** CACHE_NAME, BUILD_ID y APP_JS_V.
-- **catalog.js:** sin cambios, salvo CAMPANA_INICIO si se confirma la decisión B.
+- **catalog.js:** sin cambios.
 - Todo queda en app.js, sin archivo nuevo, para no tocar la carga versionada por contenido ni el precache.
 
 ## 8. Pruebas antes de entregar
@@ -81,10 +81,10 @@ Arriba van los mismos controles: enganche, 8 botones de plan (se eligen 2; tocar
 - Navegador (Playwright, 390 px y 1280 px, claro y oscuro): inicio, recomendación con resultados y sin resultados, y la hoja generada (PNG revisado a ojo).
 - Precio de 3 equipos al azar contra la ficha en el mismo plan y plazo.
 - node --check de app.js, catalog.js y sw.js; invariantes (COMISIONES_OFF, CRM, PRERREGISTRO_OFF, FLASH_OFF); ritual de versión completo.
-- Entrega: zip con app.js, index.html y sw.js (más catalog.js si la decisión B lo pide).
+- Entrega: zip con app.js, index.html y sw.js.
 
-## 9. Decisiones (tomadas así; Diego confirma o cambia)
+## 9. Decisiones (confirmadas por Diego el 9 nov)
 
-- **A. Pulso del día ("cotizaste hoy", racha):** el mockup no lo traía. Se queda donde está hoy.
-- **B. Equipos de la campaña:** los elige Diego. Hasta 3, cada uno con sus 2 planes y su plazo, en catalog.js (CAMPANA_INICIO). Los vencidos salen solos; si no queda ninguno, la tarjeta se oculta. Arranca con el Redmi Note 17 Pro 5G en Plata y Oro a 36 meses (el del mockup).
-- **C. ¿La hoja cuenta como cotización?** No. El registro de cotizaciones y los tableros son de 1 equipo, 1 plan y 1 plazo; contar una hoja de 6 equipos movería las cifras. Si se quiere medir, va aparte después.
+- **A. Pulso del día ("cotizaste hoy", racha):** se queda donde está hoy.
+- **B. Equipos de la campaña:** "pon los equipos más nuevos android". Son los Android vigentes con estatus NPI (el estatus de lanzamiento de la lista de precios, columna A), un modelo por tarjeta, del mayor al menor precio de lista, en Plata y Oro a 36 meses. Se actualiza solo con cada carga de precios: el equipo que deja de ser NPI o vence, sale. Si no hay ninguno, la tarjeta se oculta. Hoy saldrían 7: Galaxy S26 FE, Honor 600 Elite, Redmi Note 17 Pro 5G, Moto G47, Honor X7E, Honor X6E y Moto G37.
+- **C. La hoja no cuenta como cotización.** El registro de cotizaciones y los tableros son de 1 equipo, 1 plan y 1 plazo; contar una hoja de 6 equipos movería las cifras. Si se quiere medir, va aparte después.
