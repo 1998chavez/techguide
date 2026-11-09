@@ -190,9 +190,57 @@ async function reco(nav, base) {
   await ctx.close();
 }
 
+const LEYENDA = '* Pago inicial sujeto a aprobación crediticia · Consulta términos y condiciones · Precios sujetos a cambio sin previo aviso';
+
+async function hoja(nav, base) {
+  const { ctx, p } = await abrir(nav, base);
+  await p.locator('#reco-home .hv3-btn').click();
+  const btn = p.locator('#reco-res .hv3-compartir');
+  await btn.dispatchEvent('click');
+  await btn.dispatchEvent('click'); // doble toque
+  await p.waitForSelector('#flyer-preview-container img', { timeout: 20000 });
+  await p.waitForTimeout(400);
+  chk('la vista previa se abre', await p.evaluate(() => document.getElementById('flyer-preview-overlay').classList.contains('show')));
+  chk('doble toque: una sola imagen', (await p.locator('#flyer-preview-container img').count()) === 1);
+  const ancho = await p.evaluate(() => document.querySelector('#flyer-preview-container img').naturalWidth);
+  chk('la imagen mide 1080 px de ancho (540 a escala 2)', ancho === 1080, ancho);
+  const src = await p.evaluate(() => document.querySelector('#flyer-preview-container img').src);
+  fs.writeFileSync(OUT + '/hoja.png', Buffer.from(src.split(',')[1], 'base64'));
+  const html = await p.evaluate(() => (document.querySelector('#cot-flyer-render .hoja-reco') || {}).innerHTML || '');
+  chk('la hoja trae la leyenda exacta', html.includes(LEYENDA));
+  chk('la hoja trae el nombre del asesor', html.includes(SES.name));
+  const nTarjetas = await p.evaluate(() => document.querySelectorAll('#cot-flyer-render .hoja-card').length);
+  const esperadas = await p.evaluate(() => Math.min(6, recoCalcular(recoState.monto, recoState.planes[0], recoState.planes[1], recoState.plazo).lista.length));
+  chk('la hoja trae los primeros 6', nTarjetas === esperadas && nTarjetas > 0, [nTarjetas, esperadas]);
+  await p.evaluate(() => {
+    window.__reg = 0;
+    const orig = window.registrarCotizacion;
+    window.registrarCotizacion = function () { window.__reg++; return orig.apply(this, arguments); };
+  });
+  const [descarga] = await Promise.all([p.waitForEvent('download', { timeout: 10000 }), p.locator('#flyer-share-btn').click()]);
+  chk('sin share del sistema se descarga el PNG', /^recomendacion-primemx-\d+\.png$/.test(descarga.suggestedFilename()), descarga.suggestedFilename());
+  await p.waitForTimeout(300);
+  chk('compartir la hoja no registra cotización', (await p.evaluate(() => window.__reg)) === 0);
+  chk('al cerrar, el flyer de cotización vuelve a su modo', (await p.evaluate(() => _flyerModo)) === 'cot');
+  // Nombres largos e INCLUIDO: Platino y Diamante con $4,000 trae "Moto Edge 70 Pro + Watch"; Azul 1 y 2 con $1,500 trae equipos incluidos.
+  for (const [m, pa, pb, archivo] of [[4000, 'Platino', 'Diamante', 'hoja-larga.png'], [1500, 'Azul 1', 'Azul 2', 'hoja-incluido.png'], [6000, 'Plata', 'Oro', 'hoja-cara.png']]) {
+    await p.evaluate(([m, pa, pb]) => { recoState.monto = m; recoState.planes = [pa, pb]; recoState.plazo = 36; recoState.todos = false; }, [m, pa, pb]);
+    await p.evaluate(() => { document.getElementById('flyer-preview-container').innerHTML = ''; return recoGenerarHoja(); });
+    await p.waitForSelector('#flyer-preview-container img', { timeout: 20000 });
+    const d = await desbordes(p, '#cot-flyer-render .hoja-card');
+    if (pa === 'Platino') { const t = await p.evaluate(() => document.querySelector('#cot-flyer-render .hoja-reco').textContent); chk('rentas con separador de miles ($1,035 y $1,300)', t.includes('50 GB | $1,035') && t.includes('55 GB | $1,300')); }
+    chk(archivo + ': nada se desborda en las tarjetas', d.length === 0, d.slice(0, 5));
+    const s2 = await p.evaluate(() => document.querySelector('#flyer-preview-container img').src);
+    fs.writeFileSync(OUT + '/' + archivo, Buffer.from(s2.split(',')[1], 'base64'));
+    await p.evaluate(() => closeFlyerPreview());
+  }
+  chk('hoja: sin errores de página', p.errores.length === 0, p.errores);
+  await ctx.close();
+}
+
 (async () => {
   const modo = process.argv[2];
-  const modos = { inicio, reco };
+  const modos = { inicio, reco, hoja };
   if (!modos[modo]) { console.error('modo desconocido: ' + modo); process.exit(2); }
   const srv = await servir(RAIZ);
   const base = 'http://127.0.0.1:' + srv.address().port + '/techguide/';

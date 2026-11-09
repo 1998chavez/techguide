@@ -466,7 +466,7 @@ function initMomento(){
     h+='<button type="button" role="tab" class="hv3-tab '+planVis(p.name).cls+'" aria-selected="'+(p.name===_momPlan)+'" onclick="momentoTab(\''+p.name+'\')">'+p.name+'</button>';
   });
   h+='</div>';
-  h+='<div class="hv3-planhead '+v.cls+'">'+wordmarkHTML(_momPlan,30)+'<span>'+v.gb+' GB | $'+v.renta+' al mes</span></div>';
+  h+='<div class="hv3-planhead '+v.cls+'">'+wordmarkHTML(_momPlan,30)+'<span>'+v.gb+' GB | $'+v.renta.toLocaleString('es-MX')+' al mes</span></div>';
   h+='<div class="hv3-mtrack">';
   vigentes(_momPlan).forEach(function(m){
     const dev=all.find(function(d){return d.id===m.id;});
@@ -648,7 +648,7 @@ function columnaPlanHTML(of, variante){
   if(variante==='reco'){
     return '<div class="hv3-col hv3-col-reco '+v.cls+'">'+wordmarkHTML(of.plan,14)+precio+'<span class="hv3-pct">-'+of.pct+'%</span><span class="hv3-eng">Enganche máx <b>'+eng+'</b></span></div>';
   }
-  return '<div class="hv3-col hv3-col-camp '+v.cls+'">'+wordmarkHTML(of.plan,30)+'<span class="hv3-info">'+v.gb+' GB | $'+v.renta+'</span><span class="hv3-plazo">a '+of.plazo+' meses</span>'+precio
+  return '<div class="hv3-col hv3-col-camp '+v.cls+'">'+wordmarkHTML(of.plan,30)+'<span class="hv3-info">'+v.gb+' GB | $'+v.renta.toLocaleString('es-MX')+'</span><span class="hv3-plazo">a '+of.plazo+' meses</span>'+precio
     +'<div class="hv3-antes-row"><span class="hv3-antes">Antes $'+of.contado.toLocaleString('es-MX')+'</span>'+(of.pct>0?selloHTML(of.pct,44):'')+'</div>'
     +'<span class="hv3-eng">Enganche máx: <b>'+eng+'</b></span></div>';
 }
@@ -784,6 +784,114 @@ function recoTogglePlan(nombre){
 }
 function recoSetPlazo(z){ recoState.plazo=Number(z); recoState.todos=false; recoRender(); recoHomeRender(); }
 function recoVerTodos(){ recoState.todos=true; _recoResRender(); }
+
+// ── [v1.73.0] HOJA PARA WHATSAPP ─────────────────────────────────────────────
+// Mismo camino del flyer de cotización (vendors.js + html2canvas + vista previa +
+// navigator.share), pero NO registra cotización: el registro y los tableros son
+// de 1 equipo, 1 plan y 1 plazo. _flyerModo le dice al botón de la vista previa
+// qué compartir; se regresa a 'cot' al cerrar y al abrir el flyer de cotización.
+var _flyerModo='cot';
+var _hojaGenerando=false;
+var HOJA_LEYENDA='* Pago inicial sujeto a aprobación crediticia · Consulta términos y condiciones · Precios sujetos a cambio sin previo aviso';
+// Wordmark en SVG con degradado: html2canvas no pinta background-clip:text.
+// Se mide con canvas en la misma fuente; si no cabe en la columna (~150 px,
+// p. ej. DIAMANTE), se achica la letra en vez de salirse.
+var _hojaMedidor=null;
+function _hojaAncho(t, fs){
+  try{
+    if(!_hojaMedidor) _hojaMedidor=document.createElement('canvas').getContext('2d');
+    _hojaMedidor.font='900 '+fs+'px "Helvetica Neue", Helvetica, Arial, sans-serif';
+    return _hojaMedidor.measureText(t).width + 0.5*(t.length-1);
+  }catch(e){ return t.length*fs*0.78; }
+}
+function _hojaWordmark(plan){
+  var v=planVis(plan), t=plan.toUpperCase(), fs=25, w=_hojaAncho(t, fs), id='hg'+plan.replace(/\s/g,'');
+  if(w>146){ fs=Math.floor(fs*146/w); w=_hojaAncho(t, fs); }
+  w=Math.ceil(w)+4;
+  return '<svg class="hoja-pw" width="'+w+'" height="27" viewBox="0 0 '+w+' 27" aria-hidden="true"><defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+v.g1+'"/><stop offset="1" stop-color="'+v.g2+'"/></linearGradient></defs>'
+    +'<text x="0" y="23" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="'+fs+'" font-weight="900" letter-spacing="0.5" fill="url(#'+id+')">'+t+'</text></svg>';
+}
+function _hojaColumna(of, plazo){
+  var v=planVis(of.plan), m=fmtMoneda(of.promo);
+  var precio=of.incluido?'<span class="hoja-incl" style="color:'+v.ink+'">INCLUIDO</span>':'<span class="hoja-precio" style="color:'+v.ink+'">'+m.ent+'<small>'+m.dec+'</small></span>';
+  return '<div class="hoja-col">'+_hojaWordmark(of.plan)+'<span class="hoja-info" style="color:'+v.ink+'">'+v.gb+' GB | $'+v.renta.toLocaleString('es-MX')+'</span>'
+    +'<span class="hoja-plazo">a '+plazo+' meses</span><div class="hoja-precio-row">'+precio+(of.pct>0?selloHTML(of.pct,40):'')+'</div>'
+    +'<span class="hoja-antes">Antes $'+of.contado.toLocaleString('es-MX')+'</span></div>';
+}
+function recoHojaHTML(lista, plazo, perfil){
+  var h='<div class="hoja-reco">';
+  lista.forEach(function(x){
+    var vg=vigLargo(x.id), src=(typeof imgSrc==='function')?imgSrc(x.id):'';
+    h+='<article class="hoja-card"><div class="hoja-nombre"><b>'+x.nombre+'</b>'+(x.capacidad?'<span>'+x.capacidad+'</span>':'')+checkHTML(17)+'</div>';
+    h+='<div class="hoja-cuerpo"><div class="hoja-foto">'+(src?'<img src="'+src+'" alt="">':'')+'</div>'+_hojaColumna(x.a, plazo)+_hojaColumna(x.b, plazo)+'</div>';
+    h+='<div class="hoja-pie"><span class="hoja-vig'+(vg.ultimo?' urg':'')+'">'+vg.txt+'</span><span class="hoja-seg">'+ICO_ESCUDO+'Protégelo por sólo $'+getSeguroPrice(x.contado)+' al mes</span></div></article>';
+  });
+  var p=perfil||{}, extra=[p.sucursal, p.phone].filter(Boolean).join(' · ');
+  h+='<footer class="hoja-firma">';
+  if(p.name) h+='<div class="hoja-asesor"><b>'+p.name+'</b>'+(extra?'<span>'+extra+'</span>':'')+'</div>';
+  h+='<div class="hoja-marca"><b>PR<i>I</i>ME<em>MX</em></b><span>Distribuidor autorizado AT&amp;T</span></div></footer>';
+  h+='<p class="hoja-legal">'+HOJA_LEYENDA+'</p></div>';
+  return h;
+}
+async function recoGenerarHoja(){
+  if(_hojaGenerando) return; // doble toque: una sola imagen
+  _hojaGenerando=true;
+  try{
+    try{ await loadVendors(); }catch(e){ alert(e.message); return; }
+    _flyerModo='reco';
+    var s=recoState, r=recoCalcular(s.monto, s.planes[0], s.planes[1], s.plazo);
+    var cargando=document.getElementById('flyer-preview-loading');
+    var cont=document.getElementById('flyer-preview-container');
+    var btn=document.getElementById('flyer-share-btn');
+    cargando.innerHTML='<div>Generando imagen...</div>';
+    cargando.style.display='block';
+    cont.innerHTML='';
+    btn.disabled=true;
+    lastGeneratedBlob=null;
+    document.getElementById('flyer-preview-overlay').classList.add('show');
+    var render=document.getElementById('cot-flyer-render');
+    render.innerHTML=recoHojaHTML(r.lista.slice(0,6), s.plazo, getPerfilEfectivo());
+    await Promise.all(Array.from(render.querySelectorAll('img')).map(function(img){
+      if(img.complete) return Promise.resolve();
+      return new Promise(function(res){ img.onload=res; img.onerror=res; setTimeout(res,2000); });
+    }));
+    var canvas=await html2canvas(render.querySelector('.hoja-reco'), {scale:2, backgroundColor:'#FFFFFF', logging:false, useCORS:true, allowTaint:true, width:540, windowWidth:540});
+    var vista=document.createElement('img');
+    vista.src=canvas.toDataURL('image/png');
+    vista.style.cssText='max-width:100%;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,0.15)';
+    cont.appendChild(vista);
+    cargando.style.display='none';
+    canvas.toBlob(function(blob){ lastGeneratedBlob=blob; btn.disabled=false; }, 'image/png');
+  }catch(e){
+    console.error('[hoja] falló:', e);
+    var c2=document.getElementById('flyer-preview-loading');
+    if(c2) c2.innerHTML='<div style="color:var(--ios-red)">Error generando imagen: '+((e&&e.message)||'desconocido')+'</div>';
+  }finally{
+    _hojaGenerando=false;
+  }
+}
+async function recoCompartirHoja(){
+  if(!lastGeneratedBlob){ alert('Imagen no lista'); return; }
+  var nombre='recomendacion-primemx-'+Date.now()+'.png';
+  var file=new File([lastGeneratedBlob], nombre, {type:'image/png'});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file], title:'Equipos recomendados · Prime MX'});
+      closeFlyerPreview();
+      return;
+    }catch(e){
+      if(e && e.name==='AbortError') return; // el asesor canceló: la vista previa sigue abierta
+    }
+  }
+  // Sin share del sistema (escritorio) o falló: se descarga.
+  var url=URL.createObjectURL(lastGeneratedBlob);
+  var a=document.createElement('a');
+  a.href=url; a.download=nombre;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  closeFlyerPreview();
+  alert('📥 Imagen descargada\n\nAdjúntala al WhatsApp del cliente.');
+}
 
 let curOS='ios', curBrand='Todos', gridMode=true;
 const cmpSet=new Set();
@@ -14082,6 +14190,7 @@ function buildFlyerHTML(state){
 }
 
 async function generateFlyerImage(){
+  _flyerModo='cot'; // [v1.73.0] la vista previa vuelve a ser del flyer de cotización
   // [v1.9.22] Lazy-load vendors.js si no está cargado
   try{
     await loadVendors();
@@ -14171,9 +14280,12 @@ async function generateFlyerImage(){
 
 function closeFlyerPreview(){
   document.getElementById('flyer-preview-overlay').classList.remove('show');
+  _flyerModo='cot'; // [v1.73.0]
 }
 
 async function shareFlyerImage(){
+  // [v1.73.0] La vista previa también sirve a la hoja de recomendación.
+  if(_flyerModo==='reco') return recoCompartirHoja();
   if(!lastGeneratedBlob){alert('Imagen no lista');return;}
   
   const fileName = 'cotizacion-primemx-' + Date.now() + '.png';

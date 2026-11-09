@@ -412,6 +412,43 @@ const APP_VERSION = 'v1.72.26';</script>
 .hv3-mas{width:100%;min-height:48px;margin-top:12px;border-radius:14px;border:1px solid var(--hv3-campo);background:var(--hv2-card);
   color:var(--hv2-ink);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
 .hv3-compartir{margin-top:16px}
+/* Hoja para WhatsApp: 540 px, la captura html2canvas a escala 2. Colores fijos
+   (siempre clara, aunque la app esté en oscuro). html2canvas no respeta
+   object-fit ni background-clip:text: fotos en caja cuadrada y wordmarks en SVG. */
+.hoja-reco{width:540px;box-sizing:border-box;padding:30px 28px 24px;background:#FFFFFF;color:#0B1524;
+  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;display:flex;flex-direction:column;gap:14px}
+.hoja-card{border:1px solid #DDE2EA;border-radius:26px;box-shadow:0 2px 6px rgba(11,21,36,.06);padding:14px 16px 12px;
+  display:flex;flex-direction:column;gap:10px;background:#FFFFFF}
+.hoja-nombre{display:flex;align-items:center;justify-content:center;gap:6px;text-align:center}
+.hoja-nombre b{font-size:17px;font-weight:800;color:#0B1524}
+.hoja-nombre span{font-size:13px;font-weight:600;color:#475569}
+.hoja-cuerpo{display:flex;align-items:center;gap:10px}
+.hoja-foto{width:104px;height:104px;flex:0 0 104px;display:flex;align-items:center;justify-content:center}
+.hoja-foto img{width:104px;height:104px}
+.hoja-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:2px;padding-left:10px;border-left:1px solid #E5E8EE}
+.hoja-col svg.hoja-pw{display:block}
+.hoja-info{font-size:11px;font-weight:600}
+.hoja-plazo{font-size:12px;color:#64748B;margin-top:4px}
+.hoja-precio-row{display:flex;align-items:center;justify-content:space-between;gap:4px;flex-wrap:wrap}
+.hoja-precio{font-size:21px;font-weight:800;letter-spacing:-.02em;white-space:nowrap}
+.hoja-precio small{font-size:13px;font-weight:800}
+.hoja-incl{font-size:19px;font-weight:900;letter-spacing:.02em}
+.hoja-antes{font-size:11px;color:#64748B;text-decoration:line-through}
+.hoja-pie{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid #EEF1F5;padding-top:8px}
+.hoja-vig{font-size:13px;font-weight:700;color:#0B1524}
+.hoja-vig.urg{color:#B91C1C}
+.hoja-seg{display:flex;align-items:center;gap:5px;font-size:11px;color:#475569}
+.hoja-seg svg{width:13px;height:13px;flex:0 0 13px;color:#475569}
+.hoja-firma{margin-top:4px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid #DDE2EA;padding-top:14px}
+.hoja-asesor{display:flex;flex-direction:column;gap:2px}
+.hoja-asesor b{font-size:14px;font-weight:700;color:#0B1524}
+.hoja-asesor span{font-size:12px;color:#5B6B82}
+.hoja-marca{display:flex;flex-direction:column;align-items:flex-end;gap:3px;margin-left:auto}
+.hoja-marca b{font-size:15px;font-weight:800;letter-spacing:.32em;color:#0B1524}
+.hoja-marca b i{font-style:normal;color:#0A6FB8}
+.hoja-marca b em{font-style:normal;color:#7C8798}
+.hoja-marca span{font-size:11px;font-weight:600;color:#5B6B82}
+.hoja-legal{margin:0;font-size:9.5px;line-height:1.4;color:#7C8798;text-align:center}
 @media (min-width:1080px){
   .hv3-mtrack{margin:0;padding:4px 0 6px;scroll-padding:0}
 }
