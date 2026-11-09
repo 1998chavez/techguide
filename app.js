@@ -583,8 +583,10 @@ function recoCalcular(monto, planA, planB, plazo){
     var req = Math.max(a.eng, b.eng);
     if(minimo === null || req < minimo) minimo = req;
     if(m <= 0 || a.eng > m || b.eng > m) return;
-    var s = ((1 - (m - a.eng) / m) + (1 - (m - b.eng) / m)) / 2;
-    cand.push({d:d, a:a, b:b, s:s, c:a.contado});
+    // Puntaje de la Calculadora promediado en los 2 planes: 1 - (2m - (a+b)) / 2m.
+    // Con el monto fijo ordena igual que la suma de enganches, que es entera:
+    // así dos equipos igual de cerca empatan de verdad (sin ruido de decimales).
+    cand.push({d:d, a:a, b:b, s:a.eng + b.eng, c:a.contado});
   });
   cand.sort(function(x, y){ return (y.s - x.s) || (y.c - x.c) || _porId(x, y); });
   return {planes:par, lista:_unoPorModelo(cand), minimo:minimo};

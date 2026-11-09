@@ -32,7 +32,7 @@ function oraculo(ctx, monto, A, B, plazo) {
     if (ea === null || eb === null) continue;
     minimo = minimo === null ? Math.max(ea, eb) : Math.min(minimo, Math.max(ea, eb));
     if (ea > monto || eb > monto) continue;
-    cand.push({ id: d.id, k: d.name.replace(/\s*\+.*$/, '').trim(), c: ctx.PRICES[d.id].contado, s: (2 - (monto - ea) / monto - (monto - eb) / monto) / 2 });
+    cand.push({ id: d.id, k: d.name.replace(/\s*\+.*$/, '').trim(), c: ctx.PRICES[d.id].contado, s: ea + eb }); // más cerca del monto = mayor suma
   }
   cand.sort((x, y) => (y.s - x.s) || (y.c - x.c) || (x.id < y.id ? -1 : 1));
   const visto = new Set(), ids = [];
@@ -120,6 +120,18 @@ test('un modelo por tarjeta: capacidades y "+ regalo" cuentan como uno', () => {
     ['fxx256', 'Fixture X', '256 GB', 9999],
     ['fxy', 'Fixture Y', '128 GB', 4000],
   ]);
+});
+
+test('empate exacto de cercanía: gana el mayor precio de lista (sin ruido de decimales)', () => {
+  // Con $2,500: X pide 1950 + 2100 y Y pide 1650 + 2400. Misma suma (4050) = igual de cerca;
+  // en punto flotante X daba 0.81 y Y 0.8099999999999999. Debe ganar Y por precio de lista.
+  const ctx = cargar({ extra: (c) => {
+    soloEstos(c);
+    equipo(c, { id: 'fxx', name: 'Fixture X', contado: 10500, precios: (p) => (p === 'Plata' ? 3000 : p === 'Oro' ? 4200 : 9000) });
+    equipo(c, { id: 'fxy', name: 'Fixture Y', contado: 10900, precios: (p) => (p === 'Plata' ? 3300 : p === 'Oro' ? 4800 : 9000) });
+  } });
+  const r = ctx.recoCalcular(2500, 'Plata', 'Oro', 36);
+  assert.deepEqual(plano(r.lista.map((x) => [x.id, x.a.eng, x.b.eng])), [['fxy', 1650, 2400], ['fxx', 1950, 2100]]);
 });
 
 test('iPhone nunca entra', () => {
