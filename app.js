@@ -512,6 +512,119 @@ function abrirMomento(os,id,plan,plazo){
   },150);
 }
 
+// <reco-puro> ─────────────────────────────────────────────────────────────────
+// [v1.73.0] INICIO ANDROID — lógica sin DOM de la campaña del inicio y de la
+// Recomendación por presupuesto. Todo se deriva al momento de PRICES, VIGENCY,
+// CAT y PLANS_DATA: cero datos nuevos en catalog.js. El precio sale de
+// resolvePrice (misma regla que ficha y flyer), el % de pctMostrar y el
+// enganche máx de la regla de siempre: 3 rentas con 70 % o más; si no, 50 %.
+// tests/inicio-android.test.js carga SOLO este bloque en node: aquí no va DOM.
+var PLAN_VIS = {
+  'Azul 1':   {cls:'pw-azul',     g1:'#2F9BEA', g2:'#0B5CAD', ink:'#0B5CAD'},
+  'Azul 2':   {cls:'pw-azul',     g1:'#2F9BEA', g2:'#0B5CAD', ink:'#0B5CAD'},
+  'Azul 3':   {cls:'pw-azul',     g1:'#2F9BEA', g2:'#0B5CAD', ink:'#0B5CAD'},
+  'Plata':    {cls:'pw-plata',    g1:'#8E9AA8', g2:'#4E5B69', ink:'#4E5B69'},
+  'Oro':      {cls:'pw-oro',      g1:'#C99A1B', g2:'#8A5A00', ink:'#8A5A00'},
+  'Black':    {cls:'pw-black',    g1:'#3A3A3A', g2:'#0A0A0A', ink:'#111111'},
+  'Platino':  {cls:'pw-platino',  g1:'#9A93B3', g2:'#4C4570', ink:'#4C4570'},
+  'Diamante': {cls:'pw-diamante', g1:'#22A3B5', g2:'#0B4F5A', ink:'#0B4F5A'}
+};
+var MESES_LARGOS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+// Planes de la recomendación, en el orden de PLANS_DATA (Titanio no tiene visual: queda fuera).
+function recoPlanes(){
+  return PLANS_DATA.filter(function(p){ return PLAN_VIS[p.name]; }).map(function(p){ return p.name; });
+}
+function planVis(nombre){
+  var v = PLAN_VIS[nombre];
+  var p = PLANS_DATA.find(function(x){ return x.name === nombre; });
+  if(!v || !p) return null;
+  return {nombre:nombre, gb:p.gb, renta:p.renta, cls:v.cls, g1:v.g1, g2:v.g2, ink:v.ink};
+}
+// Oferta de un equipo en un plan y plazo, con las mismas reglas de la ficha.
+function ofertaPlan(id, plan, plazo){
+  var info = PRICES[id];
+  var pv = planVis(plan);
+  if(!info || !info.contado || !pv) return null;
+  var promo = resolvePrice(id, plan, plazo);
+  if(promo === null || promo === undefined) return null;
+  var desc = (1 - promo / info.contado) * 100;
+  return {
+    plan: plan, plazo: Number(plazo), promo: promo, contado: info.contado,
+    pct: pctMostrar(desc),
+    eng: desc >= 70 ? pv.renta * 3 : Math.round(promo * 0.5),
+    incluido: promo === 0
+  };
+}
+// "Moto Edge 60 Pro + Watch" y "Moto Edge 60 Pro" son el mismo modelo para el cliente.
+function modeloBase(nombre){
+  return String(nombre || '').replace(/\s*\+.*$/, '').trim();
+}
+function recoParseMonto(texto){
+  var d = String(texto == null ? '' : texto).split('.')[0].replace(/\D/g, '');
+  return d ? parseInt(d, 10) : 0;
+}
+function _porId(x, y){ return x.d.id < y.d.id ? -1 : (x.d.id > y.d.id ? 1 : 0); }
+// Ya ordenados: deja el primero de cada modelo y arma la salida pública.
+function _unoPorModelo(cand){
+  var visto = {}, out = [];
+  cand.forEach(function(x){
+    var k = modeloBase(x.d.name);
+    if(visto[k]) return;
+    visto[k] = true;
+    out.push({id:x.d.id, nombre:x.d.name, capacidad:x.d.storage || '', contado:x.c, a:x.a, b:x.b});
+  });
+  return out;
+}
+// Criterio de la Calculadora (calcBudget) con los 2 planes y el plazo que elige
+// el asesor: entra lo que alcanza con el enganche en LOS DOS planes y gana lo que
+// queda más cerca del monto. Empate: mayor precio de lista. Un modelo por tarjeta.
+function recoCalcular(monto, planA, planB, plazo){
+  var orden = recoPlanes();
+  var par = [planA, planB].sort(function(x, y){ return orden.indexOf(x) - orden.indexOf(y); });
+  var m = Number(monto) || 0;
+  var cand = [], minimo = null;
+  CAT.android.forEach(function(d){
+    if(!isVigent(d.id)) return;
+    var a = ofertaPlan(d.id, par[0], plazo), b = ofertaPlan(d.id, par[1], plazo);
+    if(!a || !b) return;
+    var req = Math.max(a.eng, b.eng);
+    if(minimo === null || req < minimo) minimo = req;
+    if(m <= 0 || a.eng > m || b.eng > m) return;
+    var s = ((1 - (m - a.eng) / m) + (1 - (m - b.eng) / m)) / 2;
+    cand.push({d:d, a:a, b:b, s:s, c:a.contado});
+  });
+  cand.sort(function(x, y){ return (y.s - x.s) || (y.c - x.c) || _porId(x, y); });
+  return {planes:par, lista:_unoPorModelo(cand), minimo:minimo};
+}
+// Campaña del inicio: los Android más nuevos (estatus NPI de la lista de precios),
+// del mayor al menor precio de lista, en Plata y Oro a 36 meses.
+function campanaEquipos(){
+  var cand = [];
+  CAT.android.forEach(function(d){
+    if(d.status !== 'NPI' || !isVigent(d.id)) return;
+    var a = ofertaPlan(d.id, 'Plata', 36), b = ofertaPlan(d.id, 'Oro', 36);
+    if(!a || !b) return;
+    cand.push({d:d, a:a, b:b, c:a.contado});
+  });
+  cand.sort(function(x, y){ return (y.c - x.c) || _porId(x, y); });
+  return _unoPorModelo(cand);
+}
+function vigLargo(id){
+  var v = VIGENCY[id];
+  if(!v || v === 'indefinido') return {txt:'Vigente hasta nuevo aviso', ultimo:false};
+  var p = String(v).split('-');
+  var txt = 'Vigente al ' + parseInt(p[2], 10) + ' de ' + MESES_LARGOS[parseInt(p[1], 10) - 1];
+  var ultimo = daysLeft(id) === 0;
+  return {txt: ultimo ? txt + ' · último día' : txt, ultimo: ultimo};
+}
+function fmtMoneda(n){
+  var s = Number(n || 0).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
+  var k = s.lastIndexOf('.');
+  return {ent:'$' + s.slice(0, k), dec:s.slice(k)};
+}
+// </reco-puro> ────────────────────────────────────────────────────────────────
+
 let curOS='ios', curBrand='Todos', gridMode=true;
 const cmpSet=new Set();
 let curFichaId=null;
