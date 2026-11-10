@@ -299,9 +299,74 @@ async function ficha(nav, base) {
   await ctx.close();
 }
 
+// [v1.73.7] Pastilla de puntos de marca: donde la ve el asesor sí, donde la ve el cliente no.
+async function puntos(nav, base) {
+  const { ctx, p } = await abrir(nav, base);
+  const pts = (sel) => p.evaluate((s) => [...document.querySelectorAll(s)].map((e) => e.textContent.replace(/\s+/g, ' ').trim()), sel);
+  // Campaña: la primera es el Reno 16.
+  const camp = await pts('#camp-wrap .hv3-camp-card:first-child .hv3-camp-name .pts-pill');
+  chk('campaña: el Reno 16 lleva 330 pts', camp.length === 1 && camp[0] === '330 pts', camp);
+  const estilo = await p.evaluate(() => [...document.querySelectorAll('.pts-pill')].map((e) => { const b = getComputedStyle(e.querySelector('b')), q = getComputedStyle(e); return b.color + '|' + q.color + '|' + q.backgroundColor; }));
+  chk('pastilla: número dorado y "pts" blanco sobre marino en todas', estilo.length > 0 && estilo.every((x) => x === 'rgb(255, 197, 49)|rgb(255, 255, 255)|rgb(19, 32, 62)'), [...new Set(estilo)]);
+  // Momento y recomendación: pastilla solo en los equipos con puntos.
+  const cuadra = (sel, foto) => p.evaluate(([s, f]) => [...document.querySelectorAll(s)].every((c) => {
+    const id = (/'(?:ios|android)','([^']+)'/.exec(c.getAttribute('onclick')) || [])[1];
+    const el = c.querySelector(f + ' .pts-pill'); const n = puntosEquipo(id);
+    return n ? !!el && el.textContent.includes(String(n)) : !el; }), [sel, foto]);
+  chk('momento: pastilla justo en los equipos con puntos', await cuadra('#momento-cards .hv3-mcard', '.hv3-mfoto'));
+  await p.locator('#reco-home .hv3-btn').click();
+  chk('recomendación: pastilla justo en los equipos con puntos', await cuadra('#reco-res .hv3-rcard', '.hv3-rfoto'));
+  // Catálogo (cuadrícula y lista).
+  await p.evaluate(() => { showCatalog('android'); setFilter('OPPO'); });
+  const grid = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll('#dev-wrap .d-card')].map((c) => [/showFicha\('([^']+)'\)/.exec(c.getAttribute('onclick'))[1], (c.querySelector('.d-img-wrap .pts-pill') || {}).textContent || ''])));
+  chk('catálogo: Reno 16 330, Reno 16F 225, A6 45', /330/.test(grid.opreno16) && /225/.test(grid.opreno16f) && /45/.test(grid.opa6), grid);
+  chk('catálogo: A5 sin pastilla y Find X9 Pro sigue oculto', grid.opa5 === '' && !('opfindx9pro' in grid), grid);
+  await p.evaluate(() => toggleView());
+  const lista = await pts('#dev-wrap .d-row .d-row-badges .pts-pill');
+  chk('catálogo en lista también la lleva', lista.length === Object.values(grid).filter(Boolean).length, lista);
+  await p.evaluate(() => toggleView());
+  // Ficha + Tu comisión.
+  await p.evaluate(() => { show('s-ficha'); showFicha('hx6e_256'); });
+  await p.waitForTimeout(500);
+  const fb = await pts('#s-ficha .fh-badges .pts-pill');
+  chk('ficha Honor X6E 256: 130 pts y sin "+$"', fb.length === 1 && fb[0] === '130 pts' && (await p.locator('#s-ficha .comm-badge-ficha').count()) === 0, fb);
+  await p.evaluate(() => { showFicha('opreno16'); selectPlan('Plata'); openCotModal(); });
+  await p.waitForTimeout(500);
+  const com = await p.evaluate(() => ({ t: document.getElementById('comm-body-inner').textContent, total: document.getElementById('comm-amount').textContent, plan: getPlanCommission('Plata') }));
+  chk('Tu comisión: +330 pts aparte del total en pesos', /Puntos oppo\s*\+330 pts/i.test(com.t) && com.total === '$' + com.plan.toLocaleString('es-MX'), com);
+  await p.evaluate(() => { if (typeof closeCotModal === 'function') closeCotModal(); selectPlan('Azul 2'); openCotModal(); });
+  await p.waitForTimeout(500);
+  const com2 = await p.evaluate(() => document.getElementById('comm-body-inner').textContent);
+  chk('Tu comisión en Azul 2: avisa los 330 pts desde Azul 3', /330 pts desde plan Azul 3/.test(com2), com2);
+  await p.evaluate(() => { if (typeof closeCotModal === 'function') closeCotModal(); });
+  // Top comisiones: ranking por puntos.
+  await p.evaluate(() => { showTopComm(); setTopCommPlan('Plata'); });
+  const top = await p.evaluate(() => ({ h: document.getElementById('top-comm-list').textContent, n: document.querySelectorAll('#top-comm-list .top-comm-item').length, primero: (document.querySelector('#top-comm-list .top-comm-name') || {}).textContent }));
+  chk('Top comisiones: arriba el Edge 70 Pro con 450 pts, sin pesos de bono', /450 pts/.test(top.h) && /Edge 70 Pro/.test(top.primero) && !/\+\$/.test(top.h) && !/Find X9/.test(top.h), top);
+  await p.evaluate(() => setTopCommPlan('Azul 2'));
+  chk('Top comisiones en Azul 2: los puntos aplican desde Azul 3', /desde plan Azul 3/.test(await p.evaluate(() => document.getElementById('top-comm-list').textContent)));
+  // Vigencias (solo Diego): los flyers de puntos con su fecha, sin pesos.
+  const vig = await p.evaluate(() => { const r = vigenciasResumen(); openVigencias(); const t = document.getElementById('vig-overlay').textContent; document.getElementById('vig-overlay').remove(); document.body.style.overflow = '';
+    return { n: r.bonos.length, venc: r.bonosVencidos.length, nombres: r.bonos.map((b) => b.name), t }; });
+  chk('Vigencias: 13 equipos con puntos, ninguno vencido', vig.n === 13 && vig.venc === 0, vig.n);
+  chk('Vigencias: X6E 128 y 256 por separado', vig.nombres.includes('Honor X6E 128 GB') && vig.nombres.includes('Honor X6E 256 GB'), vig.nombres);
+  chk('Vigencias: en puntos, sin "$" de bono', /450 pts/.test(vig.t) && !/\$\d/.test(vig.t), vig.t.slice(0, 300));
+  chk('puntos: sin errores de página', p.errores.length === 0, p.errores);
+  await ctx.close();
+  // Hoja de WhatsApp (va al cliente): nunca, aunque la lista traiga equipos con puntos.
+  const h = await abrir(nav, base);
+  await h.p.locator('#reco-home .hv3-btn').click();
+  const conPts = await h.p.evaluate(() => recoCalcular(2500, 'Plata', 'Oro', 36).lista.slice(0, 6).filter((x) => puntosEquipo(x.id)).length);
+  await h.p.locator('#reco-res .hv3-compartir').dispatchEvent('click');
+  await h.p.waitForSelector('#flyer-preview-container img', { timeout: 20000 });
+  const txt = await h.p.evaluate(() => document.querySelector('#cot-flyer-render').textContent);
+  chk('hoja de WhatsApp sin puntos (' + conPts + ' equipos de la hoja traen puntos)', (await h.p.locator('#cot-flyer-render .pts-pill').count()) === 0 && !/\bpts\b|puntos/i.test(txt));
+  await h.ctx.close();
+}
+
 (async () => {
   const modo = process.argv[2];
-  const modos = { inicio, reco, hoja, ficha };
+  const modos = { inicio, reco, hoja, ficha, puntos };
   if (!modos[modo]) { console.error('modo desconocido: ' + modo); process.exit(2); }
   const srv = await servir(RAIZ);
   const base = 'http://127.0.0.1:' + srv.address().port + '/techguide/';

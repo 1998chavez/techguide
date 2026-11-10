@@ -1,95 +1,65 @@
 // =============================================================================
-// TechGuide — incentivos.js  [v1.37 · flyers al 01-sep-2026]
+// TechGuide — incentivos.js  [v1.73.7 · flyers de noviembre 2026]
 // FUENTE ÚNICA de los incentivos de equipo (bonos de marca, nivel EJECUTIVO).
 //
-// POR QUÉ EXISTE: antes esta información vivía duplicada en 6 archivos —
-// catalog.js (indexada por ID, decorativa: nadie la leía para pagar) y los 5
-// comisiones-*.html (indexada por nombre, la que sí paga). Cada flyer eran 6
-// ediciones a mano y la posibilidad de que un rol pagara distinto que otro.
-// Ahora se edita AQUÍ y nada más.
+// [v1.73.7] LOS FLYERS YA PAGAN EN PUNTOS, NO EN PESOS ("Gana puntos y llena tu
+// monedero"). Por instrucción de Diego (10-nov-2026) todo se maneja como
+// puntos: PUNTOS_FLYERS de abajo es lo que la app muestra (pastilla en los
+// equipos, ficha, Tu comisión, Top comisiones y Vigencias). Los puntos NO se
+// suman a la comisión en pesos.
 //
-// LLAVE = NOMBRE DEL MODELO, no ID. Es la llave operativa real: es lo que
-// guardan las ventas en Firestore (v.modelo) y lo que ofrece el dropdown del
-// form del ejecutivo. Las variantes de almacenamiento comparten nombre y bono
-// (Pixel 10 128 y 256 = $250), así que colapsarlas no pierde información.
+// POR QUÉ EXISTE: antes esta información vivía duplicada en 6 archivos —
+// catalog.js y los 5 comisiones-*.html. Ahora se edita AQUÍ y nada más.
 //
 // SE CARGA SIN ?v=BUILD_ID a propósito: pesa ~3KB y va stale-while-revalidate
-// en el Service Worker. Así los 5 tableros pueden consumirlo sin necesitar cada
-// uno su propio BUILD_ID (que volvería el bump de versión un ritual de 7
-// constantes en vez de 4).
+// en el Service Worker, para que los tableros puedan consumirlo sin BUILD_ID.
 //
-// REGLA VIGENTE: solo se modelan los incentivos de nivel EJECUTIVO. Los montos
-// de gerente que traen los flyers (p.ej. Honor 600 $68, Xiaomi 17T $30) NO se
-// capturan aquí por decisión de negocio (v1.10.78).
+// REGLA VIGENTE: solo se modelan los incentivos de nivel EJECUTIVO. Los puntos
+// de gerente de tienda que traen los flyers NO se capturan (v1.10.78; Diego lo
+// confirmó el 10-nov-2026: "muestra para ejecutivos nada más").
 //
 // REGLA DE VIGENCIA (Diego, 01-sep-2026): si un flyer venció y no llegó uno
-// nuevo, el bono está VENCIDO hasta nuevo aviso. Ya no se dejan pagando bonos
-// sin respaldo: al vencer sin reemplazo, el modelo se BORRA de este archivo.
-// Solo regresa con flyer en mano.
+// nuevo, el bono está VENCIDO hasta nuevo aviso. Con puntos esto es automático:
+// cada flyer trae ini/fin y fuera de esas fechas la app no muestra sus puntos.
+// Aun así, al vencer se borra de aquí para no acumular flyers viejos.
 // =============================================================================
 
-// ── Monto fijo por equipo ───────────────────────────────────────────────────
-window.EQUIP_INC = {
-  // ── HONOR — flyer 13-ago a 27-sep (sin cambios de monto) ─────────────────
-  'Honor Magic 7 Pro': 300,
-  'Honor Magic 8 Lite 5G': 170,
-  'Honor Magic 8 Lite 5G + Jersey': 170,
-  'Honor X8D': 130,
-  // ── MOTOROLA — flyer 03-ago a 04-oct ("extendemos la vigencia") ──────────
-  'Moto Edge 70 Pro + Watch': 450,
-  'Moto Edge 70 Pro + Watch + Chamarra': 450,
-  'Moto Edge 70 Fusión': 200,          // [01-sep] alta: el flyer lo suma
-  'Moto G77': 195,
-  // ── XIAOMI — flyer 31-ago a 04-oct. Bajaron 15T y 17T ───────────────────
-  'Xiaomi 15T': 180,                   // [01-sep] 250 -> 180
-  'Xiaomi 17T': 190,                   // [01-sep] 220 -> 190
-  'Redmi Note 17 + Sound Pocket': 100, // [01-sep] alta ("Redmi Note 17" en el flyer)
-  'Redmi Note 17 Pro 5G': 180,         // [01-sep] alta. OJO: sin ficha en el catálogo
-  // [01-sep] BAJA de 11 bonos cuyo flyer venció el 30-ago sin reemplazo:
-  // Pixel 10 / Pro / Pro XL, Xiaomi 17T Pro, Redmi Note 15 y Note 15 Pro 5G,
-  // Oppo Find X9 Pro, Reno 14F, Reno 13 5G, A6k y A5 Pro 5G.
-  // Regla de negocio de Diego (01-sep): si un flyer venció y no llegó uno
-  // nuevo, el bono está vencido hasta nuevo aviso. Vuelven a entrar solo con
-  // flyer en mano. Esto reemplaza la nota de v1.11.62 que los dejaba pagando.
-};
-// ── Monto por plan (gana sobre EQUIP_INC cuando el flyer diferencia) ────────
-window.EQUIP_INC_BY_PLAN = {
-  // [01-sep] Flyer Honor 600 del 27-ago al 11-oct: 425 ejecutivo (antes 680).
-  // "Aplica en Plan Black, Platino y Diamante" — por eso va aquí y no en
-  // EQUIP_INC: BY_PLAN paga SOLO en los planes listados, $0 en el resto.
-  'Honor 600': {"Black":425,"Platino":425,"Diamante":425}
-};
-// ── Unidades mínimas del mismo modelo para que el bono aplique ──────────────
-window.EQUIP_INC_MIN_UNITS = {
-  'Oppo Reno 16F': 2   // "Aplica a partir de 2 ventas"
-};
+// ── Puntos por equipo, por flyer ────────────────────────────────────────────
+// LLAVE = ID DEL CATÁLOGO (no nombre): el Honor X6E paga distinto en 128 GB y en
+// 256 GB, y las dos versiones comparten nombre. Solo puntos de EJECUTIVO.
+// Condiciones de los 3 flyers: "Se paga incentivo desde plan Azul 3 y
+// superiores. Comisionan de manera independiente en Pospago con Equipo y
+// Renovaciones logrando el 100% de alcance semanal. El pago es mensual vía
+// nómina para gerentes y semanal para ejecutivos. Sujeto a nuevo esquema de
+// comisiones."
+window.PUNTOS_FLYERS = [
+  // ── OPPO — del 2 de noviembre al 6 de diciembre de 2026 ──────────────────
+  // Find X10 (lanzamiento) 220 pts: todavía sin ficha en el catálogo; entra
+  // cuando tenga ficha. El Find X9 Pro sigue OCULTO (Diego, 10-nov): sus puntos
+  // quedan registrados pero no se ve en la app.
+  { marca:'OPPO', ini:'2026-11-02', fin:'2026-12-06', puntos:{
+    opfindx9pro:220, opreno16:330, opreno16f:225, opa6k:45, opa6:45 } },
+  // ── MOTOROLA — del 5 de octubre de 2026 al 3 de enero de 2027 ─────────────
+  // El flyer dice "Moto Edge 70 Pro": en el catálogo vive como bundle con Watch
+  // y con Watch + Chamarra; los dos pagan igual (como en flyers anteriores).
+  { marca:'MOTOROLA', ini:'2026-10-05', fin:'2027-01-03', puntos:{
+    mg77:230, medge70f_npi:245, medge70pro_w:450, medge70pro_wc:450 } },
+  // ── HONOR — del 2 de noviembre al 27 de diciembre de 2026 ─────────────────
+  // El Honor 600 ya no es "solo Black, Platino y Diamante": este flyer lo paga
+  // desde Azul 3 como a todos.
+  { marca:'HONOR', ini:'2026-11-02', fin:'2026-12-27', puntos:{
+    hx6e:80, hx6e_256:130, hx7e:180, honor600:280 } }
+];
 
-// ── Vigencia declarada de cada flyer ────────────────────────────────────────
-// [01-sep] Sigue alimentando el panel de Vigencias (avisa qué está por vencer),
-// pero ya no hay bonos vencidos aquí: la regla de Diego es que al vencer sin
-// flyer nuevo el modelo SALE del archivo. Así que este bloque y EQUIP_INC de
-// arriba tienen exactamente las mismas llaves, y el panel sirve para avisar
-// ANTES del vencimiento, no para reportar deuda vieja.
-//
-// Las fechas vienen de los flyers.
-window.EQUIP_INC_VIGENCY = {
-  // ── VIGENTES ────────────────────────────────────────────────────────────
-  'Honor Magic 7 Pro': {start:'2026-08-13', end:'2026-09-27'},
-  'Honor Magic 8 Lite 5G': {start:'2026-08-13', end:'2026-09-27'},
-  'Honor Magic 8 Lite 5G + Jersey': {start:'2026-08-13', end:'2026-09-27'},
-  'Honor X8D': {start:'2026-08-13', end:'2026-09-27'},
-  'Honor 600': {start:'2026-08-27', end:'2026-10-11'},
-  'Moto Edge 70 Pro + Watch': {start:'2026-08-03', end:'2026-10-04'},
-  'Moto Edge 70 Pro + Watch + Chamarra': {start:'2026-08-03', end:'2026-10-04'},
-  'Moto Edge 70 Fusión': {start:'2026-08-03', end:'2026-10-04'},
-  'Moto G77': {start:'2026-08-03', end:'2026-10-04'},
-  'Xiaomi 15T': {start:'2026-08-31', end:'2026-10-04'},
-  'Xiaomi 17T': {start:'2026-08-31', end:'2026-10-04'},
-  'Redmi Note 17 + Sound Pocket': {start:'2026-08-31', end:'2026-10-04'},
-  'Redmi Note 17 Pro 5G': {start:'2026-08-31', end:'2026-10-04'}
-  // Los 11 bonos vencidos el 30-ago salieron del archivo el 01-sep junto con
-  // sus montos. Aquí solo viven los flyers que están en mano.
-};
+// ── Bonos en PESOS (esquema anterior) ───────────────────────────────────────
+// [v1.73.7] Vacíos. Los últimos flyers en pesos vencieron (Honor 27-sep,
+// Motorola y Xiaomi 04-oct, Honor 600 11-oct) y los nuevos pagan en puntos.
+// Se conservan las variables, vacías, porque los comisiones-*.html (apagados
+// con COMISIONES_OFF) y el cálculo de comisión en pesos las leen.
+window.EQUIP_INC = {};
+window.EQUIP_INC_BY_PLAN = {};
+window.EQUIP_INC_MIN_UNITS = {};
+window.EQUIP_INC_VIGENCY = {};
 
 // ── [v1.11.64] RENTA MENSUAL POR PLAN — insumo del ARPU de los tableros ─────
 // POR QUÉ VIVE AQUÍ: estaba duplicada a mano en los 4 tableros que calculan ARPU
