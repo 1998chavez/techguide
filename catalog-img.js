@@ -68,7 +68,7 @@ window.IMG = {
   "opreno13":"img/opreno13.webp?v=20261001",
   "opreno14":"img/opreno14.webp?v=20261001",
   "opreno14f":"img/opreno14f.webp?v=20261001",
-  "opreno16f":"img/opreno16f.webp?v=20261001",
+  "opreno16f":"img/opreno16f.webp?v=20261001","opreno16":"img/opreno16.webp?v=20261109",
   "px10":"img/px10.webp?v=20261001",
   "px10_256":"img/px10_256.webp?v=20261001",
   "px10pro":"img/px10pro.webp?v=20261001",
