@@ -483,7 +483,7 @@ function initMomento(){
     h+='<div class="hv3-mprecio"><div class="hv3-mprecio-txt">';
     h+=m.promo===0?'<span class="hv3-incl">INCLUIDO</span>':'<span class="hv3-precio">'+mon.ent+'<small>'+mon.dec+'</small></span>';
     if(m.desc>0) h+='<span class="hv3-antes">Antes $'+m.contado.toLocaleString('es-MX')+'</span>';
-    h+='</div>'+(m.desc>0?selloHTML(m.desc,62):'')+'</div>';
+    h+='</div>'+(m.desc>0?selloHTML(m.desc,50):'')+'</div>';
     h+='<span class="hv3-eng">Enganche máx: <b>$'+m.max_eng.toLocaleString('es-MX')+'</b></span>';
     h+='<div class="hv3-mpie"><span class="hv3-vig'+(vg.ultimo?' urg':'')+'">'+vg.txt+'</span></div>';
     h+='</article>';
@@ -876,7 +876,7 @@ function _hojaColumna(of, plazo){
   var v=planVis(of.plan), m=fmtMoneda(of.promo);
   var precio=of.incluido?'<span class="hoja-incl" style="color:'+v.ink+'">INCLUIDO</span>':'<span class="hoja-precio" style="color:'+v.ink+'">'+m.ent+'<small>'+m.dec+'</small></span>';
   return '<div class="hoja-col">'+_hojaWordmark(of.plan)+'<span class="hoja-info" style="color:'+v.ink+'">'+v.gb+' GB | $'+v.renta.toLocaleString('es-MX')+'</span>'
-    +'<span class="hoja-plazo">a '+plazo+' meses</span><div class="hoja-precio-row">'+precio+(of.pct>0?selloHTML(of.pct,52):'')+'</div>'
+    +'<span class="hoja-plazo">a '+plazo+' meses</span><div class="hoja-precio-row">'+precio+(of.pct>0?selloHTML(of.pct,40):'')+'</div>'
     +'<span class="hoja-antes">Antes $'+of.contado.toLocaleString('es-MX')+'</span></div>';
 }
 function recoHojaHTML(lista, plazo, perfil, marca){
