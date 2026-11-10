@@ -102,6 +102,9 @@ function getVigColor(dateStr){
   return '#34C759';
 }
 function isVigent(id){
+  // [v1.73.2] Modelos que Diego mandó ocultar (OCULTOS en catalog.js): no se
+  // muestran aunque la lista de precios los traiga vigentes.
+  if(typeof OCULTOS!=='undefined' && OCULTOS.indexOf(id)>=0) return false;
   const v=VIGENCY[id];
   if(!v||v==='indefinido') return true;
   const end=new Date(v+'T23:59:59');
@@ -571,13 +574,14 @@ function _unoPorModelo(cand){
 // Criterio de la Calculadora (calcBudget) con los 2 planes y el plazo que elige
 // el asesor: entra lo que alcanza con el enganche en LOS DOS planes y gana lo que
 // queda más cerca del monto. Empate: mayor precio de lista. Un modelo por tarjeta.
-function recoCalcular(monto, planA, planB, plazo){
+function recoCalcular(monto, planA, planB, plazo, marca){
   var orden = recoPlanes();
   var par = [planA, planB].sort(function(x, y){ return orden.indexOf(x) - orden.indexOf(y); });
   var m = Number(monto) || 0;
   var cand = [], minimo = null;
   CAT.android.forEach(function(d){
     if(!isVigent(d.id)) return;
+    if(marca && d.brand !== marca) return; // [v1.73.2] filtro por marca ('' = todas)
     var a = ofertaPlan(d.id, par[0], plazo), b = ofertaPlan(d.id, par[1], plazo);
     if(!a || !b) return;
     var req = Math.max(a.eng, b.eng);
@@ -590,6 +594,16 @@ function recoCalcular(monto, planA, planB, plazo){
   });
   cand.sort(function(x, y){ return (y.s - x.s) || (y.c - x.c) || _porId(x, y); });
   return {planes:par, lista:_unoPorModelo(cand), minimo:minimo};
+}
+// [v1.73.2] Marcas con al menos un Android vigente, en orden alfabético (para el filtro).
+function recoMarcas(){
+  var m = {};
+  CAT.android.forEach(function(d){ if(isVigent(d.id)) m[d.brand] = true; });
+  return Object.keys(m).sort();
+}
+// "XIAOMI" → "Xiaomi" para los botones del filtro.
+function marcaNombre(b){
+  return String(b || '').toLowerCase().replace(/(^|\s)\S/g, function(c){ return c.toUpperCase(); });
 }
 // Campaña del inicio: los Android más nuevos (estatus NPI de la lista de precios),
 // del mayor al menor precio de lista, en Plata y Oro a 36 meses.
@@ -631,7 +645,9 @@ function checkHTML(px){
 }
 function selloHTML(pct, px){
   px=px||44;
-  return '<span class="hv3-sello" style="width:'+px+'px;height:'+px+'px"><svg width="'+px+'" height="'+px+'" viewBox="0 0 64 64" aria-hidden="true"><polygon points="'+SELLO_PUNTOS+'" fill="#FFFFFF" stroke="#D61F45" stroke-width="2.5" stroke-linejoin="round"/></svg><span style="font-size:'+Math.round(px*0.25)+'px">-'+pct+'%</span></span>';
+  // "-100%" no cabe entre los picos del sello con la letra normal: va un poco más chica.
+  var t='-'+pct+'%', fs=Math.round(px*(t.length>4?0.2:0.25));
+  return '<span class="hv3-sello" style="width:'+px+'px;height:'+px+'px"><svg width="'+px+'" height="'+px+'" viewBox="0 0 64 64" aria-hidden="true"><polygon points="'+SELLO_PUNTOS+'" fill="#FFFFFF" stroke="#D61F45" stroke-width="2.5" stroke-linejoin="round"/></svg><span style="font-size:'+fs+'px">'+t+'</span></span>';
 }
 function wordmarkHTML(plan, px){
   var v=planVis(plan);
@@ -688,7 +704,7 @@ function initCampana(){
 
 // Estado de la Recomendación por presupuesto: lo comparten el formulario del
 // inicio y la pantalla #s-reco; vive mientras la app esté abierta.
-var recoState={monto:2500, planes:['Plata','Oro'], plazo:36, todos:false};
+var recoState={monto:2500, planes:['Plata','Oro'], plazo:36, todos:false, marca:''}; // marca '' = todas [v1.73.2]
 function _recoPickPlan(id, aria, plan, i){
   var v=planVis(plan);
   var ops=recoPlanes().map(function(p){ return '<option value="'+p+'"'+(p===plan?' selected':'')+'>'+p+'</option>'; }).join('');
@@ -749,12 +765,18 @@ function _recoCtrlRender(){
   h+='<div class="hv3-field"><span class="hv3-lbl">Plazo</span><div class="hv3-seg" role="group" aria-label="Plazo">';
   [24,30,36].forEach(function(z){ h+='<button type="button" aria-pressed="'+(z===s.plazo)+'" onclick="recoSetPlazo('+z+')">'+z+' meses</button>'; });
   h+='</div></div>';
+  // [v1.73.2] Filtro por marca: Todas + las marcas con Android vigente.
+  h+='<div class="hv3-field"><span class="hv3-lbl">Marca</span><div class="hv3-marcas" role="group" aria-label="Marca">';
+  [''].concat(recoMarcas()).forEach(function(b){
+    h+='<button type="button" class="hv3-marcabtn" aria-pressed="'+(b===s.marca)+'" onclick="recoSetMarca(\''+b+'\')">'+(b?marcaNombre(b):'Todas')+'</button>';
+  });
+  h+='</div></div>';
   el.innerHTML=h;
 }
 function _recoResRender(){
   var el=document.getElementById('reco-res');
   if(!el) return;
-  var s=recoState, r=recoCalcular(s.monto, s.planes[0], s.planes[1], s.plazo), n=r.lista.length;
+  var s=recoState, r=recoCalcular(s.monto, s.planes[0], s.planes[1], s.plazo, s.marca), n=r.lista.length;
   var h='<span class="hv3-rtitulo">'+(n===0?'Sin equipos':(n===1?'1 equipo':n+' equipos'))+'</span>';
   if(n===0 && r.minimo!==null) h+='<span class="hv3-rmin">Enganche mínimo para '+r.planes[0]+' y '+r.planes[1]+': $'+r.minimo.toLocaleString('es-MX')+'</span>';
   h+='<div class="hv3-rlista">';
@@ -786,6 +808,7 @@ function recoTogglePlan(nombre){
 }
 function recoSetPlazo(z){ recoState.plazo=Number(z); recoState.todos=false; recoRender(); recoHomeRender(); }
 function recoVerTodos(){ recoState.todos=true; _recoResRender(); }
+function recoSetMarca(b){ recoState.marca=b||''; recoState.todos=false; recoRender(); }
 
 // ── [v1.73.0] HOJA PARA WHATSAPP ─────────────────────────────────────────────
 // Mismo camino del flyer de cotización (vendors.js + html2canvas + vista previa +
@@ -820,8 +843,10 @@ function _hojaColumna(of, plazo){
     +'<span class="hoja-plazo">a '+plazo+' meses</span><div class="hoja-precio-row">'+precio+(of.pct>0?selloHTML(of.pct,40):'')+'</div>'
     +'<span class="hoja-antes">Antes $'+of.contado.toLocaleString('es-MX')+'</span></div>';
 }
-function recoHojaHTML(lista, plazo, perfil){
+function recoHojaHTML(lista, plazo, perfil, marca){
   var h='<div class="hoja-reco">';
+  // [v1.73.2] Con marca elegida, la hoja lleva la marca de título (texto, sin logotipos).
+  if(marca) h+='<div class="hoja-titulo"><i></i><b>'+String(marca).toUpperCase()+'</b><i></i></div>';
   lista.forEach(function(x){
     var vg=vigLargo(x.id), src=(typeof imgSrc==='function')?imgSrc(x.id):'';
     h+='<article class="hoja-card"><div class="hoja-nombre"><b>'+x.nombre+'</b>'+(x.capacidad?'<span>'+x.capacidad+'</span>':'')+checkHTML(17)+'</div>';
@@ -841,7 +866,7 @@ async function recoGenerarHoja(){
   try{
     try{ await loadVendors(); }catch(e){ alert(e.message); return; }
     _flyerModo='reco';
-    var s=recoState, r=recoCalcular(s.monto, s.planes[0], s.planes[1], s.plazo);
+    var s=recoState, r=recoCalcular(s.monto, s.planes[0], s.planes[1], s.plazo, s.marca);
     var cargando=document.getElementById('flyer-preview-loading');
     var cont=document.getElementById('flyer-preview-container');
     var btn=document.getElementById('flyer-share-btn');
@@ -852,7 +877,7 @@ async function recoGenerarHoja(){
     lastGeneratedBlob=null;
     document.getElementById('flyer-preview-overlay').classList.add('show');
     var render=document.getElementById('cot-flyer-render');
-    render.innerHTML=recoHojaHTML(r.lista.slice(0,6), s.plazo, getPerfilEfectivo());
+    render.innerHTML=recoHojaHTML(r.lista.slice(0,6), s.plazo, getPerfilEfectivo(), s.marca);
     await Promise.all(Array.from(render.querySelectorAll('img')).map(function(img){
       if(img.complete) return Promise.resolve();
       return new Promise(function(res){ img.onload=res; img.onerror=res; setTimeout(res,2000); });
@@ -874,7 +899,7 @@ async function recoGenerarHoja(){
 }
 async function recoCompartirHoja(){
   if(!lastGeneratedBlob){ alert('Imagen no lista'); return; }
-  var nombre='recomendacion-primemx-'+Date.now()+'.png';
+  var nombre='recomendacion-primemx-'+(recoState.marca?recoState.marca.toLowerCase()+'-':'')+Date.now()+'.png';
   var file=new File([lastGeneratedBlob], nombre, {type:'image/png'});
   if(navigator.canShare && navigator.canShare({files:[file]})){
     try{

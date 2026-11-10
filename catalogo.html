@@ -500,7 +500,7 @@ var APP={
  ready:function(){return !!(window.CAT&&window.PRICES&&window.PLANS_DATA);},
  hoy:function(){return new Date().toISOString().slice(0,10);},
  fmx:function(n){return '$'+Math.round(n||0).toLocaleString('es-MX');},
- vigente:function(id){var v=window.VIGENCY?window.VIGENCY[id]:null;return !v||v==='indefinido'||v>=this.hoy();},
+ vigente:function(id){if(window.OCULTOS&&window.OCULTOS.indexOf(id)>=0)return false; /* [v1.73.2] ocultos por Diego */ var v=window.VIGENCY?window.VIGENCY[id]:null;return !v||v==='indefinido'||v>=this.hoy();},
  renta:function(p){var r=null;(window.PLANS_DATA||[]).forEach(function(x){if(x.name===p)r=x.renta;});return r;},
  gbDe:function(p){var g=null;(window.PLANS_DATA||[]).forEach(function(x){if(x.name===p)g=x.gb;});return g;},
  baseOf:function(id){var SV=window.STORAGE_VARIANTS||{};for(var k in SV){var l=SV[k]||[];for(var i=0;i<l.length;i++){if(l[i][1]===id)return k;}}return id;},
