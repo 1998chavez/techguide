@@ -75,6 +75,12 @@ async function inicio(nav, base) {
   chk('momento: abre en Plata', (await p.locator('#momento-cards [role=tab][aria-selected=true]').innerText()).trim() === 'Plata');
   const nm = await p.locator('#momento-cards .hv3-mcard').count();
   chk('momento: de 1 a 8 tarjetas', nm >= 1 && nm <= 8, nm);
+  const sello = await p.evaluate(() => { const e = document.querySelector('#momento-cards .hv3-sello'); return e && { w: e.getBoundingClientRect().width, t: e.textContent, rojo: e.innerHTML.includes('#C8102E') }; });
+  chk('momento: sello rojo de 62 px con DESCUENTO', sello && sello.w === 62 && /DESCUENTO/.test(sello.t) && sello.rojo, sello);
+  const fuera = await p.evaluate(() => [...document.querySelectorAll('.hv3-sello')].filter((s) => {
+    const c = s.closest('.hv3-mcard,.hv3-col-camp'); if (!c) return false; const a = s.getBoundingClientRect(), b = c.getBoundingClientRect();
+    return a.right > b.right + 0.5 || a.left < b.left - 0.5; }).length);
+  chk('sellos dentro de su tarjeta', fuera === 0, fuera);
   await p.locator('#momento-cards [role=tab]', { hasText: 'Oro' }).click();
   chk('momento: pestaña Oro', (await p.locator('#momento-cards .hv3-planhead .pw').innerText()).trim() === 'ORO');
   chk('formulario: $2,500', (await p.inputValue('#reco-monto-home')) === '2,500');
@@ -219,6 +225,7 @@ async function hoja(nav, base) {
   const html = await p.evaluate(() => (document.querySelector('#cot-flyer-render .hoja-reco') || {}).innerHTML || '');
   chk('la hoja trae la leyenda exacta', html.includes(LEYENDA));
   chk('la hoja trae el nombre del asesor', html.includes(SES.name));
+  chk('la hoja trae el sello con DESCUENTO', html.includes('>DESCUENTO</text>'));
   const nTarjetas = await p.evaluate(() => document.querySelectorAll('#cot-flyer-render .hoja-card').length);
   const esperadas = await p.evaluate(() => Math.min(6, recoCalcular(recoState.monto, recoState.planes[0], recoState.planes[1], recoState.plazo).lista.length));
   chk('la hoja trae los primeros 6', nTarjetas === esperadas && nTarjetas > 0, [nTarjetas, esperadas]);

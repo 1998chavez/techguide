@@ -483,7 +483,7 @@ function initMomento(){
     h+='<div class="hv3-mprecio"><div class="hv3-mprecio-txt">';
     h+=m.promo===0?'<span class="hv3-incl">INCLUIDO</span>':'<span class="hv3-precio">'+mon.ent+'<small>'+mon.dec+'</small></span>';
     if(m.desc>0) h+='<span class="hv3-antes">Antes $'+m.contado.toLocaleString('es-MX')+'</span>';
-    h+='</div>'+(m.desc>0?selloHTML(m.desc,50):'')+'</div>';
+    h+='</div>'+(m.desc>0?selloHTML(m.desc,62):'')+'</div>';
     h+='<span class="hv3-eng">Enganche máx: <b>$'+m.max_eng.toLocaleString('es-MX')+'</b></span>';
     h+='<div class="hv3-mpie"><span class="hv3-vig'+(vg.ultimo?' urg':'')+'">'+vg.txt+'</span></div>';
     h+='</article>';
@@ -636,7 +636,6 @@ function fmtMoneda(n){
 // </reco-puro> ────────────────────────────────────────────────────────────────
 
 // ── [v1.73.0] INICIO ANDROID — render (usa el bloque <reco-puro>) ───────────
-var SELLO_PUNTOS='32.0,1.0 36.1,5.8 41.6,2.5 44.0,8.4 50.2,6.9 50.7,13.3 57.1,13.8 55.6,20.0 61.5,22.4 58.2,27.9 63.0,32.0 58.2,36.1 61.5,41.6 55.6,44.0 57.1,50.2 50.7,50.7 50.2,57.1 44.0,55.6 41.6,61.5 36.1,58.2 32.0,63.0 27.9,58.2 22.4,61.5 20.0,55.6 13.8,57.1 13.3,50.7 6.9,50.2 8.4,44.0 2.5,41.6 5.8,36.1 1.0,32.0 5.8,27.9 2.5,22.4 8.4,20.0 6.9,13.8 13.3,13.3 13.8,6.9 20.0,8.4 22.4,2.5 27.9,5.8';
 var ICO_ESCUDO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>';
 var ICO_FLECHA='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>';
 var ICO_COMPARTIR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>';
@@ -645,12 +644,47 @@ function checkHTML(px){
   px=px||16;
   return '<svg class="hv3-check" width="'+px+'" height="'+px+'" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#1D8CF0"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 }
+// <sello>
+// [v1.73.4] Sello de descuento: estrella roja de 24 picos con borde oscuro, el
+// porcentaje en extra negrita y DESCUENTO abajo (el ejemplo de Diego). Forma y
+// texto van dentro del SVG para que la hoja de WhatsApp (html2canvas) lo dibuje
+// igual que la pantalla.
+var SELLO_FUENTE="-apple-system, system-ui, 'SF Pro Display', Roboto, 'Helvetica Neue', Arial, sans-serif";
+function _selloEstrella(rExt, rInt, dy){
+  var p=[];
+  for(var i=0;i<48;i++){
+    var r=i%2?rInt:rExt, a=Math.PI*i/24-Math.PI/2;
+    p.push((32+r*Math.cos(a)).toFixed(1)+','+(32+dy+r*Math.sin(a)).toFixed(1));
+  }
+  return p.join(' ');
+}
+var SELLO_EXT=_selloEstrella(31,27.2,0), SELLO_SOMBRA=_selloEstrella(31,27.2,1.4), SELLO_INT=_selloEstrella(27.6,24.2,0);
+var _selloN=0, _selloMedidor=null, _selloAnchos={};
+// Ancho de t a 100 px con la letra del teléfono; sin canvas, un estimado.
+function _selloAncho100(t){
+  if(_selloAnchos[t]) return _selloAnchos[t];
+  var w=t.length*66;
+  try{
+    if(!_selloMedidor) _selloMedidor=document.createElement('canvas').getContext('2d');
+    _selloMedidor.font='900 100px '+SELLO_FUENTE.replace(/'/g,'"');
+    w=_selloMedidor.measureText(t).width||w;
+  }catch(e){}
+  return (_selloAnchos[t]=w);
+}
 function selloHTML(pct, px){
   px=px||44;
-  // "-100%" no cabe entre los picos del sello con la letra normal: va un poco más chica.
-  var t='-'+pct+'%', fs=Math.round(px*(t.length>4?0.2:0.25));
-  return '<span class="hv3-sello" style="width:'+px+'px;height:'+px+'px"><svg width="'+px+'" height="'+px+'" viewBox="0 0 64 64" aria-hidden="true"><polygon points="'+SELLO_PUNTOS+'" fill="#FFFFFF" stroke="#D61F45" stroke-width="2.5" stroke-linejoin="round"/></svg><span style="font-size:'+fs+'px">'+t+'</span></span>';
+  var t='-'+pct+'%', id='sello'+(++_selloN);
+  // El porcentaje ocupa a lo más 44 de las 64 unidades: "-100%" sale más chico.
+  var fs=+Math.min(20, 4400/_selloAncho100(t)).toFixed(2);
+  // Las dos líneas se centran juntas en la estrella.
+  var y1=+(32-(0.72*fs+8.4)/2+0.72*fs).toFixed(1), y2=+(y1+8.4).toFixed(1);
+  var txt=function(y, tam, peso, extra, s){ return '<text x="32" y="'+y+'" text-anchor="middle" font-family="'+SELLO_FUENTE+'" font-weight="'+peso+'" font-size="'+tam+'" fill="#FFFFFF"'+extra+'>'+s+'</text>'; };
+  return '<span class="hv3-sello" role="img" aria-label="'+pct+'% de descuento" style="width:'+px+'px;height:'+px+'px"><svg width="'+px+'" height="'+px+'" viewBox="0 0 64 64" aria-hidden="true">'
+    +'<defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F2364A"/><stop offset="1" stop-color="#C8102E"/></linearGradient></defs>'
+    +'<polygon points="'+SELLO_SOMBRA+'" fill="#5A0612" opacity=".22"/><polygon points="'+SELLO_EXT+'" fill="#A50D22"/><polygon points="'+SELLO_INT+'" fill="url(#'+id+')"/>'
+    +txt(y1, fs, 900, ' letter-spacing="-0.4"', t)+txt(y2, 6.3, 800, ' letter-spacing="0.15"', 'DESCUENTO')+'</svg></span>';
 }
+// </sello>
 function wordmarkHTML(plan, px){
   var v=planVis(plan);
   return v ? '<span class="pw '+v.cls+'" style="font-size:'+px+'px">'+plan.toUpperCase()+'</span>' : '';
@@ -669,7 +703,7 @@ function columnaPlanHTML(of, variante){
     return '<div class="hv3-col hv3-col-reco '+v.cls+'">'+wordmarkHTML(of.plan,14)+precio+'<span class="hv3-pct">-'+of.pct+'%</span><span class="hv3-eng">Enganche máx <b>'+eng+'</b></span></div>';
   }
   return '<div class="hv3-col hv3-col-camp '+v.cls+'">'+wordmarkHTML(of.plan,30)+'<span class="hv3-info">'+v.gb+' GB | $'+v.renta.toLocaleString('es-MX')+'</span><span class="hv3-plazo">a '+of.plazo+' meses</span>'+precio
-    +'<div class="hv3-antes-row"><span class="hv3-antes">Antes $'+of.contado.toLocaleString('es-MX')+'</span>'+(of.pct>0?selloHTML(of.pct,44):'')+'</div>'
+    +'<div class="hv3-antes-row"><span class="hv3-antes">Antes $'+of.contado.toLocaleString('es-MX')+'</span>'+(of.pct>0?selloHTML(of.pct,56):'')+'</div>'
     +'<span class="hv3-eng">Enganche máx: <b>'+eng+'</b></span></div>';
 }
 function initCampana(){
@@ -842,7 +876,7 @@ function _hojaColumna(of, plazo){
   var v=planVis(of.plan), m=fmtMoneda(of.promo);
   var precio=of.incluido?'<span class="hoja-incl" style="color:'+v.ink+'">INCLUIDO</span>':'<span class="hoja-precio" style="color:'+v.ink+'">'+m.ent+'<small>'+m.dec+'</small></span>';
   return '<div class="hoja-col">'+_hojaWordmark(of.plan)+'<span class="hoja-info" style="color:'+v.ink+'">'+v.gb+' GB | $'+v.renta.toLocaleString('es-MX')+'</span>'
-    +'<span class="hoja-plazo">a '+plazo+' meses</span><div class="hoja-precio-row">'+precio+(of.pct>0?selloHTML(of.pct,40):'')+'</div>'
+    +'<span class="hoja-plazo">a '+plazo+' meses</span><div class="hoja-precio-row">'+precio+(of.pct>0?selloHTML(of.pct,52):'')+'</div>'
     +'<span class="hoja-antes">Antes $'+of.contado.toLocaleString('es-MX')+'</span></div>';
 }
 function recoHojaHTML(lista, plazo, perfil, marca){

@@ -274,3 +274,52 @@ test('planVis toma GB y renta de PLANS_DATA', () => {
   assert.equal(v.cls, 'pw-oro');
   assert.equal(ctx.planVis('Titanio'), null);
 });
+
+// [v1.73.4] Sello de descuento estilo estrella roja (el ejemplo de Diego).
+function cargarSello() {
+  const app = require('fs').readFileSync(require('path').join(__dirname, '..', 'app.js'), 'utf8');
+  const a = app.indexOf('// <sello>'), b = app.indexOf('// </sello>');
+  assert.ok(a >= 0 && b > a, 'app.js trae el bloque // <sello>');
+  const ctx = { console };
+  require('vm').createContext(ctx);
+  require('vm').runInContext(app.slice(a, b), ctx, { filename: 'app.js <sello>' });
+  return ctx;
+}
+
+test('sello: estrella roja de 24 picos con el porcentaje y DESCUENTO en blanco', () => {
+  const s = cargarSello().selloHTML(63, 62);
+  assert.match(s, /width:62px;height:62px/);
+  assert.match(s, /aria-label="63% de descuento"/);
+  assert.match(s, />-63%<\/text>/);
+  assert.match(s, />DESCUENTO<\/text>/);
+  assert.equal((s.match(/fill="#FFFFFF"/g) || []).length, 2, 'las dos líneas en blanco');
+  assert.match(s, /#C8102E/);
+  const estrellas = [...s.matchAll(/<polygon points="([^"]+)"/g)].map((m) => m[1].trim().split(' ').length);
+  assert.ok(estrellas.length >= 2 && estrellas.every((n) => n === 48), estrellas);
+});
+
+test('sello: "-100%" va más chico que "-63%" y las dos líneas quedan centradas', () => {
+  const c = cargarSello();
+  const fs = (h) => +/font-weight="900" font-size="([\d.]+)"/.exec(h)[1];
+  const ys = (h) => [...h.matchAll(/<text x="32" y="([\d.]+)"/g)].map((m) => +m[1]);
+  const a = c.selloHTML(63, 56), b = c.selloHTML(100, 56);
+  assert.ok(fs(b) < fs(a), [fs(a), fs(b)]);
+  for (const h of [a, b]) {
+    const [y1, y2] = ys(h), alto = 0.72 * fs(h);
+    const centro = ((y1 - alto) + y2) / 2;
+    assert.ok(Math.abs(centro - 32) < 0.6, [h.slice(0, 0), y1, y2, centro]);
+  }
+});
+
+test('sello: cada uno trae su propio degradado (ids distintos)', () => {
+  const c = cargarSello();
+  const id = (h) => /linearGradient id="([^"]+)"/.exec(h)[1];
+  assert.notEqual(id(c.selloHTML(50, 52)), id(c.selloHTML(50, 52)));
+});
+
+test('sello: tamaños nuevos en momento, campaña y hoja', () => {
+  const app = require('fs').readFileSync(require('path').join(__dirname, '..', 'app.js'), 'utf8');
+  assert.match(app, /selloHTML\(m\.desc,62\)/);
+  assert.match(app, /selloHTML\(of\.pct,56\)/);
+  assert.match(app, /selloHTML\(of\.pct,52\)/);
+});
