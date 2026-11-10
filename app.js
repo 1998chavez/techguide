@@ -703,7 +703,7 @@ function columnaPlanHTML(of, variante){
     return '<div class="hv3-col hv3-col-reco '+v.cls+'">'+wordmarkHTML(of.plan,14)+precio+'<span class="hv3-pct">-'+of.pct+'%</span><span class="hv3-eng">Enganche máx <b>'+eng+'</b></span></div>';
   }
   return '<div class="hv3-col hv3-col-camp '+v.cls+'">'+wordmarkHTML(of.plan,30)+'<span class="hv3-info">'+v.gb+' GB | $'+v.renta.toLocaleString('es-MX')+'</span><span class="hv3-plazo">a '+of.plazo+' meses</span>'+precio
-    +'<div class="hv3-antes-row"><span class="hv3-antes">Antes $'+of.contado.toLocaleString('es-MX')+'</span>'+(of.pct>0?selloHTML(of.pct,56):'')+'</div>'
+    +'<div class="hv3-antes-row"><span class="hv3-antes">Antes $'+of.contado.toLocaleString('es-MX')+'</span>'+(of.pct>0?selloHTML(of.pct,44):'')+'</div>'
     +'<span class="hv3-eng">Enganche máx: <b>'+eng+'</b></span></div>';
 }
 function initCampana(){

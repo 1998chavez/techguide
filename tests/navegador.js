@@ -104,6 +104,10 @@ async function inicio(nav, base) {
   ({ ctx, p } = await abrir(nav, base, { ancho: 360, alto: 780 }));
   chk('360 px: sin scroll horizontal', await p.evaluate(() => document.documentElement.scrollWidth <= 360));
   const d = await desbordes(p, '.hv3-camp-card, .hv3-mcard, #reco-home');
+  const enLinea = await p.evaluate(() => [...document.querySelectorAll('#camp-wrap .hv3-antes-row')].every((r) => {
+    const a = r.querySelector('.hv3-antes'), s = r.querySelector('.hv3-sello'); if (!s) return true;
+    const x = a.getBoundingClientRect(), y = s.getBoundingClientRect(); return y.top < x.bottom && y.bottom > x.top; }));
+  chk('360 px: en campaña el sello va junto a "Antes"', enLinea);
   chk('360 px: nada se desborda en tarjetas ni formulario', d.length === 0, d.slice(0, 5));
   await captura(p, OUT + '/inicio-claro-360.png');
   await ctx.close();
