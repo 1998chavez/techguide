@@ -134,33 +134,18 @@ function pctMostrar(d){
 // borra a mano de incentivos.js — pasó con el G77 y con el Edge 70 Fusión.
 // Este panel hace visible ambas cosas sin depender de que alguien se acuerde.
 //
-// Solo lectura sobre VIGENCY (equipos) y EQUIP_INC_VIGENCY (bonos): NO cambia
-// ninguna regla de pago. Un bono vencido sigue pagando; aquí solo se avisa.
+// Solo lectura sobre VIGENCY (equipos) y PUNTOS_FLYERS (puntos de marca, que
+// desde v1.73.7 se apagan solos al terminar su flyer): NO cambia ninguna regla.
 // Gate: exclusivo DC499W.
 function _vigPuedeVer(){
   return (typeof _meEsSuper === 'function') && _meEsSuper();
 }
-// Bono por NOMBRE de modelo — la llave de incentivos.js, la misma que usan los
-// 5 tableros para pagar. Devuelve el monto máximo cuando el bono es por plan.
-function _vigBono(name){
-  var b = 0;   // recibe NOMBRE de modelo (llave de incentivos.js)
-  try{ b = (typeof EQUIP_INC !== 'undefined' && EQUIP_INC[name]) || 0; }catch(e){}
-  if(!b){
-    try{
-      var bp = (typeof EQUIP_INC_BY_PLAN !== 'undefined') ? EQUIP_INC_BY_PLAN[name] : null;
-      if(bp){ var vals = Object.keys(bp).map(function(k){ return bp[k]; }); if(vals.length) b = Math.max.apply(null, vals); }
-    }catch(e){}
-  }
-  return b;
-}
-// Días que le quedan al FLYER del bono (distinto de la vigencia del equipo).
-// 999 = sin fecha registrada en incentivos.js.
-function _bonoDias(name){
-  var v = null;
-  try{ v = (typeof EQUIP_INC_VIGENCY !== 'undefined') ? EQUIP_INC_VIGENCY[name] : null; }catch(e){}
-  if(!v || !v.end) return 999;
+// [v1.73.7] Los bonos de marca ahora son PUNTOS por id (incentivos.js →
+// PUNTOS_FLYERS) y se apagan solos al terminar su flyer.
+// Días que faltan para una fecha AAAA-MM-DD (negativo si ya pasó).
+function _diasHasta(fin){
   var now = new Date(); now.setHours(0,0,0,0);
-  return Math.ceil((new Date(v.end + 'T00:00:00') - now) / (1000*60*60*24));
+  return Math.ceil((new Date(fin + 'T00:00:00') - now) / (1000*60*60*24));
 }
 function vigenciasResumen(){
   // ── Equipos (precios) ──
@@ -169,7 +154,7 @@ function vigenciasResumen(){
   all.forEach(function(d){
     var dias = daysLeft(d.id);
     if(dias === 999) return;                 // sin vigencia / indefinido
-    var bono = _vigBono(d.name);
+    var bono = puntosEquipo(d.id);
     var row = {id:d.id, name:d.name, fecha:VIGENCY[d.id], dias:dias, bono:bono};
     if(dias < 0){ if(bono) vencidosBono.push(row); else vencidos.push(row); }
     else if(dias <= 3){ porVencer.push(row); }
@@ -178,16 +163,20 @@ function vigenciasResumen(){
   vencidosBono.sort(function(a,b){ return b.bono-a.bono; });
   vencidos.sort(function(a,b){ return a.dias-b.dias; });
 
-  // ── Bonos (flyers de incentivo) ──
-  // Se recorren las llaves de incentivos.js, no el catálogo: puede haber bono de
-  // un modelo que todavía no tiene ficha.
-  var llaves = {};
-  try{ Object.keys(EQUIP_INC || {}).forEach(function(k){ llaves[k]=1; }); }catch(e){}
-  try{ Object.keys(EQUIP_INC_BY_PLAN || {}).forEach(function(k){ llaves[k]=1; }); }catch(e){}
-  var bonos = Object.keys(llaves).map(function(name){
-    var v=null; try{ v = EQUIP_INC_VIGENCY[name]; }catch(e){}
-    return { name:name, monto:_vigBono(name), fin:(v && v.end) || null, dias:_bonoDias(name) };
-  });
+  // ── Puntos de marca (flyers) ──
+  // Se recorren los flyers de incentivos.js, uno por equipo. Si dos equipos
+  // comparten nombre (Honor X6E 128 y 256) se distingue por almacenamiento.
+  var bonos = [];
+  try{
+    (PUNTOS_FLYERS || []).forEach(function(f){
+      Object.keys(f.puntos || {}).forEach(function(id){
+        var d = all.find(function(x){ return x.id === id; });
+        var gemelo = d && all.some(function(x){ return x.id !== id && x.name === d.name; });
+        var name = d ? d.name + (gemelo && d.storage ? ' ' + d.storage : '') : id;
+        bonos.push({ name:name, monto:f.puntos[id], fin:f.fin, dias:_diasHasta(f.fin) });
+      });
+    });
+  }catch(e){}
   bonos.sort(function(a,b){ return a.dias-b.dias || (a.name<b.name?-1:1); });
   var bonosVencidos  = bonos.filter(function(b){ return b.dias < 0; });
   var bonosPorVencer = bonos.filter(function(b){ return b.dias >= 0 && b.dias <= 3; });
@@ -245,35 +234,35 @@ function openVigencias(){
 
   var body = '';
   // ── Lo urgente: dinero que se está pagando sin flyer que lo respalde ──
-  body += bloque('Bonos vencidos — siguen pagando', conSub(r.bonosVencidos, function(b){ return 'terminó '+(b.fin||'—'); }), '#FF3B30', function(b){
-    return '<div style="font-size:13px;font-weight:700;color:#FF3B30">$'+b.monto+'</div>'
+  body += bloque('Flyers de puntos vencidos — quítalos de incentivos.js', conSub(r.bonosVencidos, function(b){ return 'terminó '+(b.fin||'—'); }), '#FF3B30', function(b){
+    return '<div style="font-size:13px;font-weight:700;color:#FF3B30">'+b.monto+' pts</div>'
          + '<div style="font-size:11px;color:var(--label3)">'+fvenc(b.dias)+'</div>';
   });
-  body += bloque('Equipos vencidos CON bono activo', conSub(r.vencidosBono, function(x){ return 'precio venció '+(x.fecha||'—'); }), '#FF3B30', function(it){
-    return '<div style="font-size:13px;font-weight:700;color:#FF3B30">bono $'+it.bono+'</div>'
+  body += bloque('Equipos vencidos CON puntos activos', conSub(r.vencidosBono, function(x){ return 'precio venció '+(x.fecha||'—'); }), '#FF3B30', function(it){
+    return '<div style="font-size:13px;font-weight:700;color:#FF3B30">'+it.bono+' pts</div>'
          + '<div style="font-size:11px;color:var(--label3)">'+fvenc(it.dias)+'</div>';
   });
   // ── Lo que hay que atender esta semana ──
   body += bloque('Precios por vencer (≤3 días)', conSub(r.porVencer, function(x){ return x.fecha||'—'; }), '#FF9500', function(it){
     var c = it.dias<=1 ? '#FF3B30' : '#FF9500';
     return '<div style="font-size:13px;font-weight:700;color:'+c+'">'+fdia(it.dias)+'</div>'
-         + (it.bono?'<div style="font-size:11px;color:var(--label3)">bono $'+it.bono+'</div>':'');
+         + (it.bono?'<div style="font-size:11px;color:var(--label3)">'+it.bono+' pts</div>':'');
   });
-  body += bloque('Bonos por vencer (≤3 días)', conSub(r.bonosPorVencer, function(b){ return 'termina '+(b.fin||'—'); }), '#FF9500', function(b){
+  body += bloque('Puntos por vencer (≤3 días)', conSub(r.bonosPorVencer, function(b){ return 'termina '+(b.fin||'—'); }), '#FF9500', function(b){
     var c = b.dias<=1 ? '#FF3B30' : '#FF9500';
     return '<div style="font-size:13px;font-weight:700;color:'+c+'">'+fdia(b.dias)+'</div>'
-         + '<div style="font-size:11px;color:var(--label3)">$'+b.monto+'</div>';
+         + '<div style="font-size:11px;color:var(--label3)">'+b.monto+' pts</div>';
   });
-  body += bloque('Bonos sin vigencia registrada', conSub(r.bonosSinFecha, function(){ return 'falta fecha en incentivos.js'; }), '#FF9500', function(b){
-    return '<div style="font-size:13px;font-weight:700;color:var(--label3)">$'+b.monto+'</div>';
+  body += bloque('Puntos sin vigencia registrada', conSub(r.bonosSinFecha, function(){ return 'falta fecha en incentivos.js'; }), '#FF9500', function(b){
+    return '<div style="font-size:13px;font-weight:700;color:var(--label3)">'+b.monto+' pts</div>';
   });
   body += bloque('Equipos vencidos sin bono', conSub(r.vencidos, function(x){ return x.fecha||'—'; }), 'var(--label3)', function(it){
     return '<div style="font-size:12px;color:var(--label3)">'+fvenc(it.dias)+'</div>';
   });
   // ── Monitoreo: todos los bonos vivos y hasta cuándo ──
   var vivos = r.bonos.filter(function(b){ return b.dias >= 0 && b.dias !== 999; });
-  body += bloque('Bonos vigentes', conSub(vivos, function(b){ return 'hasta '+(b.fin||'—'); }), 'var(--label3)', function(b){
-    return '<div style="font-size:13px;font-weight:600">$'+b.monto+'</div>'
+  body += bloque('Puntos vigentes', conSub(vivos, function(b){ return 'hasta '+(b.fin||'—'); }), 'var(--label3)', function(b){
+    return '<div style="font-size:13px;font-weight:600">'+b.monto+' pts</div>'
          + '<div style="font-size:11px;color:var(--label3)">'+fdia(b.dias)+'</div>';
   });
   if(!body) body = '<div style="text-align:center;padding:26px 10px;color:var(--label3);font-size:13px">Todo en orden ✓<br><span style="font-size:11px">Nada vence en los próximos 3 días.</span></div>';
@@ -284,10 +273,10 @@ function openVigencias(){
     +   '<button id="vig-close" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--label3);padding:0 4px;line-height:1">✕</button>'
     + '</div>'
     + '<div style="font-size:11px;color:var(--label3);background:rgba(255,149,0,0.10);border-radius:8px;padding:8px 10px;margin-bottom:6px;line-height:1.4">'
-    +   'Un <b>bono vencido sigue pagando</b> hasta que se edite incentivos.js, y un <b>equipo vencido con bono activo</b> ya no se puede cotizar pero sigue en el flyer. Ambos casos se atienden aquí.'
+    +   'Los <b>puntos de marca</b> se apagan solos al terminar su flyer; los vencidos se quitan de incentivos.js. Un <b>equipo vencido con puntos activos</b> ya no se puede cotizar pero sigue en el flyer.'
     + '</div>'
     + body
-    + '<div style="font-size:10px;color:var(--label3);text-align:center;margin-top:14px">Catálogo '+APP_VERSION+' · '+(CAT.ios.length+CAT.android.length)+' equipos · '+r.bonos.length+' bonos</div>';
+    + '<div style="font-size:10px;color:var(--label3);text-align:center;margin-top:14px">Catálogo '+APP_VERSION+' · '+(CAT.ios.length+CAT.android.length)+' equipos · '+r.bonos.length+' con puntos</div>';
 
   ov.appendChild(modal);
   document.body.appendChild(ov);
@@ -477,7 +466,7 @@ function initMomento(){
     const os=CAT.ios.find(function(d){return d.id===m.id;})?'ios':'android';
     const mon=fmtMoneda(m.promo), vg=vigLargo(m.id);
     h+='<article class="hv3-mcard '+v.cls+'" onclick="abrirMomento(\''+os+'\',\''+m.id+'\',\''+_momPlan+'\','+m.plazo+')">';
-    h+='<div class="hv3-mfoto">'+fotoHTML(m.id)+'</div>';
+    h+='<div class="hv3-mfoto">'+fotoHTML(m.id)+ptsPastilla(m.id)+'</div>';
     h+='<div class="hv3-mname"><b>'+dev.name+'</b>'+checkHTML(16)+'</div>';
     h+='<span class="hv3-msub">'+(dev.storage?dev.storage+' · ':'')+m.plazo+' meses</span>';
     h+='<div class="hv3-mprecio"><div class="hv3-mprecio-txt">';
@@ -685,6 +674,33 @@ function selloHTML(pct, px){
     +txt(y1, fs, 900, ' letter-spacing="-0.4"', t)+txt(y2, 6.3, 800, ' letter-spacing="0.15"', 'DESCUENTO')+'</svg></span>';
 }
 // </sello>
+// <puntos>
+// [v1.73.7] PUNTOS DE MARCA. Los flyers de OPPO, Motorola y Honor pagan en
+// puntos (incentivos.js → PUNTOS_FLYERS, por id del catálogo, solo ejecutivo).
+// Fuera de las fechas del flyer no hay puntos. Con plan, solo desde Azul 3
+// (INCENTIVE_ELIGIBLE_PLANS); sin plan (catálogo, ficha) se muestran siempre.
+// Los puntos son para el asesor: NUNCA van en la hoja de WhatsApp, la
+// cotización que se manda ni el catálogo público.
+function _ptsHoy(){
+  var d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function puntosEquipo(id, plan, hoy){
+  if(typeof PUNTOS_FLYERS==='undefined' || !PUNTOS_FLYERS) return 0;
+  if(plan && (typeof INCENTIVE_ELIGIBLE_PLANS==='undefined' || INCENTIVE_ELIGIBLE_PLANS.indexOf(plan)<0)) return 0;
+  hoy=hoy||_ptsHoy();
+  for(var i=0;i<PUNTOS_FLYERS.length;i++){
+    var f=PUNTOS_FLYERS[i];
+    if(f && f.puntos && f.puntos[id] && hoy>=f.ini && hoy<=f.fin) return f.puntos[id];
+  }
+  return 0;
+}
+var PTS_MONEDA='<svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#FFC531"/><circle cx="12" cy="12" r="8.2" fill="none" stroke="#E39A00" stroke-width="1.4"/><path d="M12 6.8l1.6 3.3 3.6.5-2.6 2.5.6 3.6-3.2-1.7-3.2 1.7.6-3.6-2.6-2.5 3.6-.5z" fill="#E39A00"/></svg>';
+function ptsPastilla(id, hoy){
+  var p=puntosEquipo(id, null, hoy);
+  return p ? '<span class="pts-pill" role="img" aria-label="'+p+' puntos por venta">'+PTS_MONEDA+'<b>'+p+'</b> pts</span>' : '';
+}
+// </puntos>
 function wordmarkHTML(plan, px){
   var v=planVis(plan);
   return v ? '<span class="pw '+v.cls+'" style="font-size:'+px+'px">'+plan.toUpperCase()+'</span>' : '';
@@ -715,7 +731,7 @@ function initCampana(){
   lista.forEach(function(x){
     var vg=vigLargo(x.id);
     h+='<article class="hv3-camp-card" onclick="abrirMomento(\'android\',\''+x.id+'\',\'Plata\',36)">';
-    h+='<div class="hv3-camp-name"><b>'+x.nombre+'</b>'+(x.capacidad?'<span>'+x.capacidad+'</span>':'')+checkHTML(18)+'</div>';
+    h+='<div class="hv3-camp-name"><b>'+x.nombre+'</b>'+(x.capacidad?'<span>'+x.capacidad+'</span>':'')+checkHTML(18)+ptsPastilla(x.id)+'</div>';
     h+='<div class="hv3-camp-foto">'+fotoHTML(x.id)+'</div>';
     h+='<div class="hv3-cols">'+columnaPlanHTML(x.a,'camp')+columnaPlanHTML(x.b,'camp')+'</div>';
     h+='<div class="hv3-camp-pie"><span class="hv3-vig'+(vg.ultimo?' urg':'')+'">'+vg.txt+'</span>';
@@ -819,7 +835,7 @@ function _recoResRender(){
   (s.todos?r.lista:r.lista.slice(0,6)).forEach(function(x){
     var vg=vigLargo(x.id);
     h+='<article class="hv3-rcard" onclick="abrirMomento(\'android\',\''+x.id+'\',\''+r.planes[0]+'\','+s.plazo+')">';
-    h+='<div class="hv3-rfoto">'+fotoHTML(x.id)+'</div><div class="hv3-rinfo">';
+    h+='<div class="hv3-rfoto">'+fotoHTML(x.id)+ptsPastilla(x.id)+'</div><div class="hv3-rinfo">';
     h+='<div class="hv3-rname"><b>'+x.nombre+'</b>'+checkHTML(16)+'</div>';
     h+='<span class="hv3-rsub">'+(x.capacidad?x.capacidad+' · ':'')+'<s>Antes $'+x.contado.toLocaleString('es-MX')+'</s></span>';
     h+='<div class="hv3-rcols">'+columnaPlanHTML(x.a,'reco')+columnaPlanHTML(x.b,'reco')+'</div>';
@@ -1257,6 +1273,7 @@ function renderDevs(){
       h+=imgI(d.id,'d-img');
       h+='<div class="d-dot '+dc(d.status)+'"></div>';
       h+='<div class="d-cmp'+(cmpSet.has(d.id)?' sel':'')+'" onclick="event.stopPropagation();tCmp(\''+d.id+'\')">'+(cmpSet.has(d.id)?'✓':'')+'</div>';
+      h+=ptsPastilla(d.id);   // [v1.73.7] puntos de marca
       h+='</div>';
       h+='<div class="d-info">';
       h+='<div class="d-name">'+d.name+'</div>';
@@ -1274,7 +1291,7 @@ function renderDevs(){
       h+='<div class="d-row-info">';
       h+='<div class="d-row-name">'+d.name+'</div>';
       h+='<div class="d-row-sub">'+d.brand+' · '+d.storage+'</div>';
-      h+='<div class="d-row-badges">'+bs(d.status);
+      h+='<div class="d-row-badges">'+bs(d.status)+ptsPastilla(d.id);
       if(d.bundle) h+='<span class="b-bun">Bundle</span>';
       h+='</div></div>';
       h+='<span class="d-row-chev">›</span></div>';
@@ -1333,10 +1350,8 @@ function showFicha(id){
   const _vwarn=_vd<=7&&_vd>=0?' — ¡Vence pronto!':'';
   h+='<div class="fh-badges">'+bsF(d.status);
   if(d.bundle) h+='<span class="fhb fhb-bun">Bundle</span>';
-  const _eqInc = getEquipmentIncentive(id);
-  if(_eqInc > 0){
-    h+='<span class="comm-badge-ficha" title="Incentivo extra para asesores con plan Azul 3+">+$'+_eqInc+'</span>';
-  }
+  // [v1.73.7] El incentivo de marca ahora es en puntos (antes "+$" en pesos).
+  h+=ptsPastilla(id);
   h+='</div>';
   // Storage selector if device has variants
   // Find variants only for the CURRENT device id (not stale global var)
@@ -2383,13 +2398,14 @@ function _bloqueSugerenciaPlan(){
   const _cNew = getPlanCommission(s.plan) + getEquipmentIncentive(cotState.device.id, s.plan);
   const _dif = _cNew - _cAct;
   if(_dif > 0){
-    const _incAct = getEquipmentIncentive(cotState.device.id, cotState.plan);
-    const _incNew = getEquipmentIncentive(cotState.device.id, s.plan);
+    // [v1.73.7] El bono de marca ahora es en puntos.
+    const _incAct = puntosEquipo(cotState.device.id, cotState.plan);
+    const _incNew = puntosEquipo(cotState.device.id, s.plan);
     h += '<div class="plan-upsell-box pu-mio">';
     h += '<div class="plan-upsell-box-label">Tu comisión</div>';
     h += '<div class="plan-upsell-box-val">$'+fmx0(_cAct)+' <span class="pu-arrow">→ $'+fmx0(_cNew)+'</span> <span class="pu-gain">+$'+fmx0(_dif)+'</span></div>';
     if(_incNew > 0 && _incAct === 0){
-      h += '<div class="pu-unlock">Desbloquea el bono de '+cotState.device.brand.toLowerCase()+' (+$'+fmx0(_incNew)+')</div>';
+      h += '<div class="pu-unlock">Desbloquea '+fmx0(_incNew)+' pts de '+cotState.device.brand.toLowerCase()+'</div>';
     }
     h += '</div>';
   }
@@ -2432,12 +2448,14 @@ function renderCommission(){
   let h = '';
   h += '<div class="comm-row"><span class="comm-row-label">Plan ' + cotState.plan + '</span><span class="comm-row-amount">$' + fmx(c.plan) + '</span></div>';
   
-  if(c.equipment > 0){
-    h += '<div class="comm-row"><span class="comm-row-label">Incentivo ' + cotState.device.brand.toLowerCase() + '</span><span class="comm-row-amount" style="color:#FF6F00">+$' + fmx(c.equipment) + '</span></div>';
+  // [v1.73.7] Incentivo de marca en PUNTOS: renglón aparte, no suma al total en pesos.
+  const _pts = puntosEquipo(cotState.device.id, cotState.plan);
+  if(_pts > 0){
+    h += '<div class="comm-row"><span class="comm-row-label">Puntos ' + cotState.device.brand.toLowerCase() + '</span><span class="comm-row-amount" style="color:#FF6F00">+' + fmx(_pts) + ' pts</span></div>';
   } else {
-    const potential = getEquipmentIncentive(cotState.device.id);
-    if(potential > 0){
-      h += '<div class="comm-row"><span class="comm-row-label" style="font-size:11px;color:var(--label3);font-style:italic">Incentivo +$' + fmx(potential) + ' aplica desde plan Azul 3</span><span></span></div>';
+    const _ptsPot = puntosEquipo(cotState.device.id);
+    if(_ptsPot > 0){
+      h += '<div class="comm-row"><span class="comm-row-label" style="font-size:11px;color:var(--label3);font-style:italic">Ganas ' + fmx(_ptsPot) + ' pts desde plan Azul 3</span><span></span></div>';
     }
   }
   
@@ -3127,7 +3145,6 @@ function renderTopCommList(){
   const el = document.getElementById('top-comm-list');
   if(!el) return;
   
-  const planComm = getPlanCommission(topCommSelectedPlan);
   const all = [...CAT.ios, ...CAT.android];
   
   // Get lowest promo price for each device at 36m for the selected plan
@@ -3141,12 +3158,13 @@ function renderTopCommList(){
     return (promo36 === null || promo36 === undefined || promo36 === 0) ? 999999 : promo36;
   }
   
-  const ranked = all.map(function(d){
-    const eq = getEquipmentIncentive(d.id, topCommSelectedPlan);
+  // [v1.73.7] El ranking es por PUNTOS de marca (los flyers ya no pagan en
+  // pesos). Solo equipos que se pueden cotizar: un oculto (Find X9 Pro) no sale.
+  const ranked = all.filter(function(d){ return isVigent(d.id); }).map(function(d){
+    const eq = puntosEquipo(d.id, topCommSelectedPlan);
     return {
       device: d,
       equipment: eq,
-      total: planComm + eq,
       promo: getLowestPromo(d.id)
     };
   });
@@ -3162,7 +3180,7 @@ function renderTopCommList(){
   const top = withIncentive.slice(0, 15);
   
   if(top.length === 0){
-    el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--label3);font-size:13px">No hay equipos con incentivo para este plan</div>';
+    el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--label3);font-size:13px">'+(INCENTIVE_ELIGIBLE_PLANS.indexOf(topCommSelectedPlan)<0?'Los puntos de marca aplican desde plan Azul 3':'No hay equipos con puntos para este plan')+'</div>';
     return;
   }
   
@@ -3177,14 +3195,14 @@ function renderTopCommList(){
       groupIdx++;
       let groupLabel = '';
       let groupColor = '#FF6F00';
-      if(groupIdx === 1){ groupLabel = 'Nº1 · Mejor incentivo'; groupColor = '#FFB300'; }
+      if(groupIdx === 1){ groupLabel = 'Nº1 · Más puntos'; groupColor = '#FFB300'; }
       else if(groupIdx === 2){ groupLabel = 'Nº2 · Segundo mejor'; groupColor = '#90A4AE'; }
       else if(groupIdx === 3){ groupLabel = 'Nº3 · Tercer puesto'; groupColor = '#CD7F32'; }
-      else groupLabel = 'Más equipos con incentivo';
+      else groupLabel = 'Más equipos con puntos';
       
       h += '<div style="background:linear-gradient(90deg,'+groupColor+'15,transparent);padding:10px 14px;border-top:0.5px solid var(--sep);font-size:11px;font-weight:700;color:'+groupColor+';letter-spacing:.5px;display:flex;align-items:center;justify-content:space-between">';
       h += '<span>'+groupLabel+'</span>';
-      h += '<span style="font-weight:800;font-size:13px">+$'+item.equipment.toLocaleString('es-MX')+' por equipo</span>';
+      h += '<span style="font-weight:800;font-size:13px">'+item.equipment.toLocaleString('es-MX')+' pts por equipo</span>';
       h += '</div>';
       lastIncentive = item.equipment;
     }
@@ -3202,7 +3220,7 @@ function renderTopCommList(){
     h += '<div class="top-comm-name">'+item.device.name+'</div>';
     h += '<div class="top-comm-detail">'+promoStr+'</div>';
     h += '</div>';
-    h += '<div class="top-comm-amount">$'+item.total.toLocaleString('es-MX')+'<small>total</small></div>';
+    h += '<div class="top-comm-amount">'+item.equipment.toLocaleString('es-MX')+'<small>pts</small></div>';
     h += '</div>';
   });
   
@@ -3880,7 +3898,7 @@ function calculateSimilarDevices(currentId){
     }
     
     const curBaseId = baseId(currentId);
-    const curEqInc = (typeof getEquipmentIncentive === 'function') ? getEquipmentIncentive(currentId, 'Black') : 0;
+    const curEqInc = puntosEquipo(currentId, 'Black');   // [v1.73.7] puntos de marca
     
     // Score each candidate
     const scored = [];
@@ -3977,11 +3995,11 @@ function calculateSimilarDevices(currentId){
         score += 3;
       }
       
-      // 6. Commission incentive bonus (0-10 pts)
-      const candEqInc = (typeof getEquipmentIncentive === 'function') ? getEquipmentIncentive(d.id, 'Black') : 0;
+      // 6. Puntos de marca (0-10 de score). [v1.73.7] Antes era el bono en pesos.
+      const candEqInc = puntosEquipo(d.id, 'Black');
       if(candEqInc > 0){
         score += Math.min(10, Math.round(candEqInc / 35));
-        if(candEqInc >= 250 && reasons.length < 2) reasons.push('comisión');
+        if(candEqInc >= 250 && reasons.length < 2) reasons.push('puntos');
       }
       
       scored.push({device: d, score: score, contado: candContado, reasons: reasons, eqInc: candEqInc});
