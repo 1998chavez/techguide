@@ -611,6 +611,8 @@ function campanaEquipos(){
   var cand = [];
   CAT.android.forEach(function(d){
     if(d.status !== 'NPI' || !isVigent(d.id)) return;
+    // [v1.73.3] Diego puede sacar un NPI de la campaña sin ocultarlo del catálogo.
+    if(typeof CAMPANA_FUERA !== 'undefined' && CAMPANA_FUERA.indexOf(d.id) >= 0) return;
     var a = ofertaPlan(d.id, 'Plata', 36), b = ofertaPlan(d.id, 'Oro', 36);
     if(!a || !b) return;
     cand.push({d:d, a:a, b:b, c:a.contado});
