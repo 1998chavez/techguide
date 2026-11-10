@@ -76,7 +76,7 @@ async function inicio(nav, base) {
   const nm = await p.locator('#momento-cards .hv3-mcard').count();
   chk('momento: de 1 a 8 tarjetas', nm >= 1 && nm <= 8, nm);
   const sello = await p.evaluate(() => { const e = document.querySelector('#momento-cards .hv3-sello'); return e && { w: e.getBoundingClientRect().width, t: e.textContent, rojo: e.innerHTML.includes('#C8102E') }; });
-  chk('momento: sello rojo de 62 px con DESCUENTO', sello && sello.w === 62 && /DESCUENTO/.test(sello.t) && sello.rojo, sello);
+  chk('momento: sello rojo de 50 px con DESCUENTO', sello && sello.w === 50 && /DESCUENTO/.test(sello.t) && sello.rojo, sello);
   const fuera = await p.evaluate(() => [...document.querySelectorAll('.hv3-sello')].filter((s) => {
     const c = s.closest('.hv3-mcard,.hv3-col-camp'); if (!c) return false; const a = s.getBoundingClientRect(), b = c.getBoundingClientRect();
     return a.right > b.right + 0.5 || a.left < b.left - 0.5; }).length);
