@@ -81,6 +81,21 @@ async function inicio(nav, base) {
     const c = s.closest('.hv3-mcard,.hv3-col-camp'); if (!c) return false; const a = s.getBoundingClientRect(), b = c.getBoundingClientRect();
     return a.right > b.right + 0.5 || a.left < b.left - 0.5; }).length);
   chk('sellos dentro de su tarjeta', fuera === 0, fuera);
+  // [v1.73.8] Mensualidad con el enganche máximo en campaña y Equipos del momento.
+  const mens = await p.evaluate(() => {
+    const txt = (e) => [...e.querySelectorAll('.hv3-eng')].map((x) => x.textContent.trim());
+    const camp = txt(document.querySelector('#camp-wrap .hv3-camp-card'));
+    const plan = document.querySelector('#momento-cards [role=tab][aria-selected=true]').textContent.trim();
+    const mom = [...document.querySelectorAll('#momento-cards .hv3-mcard')].map((c) => {
+      const id = /'(?:ios|android)','([^']+)'/.exec(c.getAttribute('onclick'))[1];
+      const m = MOMENTO_BY_PLAN[plan].find((x) => x.id === id);
+      const t = [...c.querySelectorAll('.hv3-eng')].map((x) => x.textContent.trim());
+      return t[1] === 'Mensualidad: $' + mensualidadMax(m.promo, m.contado, planVis(plan).renta, m.plazo).toLocaleString('es-MX');
+    });
+    return { camp, mom };
+  });
+  chk('campaña: Reno 16 Plata $781 y Oro $834 al mes', JSON.stringify(mens.camp) === JSON.stringify(['Enganche máx: $4,719', 'Mensualidad: $781', 'Enganche máx: $3,919', 'Mensualidad: $834']), mens.camp);
+  chk('momento: cada tarjeta trae su mensualidad', mens.mom.length > 0 && mens.mom.every(Boolean), mens.mom);
   await p.locator('#momento-cards [role=tab]', { hasText: 'Oro' }).click();
   chk('momento: pestaña Oro', (await p.locator('#momento-cards .hv3-planhead .pw').innerText()).trim() === 'ORO');
   chk('formulario: $2,500', (await p.inputValue('#reco-monto-home')) === '2,500');
@@ -154,6 +169,8 @@ async function reco(nav, base) {
   chk('$2,500 Plata y Oro: título', (await titulo()).trim() === e.titulo, [await titulo(), e.titulo]);
   chk('$2,500 Plata y Oro: los 6 primeros', JSON.stringify(await nombres()) === JSON.stringify(e.seis), await nombres());
   chk('hay botón de compartir', (await p.locator('#reco-res .hv3-compartir').count()) === 1);
+  const rr = await p.evaluate(() => ({ n: document.querySelectorAll('#reco-res .hv3-rcard').length, t: document.getElementById('reco-res').textContent }));
+  chk('recomendación: sin mensualidad (no se pidió)', rr.n > 0 && !/Mensualidad/.test(rr.t), [rr.n, rr.t.slice(0, 120)]);
   await captura(p, OUT + '/reco-claro-390.png');
   if (e.n > 6) {
     await p.locator('#reco-res .hv3-mas').click();
@@ -267,6 +284,7 @@ async function hoja(nav, base) {
     fs.writeFileSync(OUT + '/' + archivo, Buffer.from(s2.split(',')[1], 'base64'));
     await p.evaluate(() => closeFlyerPreview());
   }
+  chk('la hoja no lleva mensualidad', !/Mensualidad/.test(await p.evaluate(() => document.querySelector('#cot-flyer-render').textContent)));
   chk('hoja: sin errores de página', p.errores.length === 0, p.errores);
   await ctx.close();
 }
