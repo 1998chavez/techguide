@@ -474,6 +474,7 @@ function initMomento(){
     if(m.desc>0) h+='<span class="hv3-antes">Antes $'+m.contado.toLocaleString('es-MX')+'</span>';
     h+='</div>'+(m.desc>0?selloHTML(m.desc,50):'')+'</div>';
     h+='<span class="hv3-eng">Enganche máx: <b>$'+m.max_eng.toLocaleString('es-MX')+'</b></span>';
+    h+='<span class="hv3-eng">Mensualidad: <b>$'+mensualidadMax(m.promo, m.contado, v.renta, m.plazo).toLocaleString('es-MX')+'</b></span>';
     h+='<div class="hv3-mpie"><span class="hv3-vig'+(vg.ultimo?' urg':'')+'">'+vg.txt+'</span></div>';
     h+='</article>';
   });
@@ -539,6 +540,14 @@ function ofertaPlan(id, plan, plazo){
     eng: desc >= 70 ? pv.renta * 3 : Math.round(promo * 0.5),
     incluido: promo === 0
   };
+}
+// [v1.73.8] Mensualidad con el enganche máximo = renta del plan + lo que queda
+// del equipo entre el plazo (redondeado, como la cotización). Con 70% o más de
+// descuento el máximo son 3 rentas en GARANTÍA y no bajan el equipo; abajo de
+// 70% el enganche máximo (50%) sí. Equipo incluido = solo el plan.
+function mensualidadMax(promo, contado, renta, plazo){
+  var resto = (1 - promo / contado) * 100 >= 70 ? promo : promo - Math.round(promo * 0.5);
+  return renta + Math.round(Math.max(0, resto) / Number(plazo));
 }
 // "Moto Edge 60 Pro + Watch" y "Moto Edge 60 Pro" son el mismo modelo para el cliente.
 function modeloBase(nombre){
@@ -720,7 +729,8 @@ function columnaPlanHTML(of, variante){
   }
   return '<div class="hv3-col hv3-col-camp '+v.cls+'">'+wordmarkHTML(of.plan,30)+'<span class="hv3-info">'+v.gb+' GB | $'+v.renta.toLocaleString('es-MX')+'</span><span class="hv3-plazo">a '+of.plazo+' meses</span>'+precio
     +'<div class="hv3-antes-row"><span class="hv3-antes">Antes $'+of.contado.toLocaleString('es-MX')+'</span>'+(of.pct>0?selloHTML(of.pct,44):'')+'</div>'
-    +'<span class="hv3-eng">Enganche máx: <b>'+eng+'</b></span></div>';
+    +'<span class="hv3-eng">Enganche máx: <b>'+eng+'</b></span>'
+    +'<span class="hv3-eng">Mensualidad: <b>$'+mensualidadMax(of.promo, of.contado, v.renta, of.plazo).toLocaleString('es-MX')+'</b></span></div>';
 }
 function initCampana(){
   var el=document.getElementById('camp-wrap');
@@ -2207,8 +2217,8 @@ function calcularMejorPlan(){
   // Costo de entrada y mensualidad base del plan ACTUAL
   const promoActual = cotState.promo;
   const ceActual = _costoEntradaPlan(promoActual, contado, SUGERENCIA_RENTAS[planActual]);
-  const equipoMensualActual = Math.round(Math.max(0, promoActual - ceActual.entrada) / plazo);
-  const mensualActual = SUGERENCIA_RENTAS[planActual] + equipoMensualActual;
+  // [v1.73.8] Misma mensualidad que el home: la garantía (70%+) ya no baja el equipo.
+  const mensualActual = mensualidadMax(promoActual, contado, SUGERENCIA_RENTAS[planActual], plazo);
 
   // Buscar, entre los planes SUPERIORES, el de menor costo de entrada
   let mejor = null;
@@ -2218,8 +2228,7 @@ function calcularMejorPlan(){
     const promo = (typeof resolvePrice === 'function') ? resolvePrice(did, plan, plazo) : null;
     if(promo === null || promo === undefined || promo <= 0) continue;
     const ce = _costoEntradaPlan(promo, contado, renta);
-    const equipoMensual = Math.round(Math.max(0, promo - ce.entrada) / plazo);
-    const mensual = renta + equipoMensual;
+    const mensual = mensualidadMax(promo, contado, renta, plazo);
 
     const ahorroEntrada = ceActual.entrada - ce.entrada;      // + = sale menos hoy
     const aumentoMensual = mensual - mensualActual;            // + = paga más al mes
