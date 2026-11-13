@@ -42,8 +42,10 @@ window.PUNTOS_FLYERS = [
   // ── MOTOROLA — del 5 de octubre de 2026 al 3 de enero de 2027 ─────────────
   // El flyer dice "Moto Edge 70 Pro": en el catálogo vive como bundle con Watch
   // y con Watch + Chamarra; los dos pagan igual (como en flyers anteriores).
+  // [v1.73.11] Diego (13-nov): los SKUs nuevos suman los puntos de su modelo:
+  // G77 + Moto Buds 2 = G77 (230) y Edge 70 Fusión 12 GB = Edge 70 Fusion (245).
   { marca:'MOTOROLA', ini:'2026-10-05', fin:'2027-01-03', puntos:{
-    mg77:230, medge70f_npi:245, medge70pro_w:450, medge70pro_wc:450 } },
+    mg77:230, mg77_buds2:230, medge70f_npi:245, medge70f_12:245, medge70pro_w:450, medge70pro_wc:450 } },
   // ── HONOR — del 2 de noviembre al 27 de diciembre de 2026 ─────────────────
   // El Honor 600 ya no es "solo Black, Platino y Diamante": este flyer lo paga
   // desde Azul 3 como a todos.
