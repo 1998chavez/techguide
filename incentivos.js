@@ -34,11 +34,11 @@
 // comisiones."
 window.PUNTOS_FLYERS = [
   // ── OPPO — del 2 de noviembre al 6 de diciembre de 2026 ──────────────────
-  // Find X10 (lanzamiento) 220 pts: todavía sin ficha en el catálogo; entra
-  // cuando tenga ficha. El Find X9 Pro sigue OCULTO (Diego, 10-nov): sus puntos
-  // quedan registrados pero no se ve en la app.
+  // Find X10 (lanzamiento) 220 pts: con ficha desde v1.73.13 (versión AT&T
+  // 12/512 GB + Enco Clip2). El Find X9 Pro sigue OCULTO (Diego, 10-nov): sus
+  // puntos quedan registrados pero no se ve en la app.
   { marca:'OPPO', ini:'2026-11-02', fin:'2026-12-06', puntos:{
-    opfindx9pro:220, opreno16:330, opreno16f:225, opa6k:45, opa6:45 } },
+    opfindx9pro:220, opfindx10:220, opreno16:330, opreno16f:225, opa6k:45, opa6:45 } },
   // ── MOTOROLA — del 5 de octubre de 2026 al 3 de enero de 2027 ─────────────
   // El flyer dice "Moto Edge 70 Pro": en el catálogo vive como bundle con Watch
   // y con Watch + Chamarra; los dos pagan igual (como en flyers anteriores).
