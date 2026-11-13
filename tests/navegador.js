@@ -366,7 +366,7 @@ async function puntos(nav, base) {
   // Vigencias (solo Diego): los flyers de puntos con su fecha, sin pesos.
   const vig = await p.evaluate(() => { const r = vigenciasResumen(); openVigencias(); const t = document.getElementById('vig-overlay').textContent; document.getElementById('vig-overlay').remove(); document.body.style.overflow = '';
     return { n: r.bonos.length, venc: r.bonosVencidos.length, nombres: r.bonos.map((b) => b.name), t }; });
-  chk('Vigencias: 13 equipos con puntos, ninguno vencido', vig.n === 13 && vig.venc === 0, vig.n);
+  chk('Vigencias: 15 equipos con puntos, ninguno vencido', vig.n === 15 && vig.venc === 0, vig.n);
   chk('Vigencias: X6E 128 y 256 por separado', vig.nombres.includes('Honor X6E 128 GB') && vig.nombres.includes('Honor X6E 256 GB'), vig.nombres);
   chk('Vigencias: en puntos, sin "$" de bono', /450 pts/.test(vig.t) && !/\$\d/.test(vig.t), vig.t.slice(0, 300));
   chk('puntos: sin errores de página', p.errores.length === 0, p.errores);
