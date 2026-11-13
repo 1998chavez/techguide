@@ -84,7 +84,7 @@ async function inicio(nav, base) {
   // [v1.73.8] Mensualidad con el enganche máximo en campaña y Equipos del momento.
   const mens = await p.evaluate(() => {
     const txt = (e) => [...e.querySelectorAll('.hv3-eng')].map((x) => x.textContent.trim());
-    const camp = txt(document.querySelector('#camp-wrap .hv3-camp-card'));
+    const camp = txt(document.querySelector('#camp-wrap .hv3-camp-card[onclick*="\'opreno16\'"]'));
     const plan = document.querySelector('#momento-cards [role=tab][aria-selected=true]').textContent.trim();
     const mom = [...document.querySelectorAll('#momento-cards .hv3-mcard')].map((c) => {
       const id = /'(?:ios|android)','([^']+)'/.exec(c.getAttribute('onclick'))[1];
@@ -322,7 +322,7 @@ async function puntos(nav, base) {
   const { ctx, p } = await abrir(nav, base);
   const pts = (sel) => p.evaluate((s) => [...document.querySelectorAll(s)].map((e) => e.textContent.replace(/\s+/g, ' ').trim()), sel);
   // Campaña: la primera es el Reno 16.
-  const camp = await pts('#camp-wrap .hv3-camp-card:first-child .hv3-camp-name .pts-pill');
+  const camp = await pts('#camp-wrap .hv3-camp-card[onclick*="\'opreno16\'"] .hv3-camp-name .pts-pill');
   chk('campaña: el Reno 16 lleva 330 pts', camp.length === 1 && camp[0] === '330 pts', camp);
   const estilo = await p.evaluate(() => [...document.querySelectorAll('.pts-pill')].map((e) => { const b = getComputedStyle(e.querySelector('b')), q = getComputedStyle(e); return b.color + '|' + q.color + '|' + q.backgroundColor; }));
   chk('pastilla: número dorado y "pts" blanco sobre marino en todas', estilo.length > 0 && estilo.every((x) => x === 'rgb(255, 197, 49)|rgb(255, 255, 255)|rgb(19, 32, 62)'), [...new Set(estilo)]);
@@ -366,7 +366,7 @@ async function puntos(nav, base) {
   // Vigencias (solo Diego): los flyers de puntos con su fecha, sin pesos.
   const vig = await p.evaluate(() => { const r = vigenciasResumen(); openVigencias(); const t = document.getElementById('vig-overlay').textContent; document.getElementById('vig-overlay').remove(); document.body.style.overflow = '';
     return { n: r.bonos.length, venc: r.bonosVencidos.length, nombres: r.bonos.map((b) => b.name), t }; });
-  chk('Vigencias: 15 equipos con puntos, ninguno vencido', vig.n === 15 && vig.venc === 0, vig.n);
+  chk('Vigencias: 16 equipos con puntos, ninguno vencido', vig.n === 16 && vig.venc === 0, vig.n);
   chk('Vigencias: X6E 128 y 256 por separado', vig.nombres.includes('Honor X6E 128 GB') && vig.nombres.includes('Honor X6E 256 GB'), vig.nombres);
   chk('Vigencias: en puntos, sin "$" de bono', /450 pts/.test(vig.t) && !/\$\d/.test(vig.t), vig.t.slice(0, 300));
   chk('puntos: sin errores de página', p.errores.length === 0, p.errores);

@@ -27,7 +27,7 @@ const HOY = '2026-11-10';
 test('puntos de ejecutivo tal cual los flyers', () => {
   const c = cargar();
   const esperado = {
-    opfindx9pro: 220, opreno16: 330, opreno16f: 225, opa6k: 45, opa6: 45,
+    opfindx9pro: 220, opfindx10: 220, opreno16: 330, opreno16f: 225, opa6k: 45, opa6: 45,
     mg77: 230, medge70f_npi: 245, medge70pro_w: 450, medge70pro_wc: 450,
     mg77_buds2: 230, medge70f_12: 245, // [v1.73.11] mismos puntos que su modelo
     hx6e: 80, hx6e_256: 130, hx7e: 180, honor600: 280,

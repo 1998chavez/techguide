@@ -236,9 +236,10 @@ test('campaña: los de CAMPANA_FUERA no salen aunque sean NPI', () => {
   assert.deepEqual(plano(ctx.campanaEquipos().map((x) => x.id)), ['npidos']);
 });
 
-test('catálogo real: la campaña abre con el Reno 16 y ya no trae el S26 FE', () => {
+// [v1.73.13] Con el Find X10 (NPI más caro) la campaña abre con él y sigue el Reno 16.
+test('catálogo real: la campaña abre con el Find X10, sigue el Reno 16 y ya no trae el S26 FE', () => {
   const ids = cargar().campanaEquipos().map((x) => x.id);
-  assert.equal(ids[0], 'opreno16');
+  assert.deepEqual(plano(ids.slice(0, 2)), ['opfindx10', 'opreno16']);
   assert.equal(ids.includes('ss26fe'), false);
 });
 
