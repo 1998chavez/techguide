@@ -488,30 +488,26 @@ function _mcardHTML(x, plan){
   h+='</article>';
   return h;
 }
-// [v1.73.14] AJUSTADOS A CRÉDITO: pestañas por plan + plazo; 8 equipos con 50% de
+// [v1.73.14] AJUSTADOS A CRÉDITO: pestañas por plan; 8 equipos con 50% de
 // descuento o menos, del enganche más bajo al más alto (creditoEquipos).
-var _credPlan = 'Plata', _credPlazo = 36;
+// [v1.73.15] Sin selector de plazo: cada tarjeta trae su mejor plazo.
+var _credPlan = 'Plata';
 function initCredito(){
   var el=document.getElementById('credito-cards');
   if(!el) return;
   var planes=MOMENTO_PLANS.filter(function(p){ return planVis(p.name); });
   if(!planes.length){ el.innerHTML=''; return; }
   if(!planes.some(function(p){ return p.name===_credPlan; })) _credPlan=planes[0].name;
-  var v=planVis(_credPlan), lista=creditoEquipos(_credPlan, _credPlazo);
+  var v=planVis(_credPlan), lista=creditoEquipos(_credPlan);
   var h='<p class="hv3-cred-nota">50% de descuento o menos</p>';
   h+='<div class="hv3-tabs" role="tablist" aria-label="Plan">';
   planes.forEach(function(p){
     h+='<button type="button" role="tab" class="hv3-tab '+planVis(p.name).cls+'" aria-selected="'+(p.name===_credPlan)+'" onclick="creditoTab(\''+p.name+'\')">'+p.name+'</button>';
   });
   h+='</div>';
-  h+='<div class="hv3-seg hv3-cred-plazo" role="group" aria-label="Plazo">';
-  [24,30,36].forEach(function(z){
-    h+='<button type="button" aria-pressed="'+(z===_credPlazo)+'" onclick="creditoPlazo('+z+')">'+z+' meses</button>';
-  });
-  h+='</div>';
   h+='<div class="hv3-planhead '+v.cls+'">'+wordmarkHTML(_credPlan,30)+'<span>'+v.gb+' GB | $'+v.renta.toLocaleString('es-MX')+' al mes</span></div>';
   if(!lista.length){
-    h+='<p class="hv3-cred-vacio">Sin equipos con 50% de descuento o menos en '+_credPlan+' a '+_credPlazo+' meses</p>';
+    h+='<p class="hv3-cred-vacio">Sin equipos con 50% de descuento o menos en '+_credPlan+'</p>';
   } else {
     h+='<div class="hv3-mtrack">';
     lista.forEach(function(x){ h+=_mcardHTML({id:x.id, plazo:x.plazo, promo:x.promo, contado:x.contado, desc:x.pct, eng:x.eng}, _credPlan); });
@@ -520,7 +516,6 @@ function initCredito(){
   el.innerHTML=h;
 }
 function creditoTab(plan){ _credPlan=plan; initCredito(); }
-function creditoPlazo(z){ _credPlazo=Number(z); initCredito(); }
 // [v1.72.20] La tarjeta abre la ficha en SU plan y plazo. Antes abría en
 // Azul 1 a 24 meses y el precio no coincidía con el de la tarjeta.
 function abrirMomento(os,id,plan,plazo){
@@ -659,16 +654,22 @@ function campanaEquipos(){
 }
 // [v1.73.14] AJUSTADOS A CRÉDITO. Crédito condiciona a equipos con 50% de
 // descuento o menos: Android vigentes cuyo descuento EXACTO es de 50% o menos
-// en ese plan y plazo (Diego: 50.3% ya no entra aunque se vea -50%). Con ese descuento el
-// enganche máximo es el 50% del precio. Del enganche más bajo al más alto; un
-// modelo por tarjeta; 8 por pestaña.
-function creditoEquipos(plan, plazo, n){
+// (Diego: 50.3% ya no entra aunque se vea -50%). Con ese descuento el enganche
+// máximo es el 50% del precio.
+// [v1.73.15] Sin selector de plazo, como Equipos del momento: cada equipo toma
+// el plazo con su enganche más bajo (empate: menor precio) entre los que siguen
+// en 50% o menos. Del enganche más bajo al más alto; un modelo por tarjeta; 8.
+function creditoEquipos(plan, n){
   var cand = [];
   CAT.android.forEach(function(d){
     if(!isVigent(d.id)) return;
-    var o = ofertaPlan(d.id, plan, plazo);
-    if(!o || o.incluido || (1 - o.promo / o.contado) * 100 > 50) return;
-    cand.push({d:d, o:o});
+    var mejor = null;
+    [24, 30, 36].forEach(function(z){
+      var o = ofertaPlan(d.id, plan, z);
+      if(!o || o.incluido || (1 - o.promo / o.contado) * 100 > 50) return;
+      if(!mejor || o.eng < mejor.eng || (o.eng === mejor.eng && o.promo < mejor.promo)) mejor = o;
+    });
+    if(mejor) cand.push({d:d, o:mejor});
   });
   cand.sort(function(x, y){ return (x.o.eng - y.o.eng) || (x.o.promo - y.o.promo) || _porId(x, y); });
   var visto = {}, out = [];
@@ -676,7 +677,7 @@ function creditoEquipos(plan, plazo, n){
     var k = modeloBase(x.d.name);
     if(visto[k]) return;
     visto[k] = true;
-    out.push({id:x.d.id, nombre:x.d.name, capacidad:x.d.storage || '', plan:plan, plazo:Number(plazo),
+    out.push({id:x.d.id, nombre:x.d.name, capacidad:x.d.storage || '', plan:plan, plazo:x.o.plazo,
               promo:x.o.promo, contado:x.o.contado, pct:x.o.pct, eng:x.o.eng});
   });
   return out.slice(0, n || 8);
