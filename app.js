@@ -461,27 +461,66 @@ function initMomento(){
   h+='<div class="hv3-planhead '+v.cls+'">'+wordmarkHTML(_momPlan,30)+'<span>'+v.gb+' GB | $'+v.renta.toLocaleString('es-MX')+' al mes</span></div>';
   h+='<div class="hv3-mtrack">';
   vigentes(_momPlan).forEach(function(m){
-    const dev=all.find(function(d){return d.id===m.id;});
-    if(!dev) return;
-    const os=CAT.ios.find(function(d){return d.id===m.id;})?'ios':'android';
-    const mon=fmtMoneda(m.promo), vg=vigLargo(m.id);
-    h+='<article class="hv3-mcard '+v.cls+'" onclick="abrirMomento(\''+os+'\',\''+m.id+'\',\''+_momPlan+'\','+m.plazo+')">';
-    h+='<div class="hv3-mfoto">'+fotoHTML(m.id)+ptsPastilla(m.id)+'</div>';
-    h+='<div class="hv3-mname"><b>'+dev.name+'</b>'+checkHTML(16)+'</div>';
-    h+='<span class="hv3-msub">'+(dev.storage?dev.storage+' · ':'')+m.plazo+' meses</span>';
-    h+='<div class="hv3-mprecio"><div class="hv3-mprecio-txt">';
-    h+=m.promo===0?'<span class="hv3-incl">INCLUIDO</span>':'<span class="hv3-precio">'+mon.ent+'<small>'+mon.dec+'</small></span>';
-    if(m.desc>0) h+='<span class="hv3-antes">Antes $'+m.contado.toLocaleString('es-MX')+'</span>';
-    h+='</div>'+(m.desc>0?selloHTML(m.desc,50):'')+'</div>';
-    h+='<span class="hv3-eng">Enganche máx: <b>$'+m.max_eng.toLocaleString('es-MX')+'</b></span>';
-    h+='<span class="hv3-eng">Mensualidad: <b>$'+mensualidadMax(m.promo, m.contado, v.renta, m.plazo).toLocaleString('es-MX')+'</b></span>';
-    h+='<div class="hv3-mpie"><span class="hv3-vig'+(vg.ultimo?' urg':'')+'">'+vg.txt+'</span></div>';
-    h+='</article>';
+    h+=_mcardHTML({id:m.id, plazo:m.plazo, promo:m.promo, contado:m.contado, desc:m.desc, eng:m.max_eng}, _momPlan);
   });
   h+='</div>';
   el.innerHTML=h;
 }
 function momentoTab(plan){ _momPlan=plan; initMomento(); }
+// [v1.73.14] Tarjeta de Equipos del momento, compartida con Ajustados a crédito.
+// x = {id, plazo, promo, contado, desc (el % que se muestra), eng (enganche máx)}.
+function _mcardHTML(x, plan){
+  var dev=CAT.android.concat(CAT.ios).find(function(d){return d.id===x.id;});
+  if(!dev) return '';
+  var v=planVis(plan), os=CAT.ios.some(function(d){return d.id===x.id;})?'ios':'android';
+  var mon=fmtMoneda(x.promo), vg=vigLargo(x.id), h='';
+  h+='<article class="hv3-mcard '+v.cls+'" onclick="abrirMomento(\''+os+'\',\''+x.id+'\',\''+plan+'\','+x.plazo+')">';
+  h+='<div class="hv3-mfoto">'+fotoHTML(x.id)+ptsPastilla(x.id)+'</div>';
+  h+='<div class="hv3-mname"><b>'+dev.name+'</b>'+checkHTML(16)+'</div>';
+  h+='<span class="hv3-msub">'+(dev.storage?dev.storage+' · ':'')+x.plazo+' meses</span>';
+  h+='<div class="hv3-mprecio"><div class="hv3-mprecio-txt">';
+  h+=x.promo===0?'<span class="hv3-incl">INCLUIDO</span>':'<span class="hv3-precio">'+mon.ent+'<small>'+mon.dec+'</small></span>';
+  if(x.desc>0) h+='<span class="hv3-antes">Antes $'+x.contado.toLocaleString('es-MX')+'</span>';
+  h+='</div>'+(x.desc>0?selloHTML(x.desc,50):'')+'</div>';
+  h+='<span class="hv3-eng">Enganche máx: <b>$'+x.eng.toLocaleString('es-MX')+'</b></span>';
+  h+='<span class="hv3-eng">Mensualidad: <b>$'+mensualidadMax(x.promo, x.contado, v.renta, x.plazo).toLocaleString('es-MX')+'</b></span>';
+  h+='<div class="hv3-mpie"><span class="hv3-vig'+(vg.ultimo?' urg':'')+'">'+vg.txt+'</span></div>';
+  h+='</article>';
+  return h;
+}
+// [v1.73.14] AJUSTADOS A CRÉDITO: pestañas por plan + plazo; 8 equipos con 50% de
+// descuento o menos, del enganche más bajo al más alto (creditoEquipos).
+var _credPlan = 'Plata', _credPlazo = 36;
+function initCredito(){
+  var el=document.getElementById('credito-cards');
+  if(!el) return;
+  var planes=MOMENTO_PLANS.filter(function(p){ return planVis(p.name); });
+  if(!planes.length){ el.innerHTML=''; return; }
+  if(!planes.some(function(p){ return p.name===_credPlan; })) _credPlan=planes[0].name;
+  var v=planVis(_credPlan), lista=creditoEquipos(_credPlan, _credPlazo);
+  var h='<p class="hv3-cred-nota">50% de descuento o menos</p>';
+  h+='<div class="hv3-tabs" role="tablist" aria-label="Plan">';
+  planes.forEach(function(p){
+    h+='<button type="button" role="tab" class="hv3-tab '+planVis(p.name).cls+'" aria-selected="'+(p.name===_credPlan)+'" onclick="creditoTab(\''+p.name+'\')">'+p.name+'</button>';
+  });
+  h+='</div>';
+  h+='<div class="hv3-seg hv3-cred-plazo" role="group" aria-label="Plazo">';
+  [24,30,36].forEach(function(z){
+    h+='<button type="button" aria-pressed="'+(z===_credPlazo)+'" onclick="creditoPlazo('+z+')">'+z+' meses</button>';
+  });
+  h+='</div>';
+  h+='<div class="hv3-planhead '+v.cls+'">'+wordmarkHTML(_credPlan,30)+'<span>'+v.gb+' GB | $'+v.renta.toLocaleString('es-MX')+' al mes</span></div>';
+  if(!lista.length){
+    h+='<p class="hv3-cred-vacio">Sin equipos con 50% de descuento o menos en '+_credPlan+' a '+_credPlazo+' meses</p>';
+  } else {
+    h+='<div class="hv3-mtrack">';
+    lista.forEach(function(x){ h+=_mcardHTML({id:x.id, plazo:x.plazo, promo:x.promo, contado:x.contado, desc:x.pct, eng:x.eng}, _credPlan); });
+    h+='</div>';
+  }
+  el.innerHTML=h;
+}
+function creditoTab(plan){ _credPlan=plan; initCredito(); }
+function creditoPlazo(z){ _credPlazo=Number(z); initCredito(); }
 // [v1.72.20] La tarjeta abre la ficha en SU plan y plazo. Antes abría en
 // Azul 1 a 24 meses y el precio no coincidía con el de la tarjeta.
 function abrirMomento(os,id,plan,plazo){
@@ -617,6 +656,30 @@ function campanaEquipos(){
   });
   cand.sort(function(x, y){ return (y.c - x.c) || _porId(x, y); });
   return _unoPorModelo(cand);
+}
+// [v1.73.14] AJUSTADOS A CRÉDITO. Crédito condiciona a equipos con 50% de
+// descuento o menos: Android vigentes cuyo descuento EXACTO es de 50% o menos
+// en ese plan y plazo (Diego: 50.3% ya no entra aunque se vea -50%). Con ese descuento el
+// enganche máximo es el 50% del precio. Del enganche más bajo al más alto; un
+// modelo por tarjeta; 8 por pestaña.
+function creditoEquipos(plan, plazo, n){
+  var cand = [];
+  CAT.android.forEach(function(d){
+    if(!isVigent(d.id)) return;
+    var o = ofertaPlan(d.id, plan, plazo);
+    if(!o || o.incluido || (1 - o.promo / o.contado) * 100 > 50) return;
+    cand.push({d:d, o:o});
+  });
+  cand.sort(function(x, y){ return (x.o.eng - y.o.eng) || (x.o.promo - y.o.promo) || _porId(x, y); });
+  var visto = {}, out = [];
+  cand.forEach(function(x){
+    var k = modeloBase(x.d.name);
+    if(visto[k]) return;
+    visto[k] = true;
+    out.push({id:x.d.id, nombre:x.d.name, capacidad:x.d.storage || '', plan:plan, plazo:Number(plazo),
+              promo:x.o.promo, contado:x.o.contado, pct:x.o.pct, eng:x.o.eng});
+  });
+  return out.slice(0, n || 8);
 }
 function vigLargo(id){
   var v = VIGENCY[id];
@@ -1821,6 +1884,7 @@ document.getElementById('ios-cnt').textContent=`${CAT.ios.length} equipos`;
 document.getElementById('and-cnt').textContent=`${CAT.android.length} equipos`;
 document.getElementById('st-tot').textContent=all.length;
 initMomento();
+initCredito();    // [v1.73.14]
 initCampana();    // [v1.73.0]
 recoHomeRender(); // [v1.73.0]
 document.getElementById('st-npi').textContent=all.filter(d=>d.status==='NPI').length;
