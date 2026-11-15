@@ -34,7 +34,8 @@ test('menos de 70%: el enganche máximo (50%) sí baja el equipo', () => {
 
 test('la tarjeta de campaña y la de Equipos del momento muestran la mensualidad', () => {
   assert.match(extraerFuncion(APP, 'columnaPlanHTML'), /Mensualidad: <b>/);
-  assert.match(extraerFuncion(APP, 'initMomento'), /Mensualidad: <b>/);
+  assert.match(extraerFuncion(APP, '_mcardHTML'), /Mensualidad: <b>/); // [v1.73.14] tarjeta compartida
+  assert.match(extraerFuncion(APP, 'initMomento'), /_mcardHTML\(/);
 });
 
 test('la sugerencia de plan usa la misma mensualidad (la garantía ya no baja el equipo)', () => {

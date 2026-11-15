@@ -96,6 +96,25 @@ async function inicio(nav, base) {
   });
   chk('campaña: Reno 16 Plata $781 y Oro $834 al mes', JSON.stringify(mens.camp) === JSON.stringify(['Enganche máx: $4,719', 'Mensualidad: $781', 'Enganche máx: $3,919', 'Mensualidad: $834']), mens.camp);
   chk('momento: cada tarjeta trae su mensualidad', mens.mom.length > 0 && mens.mom.every(Boolean), mens.mom);
+  // [v1.73.14] Ajustados a crédito: pestañas por plan, plazo, 8 tarjetas = creditoEquipos.
+  const cred = async () => p.evaluate(() => {
+    const el = document.getElementById('credito-cards');
+    const ids = [...el.querySelectorAll('.hv3-mcard')].map((c) => /'(?:ios|android)','([^']+)'/.exec(c.getAttribute('onclick'))[1]);
+    const plan = (el.querySelector('[role=tab][aria-selected=true]') || {}).textContent;
+    const plazo = Number(((el.querySelector('.hv3-cred-plazo [aria-pressed=true]') || {}).textContent || '').replace(/\D/g, ''));
+    const sellos = [...el.querySelectorAll('.hv3-sello')].map((s) => Number(s.getAttribute('aria-label').replace(/\D/g, '')));
+    return { ids, plan, plazo, sellos, esperado: creditoEquipos(plan, plazo).map((x) => x.id), tabs: el.querySelectorAll('[role=tab]').length };
+  });
+  let cr = await cred();
+  chk('crédito: 6 pestañas, abre en Plata a 36 meses', cr.tabs === 6 && cr.plan === 'Plata' && cr.plazo === 36, cr);
+  chk('crédito: Plata 36 = creditoEquipos (máx 8)', cr.ids.length > 0 && cr.ids.length <= 8 && JSON.stringify(cr.ids) === JSON.stringify(cr.esperado), cr);
+  chk('crédito: ningún sello pasa de 50%', cr.sellos.every((n) => n <= 50), cr.sellos);
+  await p.locator('#credito-cards .hv3-cred-plazo button', { hasText: '24 meses' }).click();
+  await p.locator('#credito-cards [role=tab]', { hasText: 'Azul 1' }).click();
+  cr = await cred();
+  chk('crédito: Azul 1 a 24 meses también cuadra', cr.plan === 'Azul 1' && cr.plazo === 24 && JSON.stringify(cr.ids) === JSON.stringify(cr.esperado) && cr.ids.length === 8, cr);
+  await p.locator('#credito-cards [role=tab]', { hasText: 'Plata' }).click();
+  await p.locator('#credito-cards .hv3-cred-plazo button', { hasText: '36 meses' }).click();
   await p.locator('#momento-cards [role=tab]', { hasText: 'Oro' }).click();
   chk('momento: pestaña Oro', (await p.locator('#momento-cards .hv3-planhead .pw').innerText()).trim() === 'ORO');
   chk('formulario: $2,500', (await p.inputValue('#reco-monto-home')) === '2,500');

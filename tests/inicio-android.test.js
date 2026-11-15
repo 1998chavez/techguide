@@ -320,7 +320,7 @@ test('sello: cada uno trae su propio degradado (ids distintos)', () => {
 
 test('sello: mismos tamaños de antes en momento (50), campaña (44) y hoja (40)', () => {
   const app = require('fs').readFileSync(require('path').join(__dirname, '..', 'app.js'), 'utf8');
-  assert.match(app, /selloHTML\(m\.desc,50\)/);
+  assert.match(app, /selloHTML\(x\.desc,50\)/);
   assert.match(app, /selloHTML\(of\.pct,44\)/); // [v1.73.5] campaña igual que antes, junto a "Antes"
   assert.match(app, /selloHTML\(of\.pct,40\)/);
 });
