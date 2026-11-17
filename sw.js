@@ -9,7 +9,7 @@
 // so login keeps working offline once the user has logged in at least once.
 // =============================================================================
 
-const CACHE_NAME = 'techguide-v17315-credito';
+const CACHE_NAME = 'techguide-v17316-vigencias';
 // [v1.11.103] Caché SEPARADO y ESTABLE para los pesados que NO cambian entre
 // versiones: vendors.js (999KB, html2canvas+jsPDF) y catalog-img.js (866KB,
 // las fotos del catálogo). Antes vivían en CACHE_NAME, así que CADA bump
@@ -38,11 +38,11 @@ const IMG_BUILD = '20261001';
 // cuando app.js cambia de verdad.
 // DEBE coincidir con window.APP_JS_V del index.html. Al editar app.js hay que
 // subir este valor en LOS DOS archivos.
-const APP_JS_V = '40c1b9d0f4';
+const APP_JS_V = '81622244c8';
 // [v1.10.30] BUILD_ID — DEBE coincidir con window.BUILD_ID del index.html.
 // El HTML le pregunta al SW este valor; si no coinciden, el HTML está viejo
 // y se fuerza recarga. Al empacar cada versión se actualiza igual que CACHE_NAME.
-const BUILD_ID = '1794528000';
+const BUILD_ID = '1794614400';
 
 // Files we want available offline as a last resort.
 // [v1.10.35] catalog.js y vendors.js se precachean CON ?v=BUILD_ID porque la

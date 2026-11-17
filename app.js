@@ -147,6 +147,13 @@ function _diasHasta(fin){
   var now = new Date(); now.setHours(0,0,0,0);
   return Math.ceil((new Date(fin + 'T00:00:00') - now) / (1000*60*60*24));
 }
+// [v1.73.16] Nombre para el panel: si dos capacidades comparten nombre (Pixel 10
+// Pro XL 256/512, iPhone 17 256/512, Honor X6E) se agrega la capacidad, porque
+// cada una tiene su propia vigencia.
+function _vigNombre(d, all){
+  var gemelo = all.some(function(x){ return x.id !== d.id && x.name === d.name; });
+  return d.name + (gemelo && d.storage ? ' ' + d.storage : '');
+}
 function vigenciasResumen(){
   // ── Equipos (precios) ──
   var all = CAT.ios.concat(CAT.android);
@@ -155,7 +162,7 @@ function vigenciasResumen(){
     var dias = daysLeft(d.id);
     if(dias === 999) return;                 // sin vigencia / indefinido
     var bono = puntosEquipo(d.id);
-    var row = {id:d.id, name:d.name, fecha:VIGENCY[d.id], dias:dias, bono:bono};
+    var row = {id:d.id, name:_vigNombre(d, all), fecha:VIGENCY[d.id], dias:dias, bono:bono};
     if(dias < 0){ if(bono) vencidosBono.push(row); else vencidos.push(row); }
     else if(dias <= 3){ porVencer.push(row); }
   });
@@ -171,8 +178,7 @@ function vigenciasResumen(){
     (PUNTOS_FLYERS || []).forEach(function(f){
       Object.keys(f.puntos || {}).forEach(function(id){
         var d = all.find(function(x){ return x.id === id; });
-        var gemelo = d && all.some(function(x){ return x.id !== id && x.name === d.name; });
-        var name = d ? d.name + (gemelo && d.storage ? ' ' + d.storage : '') : id;
+        var name = d ? _vigNombre(d, all) : id;
         bonos.push({ name:name, monto:f.puntos[id], fin:f.fin, dias:_diasHasta(f.fin) });
       });
     });
@@ -256,10 +262,10 @@ function openVigencias(){
   body += bloque('Puntos sin vigencia registrada', conSub(r.bonosSinFecha, function(){ return 'falta fecha en incentivos.js'; }), '#FF9500', function(b){
     return '<div style="font-size:13px;font-weight:700;color:var(--label3)">'+b.monto+' pts</div>';
   });
-  body += bloque('Equipos vencidos sin bono', conSub(r.vencidos, function(x){ return x.fecha||'—'; }), 'var(--label3)', function(it){
+  body += bloque('Equipos vencidos sin puntos', conSub(r.vencidos, function(x){ return x.fecha||'—'; }), 'var(--label3)', function(it){
     return '<div style="font-size:12px;color:var(--label3)">'+fvenc(it.dias)+'</div>';
   });
-  // ── Monitoreo: todos los bonos vivos y hasta cuándo ──
+  // ── Monitoreo: todos los puntos vivos y hasta cuándo ──
   var vivos = r.bonos.filter(function(b){ return b.dias >= 0 && b.dias !== 999; });
   body += bloque('Puntos vigentes', conSub(vivos, function(b){ return 'hasta '+(b.fin||'—'); }), 'var(--label3)', function(b){
     return '<div style="font-size:13px;font-weight:600">'+b.monto+' pts</div>'
