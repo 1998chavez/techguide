@@ -390,6 +390,16 @@ async function puntos(nav, base) {
   chk('Vigencias: 16 equipos con puntos, ninguno vencido', vig.n === 16 && vig.venc === 0, vig.n);
   chk('Vigencias: X6E 128 y 256 por separado', vig.nombres.includes('Honor X6E 128 GB') && vig.nombres.includes('Honor X6E 256 GB'), vig.nombres);
   chk('Vigencias: en puntos, sin "$" de bono', /450 pts/.test(vig.t) && !/\$\d/.test(vig.t), vig.t.slice(0, 300));
+  // [v1.73.16] Si dos capacidades comparten nombre, la lista de equipos dice cuál es.
+  const vig2 = await p.evaluate(() => {
+    const r = vigenciasResumen(), all = CAT.ios.concat(CAT.android);
+    const filas = r.porVencer.concat(r.vencidosBono, r.vencidos);
+    const malos = filas.filter((f) => { const d = all.find((x) => x.id === f.id); return all.some((x) => x.id !== d.id && x.name === d.name) && f.name === d.name; });
+    openVigencias(); const t = document.getElementById('vig-overlay').textContent; document.getElementById('vig-overlay').remove(); document.body.style.overflow = '';
+    return { malos: malos.map((f) => f.id + ':' + f.name), bono: /bono/i.test(t) };
+  });
+  chk('Vigencias: equipos con nombre repetido llevan su capacidad', vig2.malos.length === 0, vig2.malos);
+  chk('Vigencias: ya no dice "bono"', !vig2.bono);
   chk('puntos: sin errores de página', p.errores.length === 0, p.errores);
   await ctx.close();
   // Hoja de WhatsApp (va al cliente): nunca, aunque la lista traiga equipos con puntos.
