@@ -1,0 +1,238 @@
+{
+  "version": "v2-inicial",
+  "referencia": {
+    "nueva": 0.75,
+    "renovacion": 0.92,
+    "adicional": 0.8
+  },
+  "factores": {
+    "tarjeta_ambas": 0.77,
+    "tarjeta_departamental": 0.65,
+    "tarjeta_ninguna": 0.62,
+    "sin_historial": 0.5,
+    "hipoteca_si": 0.8,
+    "auto_si": 0.79,
+    "otro_personal": 0.76,
+    "otro_tiendas": 0.73,
+    "otro_equipo": 0.7,
+    "antig_menos1": 0.62,
+    "antig_3_5": 0.79,
+    "antig_mas5": 0.82,
+    "uso_30_70": 0.66,
+    "uso_mas70": 0.5,
+    "atraso_menos1": 0.45,
+    "atraso_mas1": 0.12,
+    "peor24_1_29": 0.68,
+    "peor24_30_89": 0.5,
+    "peor24_90": 0.3,
+    "quita_liquidada": 0.4,
+    "quita_pendiente": 0.15,
+    "adeudo_att_nosabe": 0.55,
+    "otra_si": 0.35,
+    "otra_nosabe": 0.62,
+    "solicitudes_1_2": 0.72,
+    "solicitudes_3mas": 0.58,
+    "solicitud_rechazada": 0.48,
+    "plan_pospago_menos12": 0.76,
+    "plan_pospago_12": 0.82
+  },
+  "cuentaATT": {
+    "tardio_uno": 0.84,
+    "tardio_dos": 0.66
+  },
+  "monto": {
+    "referencia": 600,
+    "sinIngreso_aprobacionAlDoble": 0.6,
+    "conIngreso_aprobacionAlDoble": 0.66
+  },
+  "capacidad": {
+    "cargaLibre": 0.25,
+    "cargaReferencia": 0.4,
+    "aprobacionConCarga": 0.55
+  },
+  "renovacion": {
+    "antiguedadMinimaMeses": 12,
+    "amortiguador": 0.5
+  },
+  "decision": {
+    "perfilA": 0.75,
+    "perfilB": 0.55,
+    "umbralAlterna": 0.65
+  },
+  "historial": {
+    "scoreReferencia": 680,
+    "puntosPorDuplicar": 40,
+    "minimo": 413,
+    "maximo": 754,
+    "margenBase": 20,
+    "margenPorDuda": 10,
+    "bandas": [
+      {
+        "id": "bajo",
+        "etiqueta": "Bajo",
+        "min": 413,
+        "max": 586
+      },
+      {
+        "id": "regular",
+        "etiqueta": "Regular",
+        "min": 587,
+        "max": 667
+      },
+      {
+        "id": "bueno",
+        "etiqueta": "Bueno",
+        "min": 668,
+        "max": 700
+      },
+      {
+        "id": "excelente",
+        "etiqueta": "Excelente",
+        "min": 701,
+        "max": 754
+      }
+    ]
+  },
+  "plazos": [
+    24,
+    30,
+    36
+  ],
+  "planes": {
+    "Azul 1": 330,
+    "Azul 2": 435,
+    "Azul 3": 550,
+    "Plata": 650,
+    "Oro": 725,
+    "Black": 825,
+    "Platino": 1035
+  },
+  "bandas": [
+    {
+      "id": "sin",
+      "etiqueta": "Sin equipo",
+      "min": 0,
+      "max": 0,
+      "precioRef": 0,
+      "planes": [
+        "Azul 1",
+        "Azul 2",
+        "Azul 3",
+        "Plata",
+        "Oro",
+        "Black"
+      ]
+    },
+    {
+      "id": "b5",
+      "etiqueta": "Hasta $5,000",
+      "min": 1,
+      "max": 5000,
+      "precioRef": 4000,
+      "planes": [
+        "Azul 1",
+        "Azul 2",
+        "Azul 3",
+        "Plata"
+      ]
+    },
+    {
+      "id": "b10",
+      "etiqueta": "$5,000 a $10,000",
+      "min": 5000.01,
+      "max": 10000,
+      "precioRef": 7500,
+      "planes": [
+        "Azul 2",
+        "Azul 3",
+        "Plata",
+        "Oro"
+      ]
+    },
+    {
+      "id": "b15",
+      "etiqueta": "$10,000 a $15,000",
+      "min": 10000.01,
+      "max": 15000,
+      "precioRef": 12500,
+      "planes": [
+        "Azul 3",
+        "Plata",
+        "Oro",
+        "Black"
+      ]
+    },
+    {
+      "id": "b15mas",
+      "etiqueta": "Más de $15,000",
+      "min": 15000.01,
+      "max": 1000000,
+      "precioRef": 20000,
+      "planes": [
+        "Plata",
+        "Oro",
+        "Black",
+        "Platino"
+      ]
+    }
+  ],
+  "ingresos": [
+    {
+      "id": "i8",
+      "etiqueta": "Menos de $8,000",
+      "valor": 6500
+    },
+    {
+      "id": "i12",
+      "etiqueta": "$8,000 a $12,000",
+      "valor": 10000
+    },
+    {
+      "id": "i20",
+      "etiqueta": "$12,000 a $20,000",
+      "valor": 16000
+    },
+    {
+      "id": "i35",
+      "etiqueta": "$20,000 a $35,000",
+      "valor": 27500
+    },
+    {
+      "id": "i35mas",
+      "etiqueta": "Más de $35,000",
+      "valor": 45000
+    },
+    {
+      "id": "nd",
+      "etiqueta": "No proporcionado",
+      "valor": null
+    }
+  ],
+  "calibracion": {
+    "resultados": 0,
+    "fecha": null,
+    "priorSigma": 0.75
+  },
+  "pagosCreditos": [
+    {
+      "id": "p0",
+      "etiqueta": "Ninguno",
+      "valor": 0
+    },
+    {
+      "id": "p1",
+      "etiqueta": "Menos de $1,000",
+      "valor": 500
+    },
+    {
+      "id": "p3",
+      "etiqueta": "$1,000 a $3,000",
+      "valor": 2000
+    },
+    {
+      "id": "p3mas",
+      "etiqueta": "Más de $3,000",
+      "valor": 4500
+    }
+  ]
+}
