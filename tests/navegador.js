@@ -1,5 +1,5 @@
 // [v1.73.0] Pruebas en navegador (Playwright, Chromium preinstalado).
-// Uso: node tests/navegador.js <inicio|reco|hoja>
+// Uso: node tests/navegador.js <inicio|reco|hoja|ficha|puntos|precal>
 // Sirve el repo, entra con una sesión falsa, sin service worker ni red externa,
 // y deja capturas en /tmp/v173 para revisarlas a ojo.
 'use strict';
@@ -25,14 +25,14 @@ function chk(nombre, cond, detalle) {
   console.log('  FALLA ' + nombre + (detalle !== undefined ? ' → ' + JSON.stringify(detalle) : ''));
 }
 
-async function abrir(nav, base, { ancho = 390, alto = 844, tema = 'light', bloquearFotos = false } = {}) {
+async function abrir(nav, base, { ancho = 390, alto = 844, tema = 'light', bloquearFotos = false, ses = SES } = {}) {
   const movil = ancho < 800;
   const ctx = await nav.newContext({
     viewport: { width: ancho, height: alto }, deviceScaleFactor: 1, isMobile: movil, hasTouch: movil,
     userAgent: movil ? devices['iPhone 13'].userAgent : undefined, serviceWorkers: 'block',
     colorScheme: tema, timezoneId: 'America/Mexico_City', locale: 'es-MX', acceptDownloads: true,
   });
-  await ctx.addInitScript((s) => { try { localStorage.setItem('primemx_sesion_v1', s); } catch (e) {} }, JSON.stringify(SES));
+  await ctx.addInitScript((s) => { try { localStorage.setItem('primemx_sesion_v1', s); } catch (e) {} }, JSON.stringify(ses));
   if (bloquearFotos) await ctx.route('**/catalog-img.js*', (r) => r.abort());
   const p = await ctx.newPage();
   p.setDefaultTimeout(6000);
@@ -413,9 +413,65 @@ async function puntos(nav, base) {
   await h.ctx.close();
 }
 
+// [v1.73.18] Precalificación: quién ve el botón y el flujo completo de punta a punta.
+async function precal(nav, base) {
+  const asesor = (tienda, attuid) => Object.assign({}, SES, { name: 'ASESOR PRUEBA', attuid: attuid || 'AP123X', rol: 'asesor', tiendasAsignadas: [], tienda, sucursal: tienda });
+  const casos = [
+    ['DC499W', SES, true],
+    ['asesor de León Centro', asesor('PRM TDA LEON CENTRO'), true],
+    ['asesor de Plaza Nogal León', asesor('PRM TDA PLAZA NOGAL LEON'), true],
+    ['asesor de León Flagship', asesor('PRM TDA LEON FLAGSHIP'), false],
+    ['regional con León Centro asignada', Object.assign(asesor('PRM TDA PLAZA ROSSINI', 'RG777X'), { rol: 'regional', tiendasAsignadas: ['PRM TDA LEON CENTRO'] }), false],
+  ];
+  for (const [nombre, ses, ve] of casos) {
+    const { ctx, p } = await abrir(nav, base, { ses });
+    const vis = await p.evaluate(() => getComputedStyle(document.getElementById('precal-home-card')).display !== 'none');
+    await p.evaluate(() => precalAbrir()); await p.waitForTimeout(300);
+    const abre = await p.evaluate(() => document.getElementById('s-precal').classList.contains('active'));
+    chk('acceso ' + nombre + (ve ? ': ve el botón y abre' : ': ni botón ni pantalla'), vis === ve && abre === ve, { vis, abre });
+    await ctx.close();
+  }
+  for (const tema of ['light', 'dark']) {
+    const { ctx, p } = await abrir(nav, base, { tema });
+    await p.evaluate(() => pmdOpen()); await p.waitForTimeout(300);
+    await p.locator('#precal-home-card').click(); await p.waitForTimeout(900);
+    await p.locator('.pc-inicio').click(); await p.waitForTimeout(200);
+    const ins = p.locator('#precal-wrap input');
+    await ins.nth(0).fill('maría lópez'); await ins.nth(1).fill('LOHM900215MGTPRR08'); await ins.nth(2).fill('1990-02-15'); await ins.nth(3).fill('2031'); await ins.nth(4).fill('4771234567');
+    await p.locator('.pc-check input').check();
+    chk(tema + ': CURP válida e INE vigente', (await p.locator('#pc-chips .pc-ok').count()) === 2);
+    await p.locator('.pc-sig').click(); await p.waitForTimeout(200);
+    await p.locator('#precal-wrap .hv3-btn', { hasText: 'Calcular' }).click(); await p.waitForTimeout(300);
+    chk(tema + ': sin respuestas no calcula y dice cuántas faltan', /Faltan 11 respuestas/.test(await p.locator('#pc-msg').textContent()) && (await p.locator('.pc-q.falta').count()) === 11);
+    const R = [['Portabilidad'], ['Pospago, 1 año o más'], ['Sin adeudos', 0], ['$10,000 a $15,000'], ['Oro'], ['36 meses'], ['Departamental o de tienda'], ['No', 'limite'], ['Ninguno', 'vivienda'], ['No', 'negado'],
+      ['No', 'atraso'], ['Menos de 1 mes', 'peor'], ['Sin adeudos', 'otra'], ['$12,000 a $20,000'], ['$1,000 a $3,000'], ['Sí', 'comprobante']];
+    for (const [txt, k] of R) {
+      const sel = typeof k === 'string' ? '#pcq-' + k + ' button' : '#precal-wrap button';
+      await p.locator(sel, { hasText: new RegExp('^' + txt.replace(/[$()]/g, '\\$&') + '$') }).first().click();
+    }
+    await p.locator('#precal-wrap .hv3-btn', { hasText: 'Calcular' }).click(); await p.waitForTimeout(400);
+    const res = await p.evaluate(() => ({ pct: document.querySelector('.pc-anillo-n').textContent, perfil: document.querySelector('.pc-perfil').textContent, alt: (document.querySelector('.pc-alt-t') || {}).textContent }));
+    chk(tema + ': resultado del ejemplo del mockup (58%, perfil B, alterna Azul 2)', res.pct === '58%' && res.perfil === 'Perfil B' && /^Azul 2 · /.test(res.alt || ''), res);
+    chk(tema + ': nada se sale a lo ancho en el resultado', (await desbordes(p, '#precal-wrap')).length === 0, await desbordes(p, '#precal-wrap'));
+    await p.locator('#precal-wrap .hv3-btn', { hasText: 'Guardar' }).click(); await p.waitForTimeout(300);
+    const g = await p.evaluate(() => JSON.parse(localStorage.getItem('tg_precal_v1_DC499W'))[0]);
+    chk(tema + ': se guarda con nombre, sin CURP ni fecha de nacimiento', g.nombre === 'MARÍA LÓPEZ' && !/LOHM900215|1990-02-15/.test(JSON.stringify(g)) && g.bitacora.versionConfig === 'v2-inicial', g.datos.identidad);
+    chk(tema + ': queda pendiente y abierta para registrar', /Pendientes · 1/.test(await p.locator('.pc-seg').textContent()) && (await p.locator('.pc-item.abierto').count()) === 1);
+    await p.locator('.pc-reg .pc-chip', { hasText: 'Solicitado · Oro' }).click();
+    await p.locator('.pc-reg .pc-chip', { hasText: 'Aprobada con otro plan' }).click();
+    await p.locator('.pc-reg .pc-chip', { hasText: /^Plata$/ }).click();
+    await p.locator('.pc-reg .hv3-btn').click(); await p.waitForTimeout(300);
+    const reg = await p.evaluate(() => JSON.parse(localStorage.getItem('tg_precal_v1_DC499W'))[0].registro);
+    chk(tema + ': resultado de AT&T registrado con sus filas de calibración', reg && reg.resp === 'otro' && reg.plan === 'Plata' && reg.filas.map((f) => f.y).join() === '0,1', reg);
+    chk(tema + ': sin pendientes después de registrar', /Pendientes · 0/.test(await p.locator('.pc-seg').textContent()));
+    chk(tema + ': sin errores de página', p.errores.length === 0, p.errores);
+    await ctx.close();
+  }
+}
+
 (async () => {
   const modo = process.argv[2];
-  const modos = { inicio, reco, hoja, ficha, puntos };
+  const modos = { inicio, reco, hoja, ficha, puntos, precal };
   if (!modos[modo]) { console.error('modo desconocido: ' + modo); process.exit(2); }
   const srv = await servir(RAIZ);
   const base = 'http://127.0.0.1:' + srv.address().port + '/techguide/';

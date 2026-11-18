@@ -10941,6 +10941,8 @@ function updateAdminHomeCard(){
   // (login / logout / revalidación), por eso se actualiza aquí y no en 6 lados.
   if(typeof updateVigenciasCard==='function') updateVigenciasCard();
   if(typeof updateAdopcionCard==='function') updateAdopcionCard();
+  // [v1.73.18] Precalificación: DC499W y plantillas de León Centro y Plaza Nogal León.
+  if(typeof updatePrecalCard==='function') updatePrecalCard();
   // [v1.11.62] Esta función corre exactamente cuando una sesión queda activa
   // (login y restauración), así que es el punto natural para el registro de uso.
   // registrarUso() se auto-limita a 1 escritura por día y nunca lanza.
@@ -14998,4 +15000,558 @@ if(typeof window!=='undefined'){
   window.guardarTarjetaPublica = guardarTarjetaPublica;
   window.prepararFotoPub = prepararFotoPub;
   window.abrirMiCatalogo = abrirMiCatalogo;
+}
+
+// ═══ [v1.73.18] PRECALIFICACIÓN CREDITICIA (piloto) ══════════════════════════
+// Motor y parámetros: precal/precalificacion.js y precal/config.json, copiados
+// TAL CUAL del motor v2 auditado (41 pruebas, 18 mutaciones). Aquí solo van las
+// pantallas: datos del cliente → preguntas → resultado → mis precalificaciones.
+// Se cargan bajo demanda al abrir la pantalla: los demás asesores no bajan nada.
+// Visible solo para DC499W y las plantillas de León Centro y Plaza Nogal León.
+// Las precalificaciones se guardan en este teléfono, sin CURP ni fecha de nacimiento.
+// <precal-puro>
+var PRECAL_TIENDAS = ['PRM TDA LEON CENTRO', 'PRM TDA PLAZA NOGAL LEON'];
+function precalNorm(s){
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/\s+/g, ' ').trim();
+}
+// Plantilla de la tienda: su tienda o sucursal (no las tiendas asignadas de un regional).
+function precalTiendaOK(ses){
+  if(!ses) return false;
+  var lista = PRECAL_TIENDAS.map(precalNorm);
+  return [ses.tienda, ses.sucursal].some(function(t){ return t && lista.indexOf(precalNorm(t)) >= 0; });
+}
+// Rentas de PLANS_DATA (MODELO §12): hoy son las mismas de config.json.
+function precalConfig(cfg, planes){
+  var c = JSON.parse(JSON.stringify(cfg));
+  Object.keys(c.planes).forEach(function(n){
+    var p = (planes || []).filter(function(x){ return x.name === n; })[0];
+    if(p && typeof p.renta === 'number') c.planes[n] = p.renta;
+  });
+  return c;
+}
+// Preguntas visibles según lo ya contestado. Etiquetas y opciones del mockup.
+function precalPreguntas(s, C){
+  var SN = [['si', 'Sí'], ['no', 'No']];
+  var np = s.tramite === 'nueva' || s.tramite === 'portabilidad';
+  var banda = C.bandas.filter(function(b){ return b.id === s.banda; })[0];
+  var t = [{ k:'tramite', texto:'', ops:[['nueva', 'Línea nueva'], ['portabilidad', 'Portabilidad'], ['renovacion', 'Renovación'], ['adicional', 'Línea adicional']] }];
+  if(np){
+    t.push({ k:'planActual', texto:'Plan actual', ops:[['prepago', 'Prepago o sin línea'], ['pospago_menos12', 'Pospago, menos de 1 año'], ['pospago_12', 'Pospago, 1 año o más']] });
+    t.push({ k:'adeudoATT', texto:'Adeudos con AT&T', ops:[['no', 'Sin adeudos'], ['si', 'Con adeudo'], ['nosabe', 'Lo desconoce']] });
+  }
+  if(s.tramite === 'renovacion') t.push({ k:'antig', texto:'Antigüedad de la línea', ops:[['a6', 'Menos de 6 meses'], ['a11', '6 a 11 meses'], ['a23', '1 a 2 años'], ['a24', 'Más de 2 años']] });
+  if(s.tramite === 'adicional') t.push({ k:'pago', texto:'Pago mensual actual con AT&T', numero:true });
+  if(s.tramite === 'renovacion' || s.tramite === 'adicional') t.push({ k:'cuenta', texto:'Estado de cuenta AT&T', ops:[['corriente', 'Al corriente'], ['uno', '1 pago tardío en el año'], ['dos', '2 o más pagos tardíos'], ['vencido', 'Con saldo vencido']] });
+  var e = [{ k:'banda', texto:'Precio del equipo', ops:C.bandas.map(function(b){ return [b.id, b.etiqueta]; }) }];
+  if(banda){
+    e.push({ k:'plan', texto:'Plan', plan:true, ops:banda.planes.map(function(p){ return [p, p]; }) });
+    if(banda.precioRef > 0) e.push({ k:'plazo', texto:'Plazo', ops:C.plazos.map(function(z){ return [z, z + ' meses']; }) });
+  }
+  var cr = [{ k:'tarjeta', texto:'Tarjeta de crédito', ops:[['banco', 'Bancaria'], ['departamental', 'Departamental o de tienda'], ['ambas', 'Ambas'], ['ninguna', 'No tiene']] }];
+  if(s.tarjeta && s.tarjeta !== 'ninguna') cr.push({ k:'limite', texto:'Tarjeta cerca del límite de crédito', ops:SN });
+  cr.push({ k:'vivienda', texto:'Crédito de vivienda o de auto', ops:[['ninguno', 'Ninguno'], ['vivienda', 'Vivienda'], ['auto', 'Auto (últimos 2 años)'], ['ambos', 'Ambos']] });
+  cr.push({ k:'negado', texto:'Crédito negado en los últimos 6 meses', ops:SN });
+  return [
+    { titulo:'Tipo de trámite', preguntas:t },
+    { titulo:'Equipo y plan', preguntas:e },
+    { titulo:'Créditos', preguntas:cr },
+    { titulo:'Historial de pagos', preguntas:[
+      { k:'atraso', texto:'Pagos atrasados actualmente', ops:[['no', 'No'], ['menos1', 'Menos de 1 mes'], ['mas1', '1 mes o más']] },
+      { k:'peor', texto:'Atrasos en los últimos 2 años', ops:[['ninguno', 'No'], ['d1_29', 'Menos de 1 mes'], ['d30_89', '1 a 3 meses'], ['d90', 'Más de 3 meses']] },
+      { k:'otra', texto:'Adeudos con otra compañía de telefonía, internet o TV', ops:[['no', 'Sin adeudos'], ['si', 'Con adeudo'], ['nosabe', 'Lo desconoce']] }
+    ] },
+    { titulo:'Ingresos', preguntas:[
+      { k:'ingreso', texto:'Ingreso mensual', ops:C.ingresos.map(function(i){ return [i.id, i.etiqueta]; }) },
+      { k:'pagos', texto:'Pagos mensuales de créditos, sin AT&T', ops:C.pagosCreditos.map(function(x){ return [x.id, x.etiqueta]; }) },
+      { k:'comprobante', texto:'Comprobante de domicilio a su nombre', ops:SN }
+    ] }
+  ];
+}
+// Preguntas visibles sin contestar (o con una respuesta que ya no aplica).
+function precalFaltan(s, C){
+  var out = [];
+  precalPreguntas(s, C).forEach(function(sec){
+    sec.preguntas.forEach(function(q){
+      var v = s[q.k];
+      var ok = q.numero ? (v !== '' && v !== null && v !== undefined && isFinite(Number(v)) && Number(v) >= 0)
+        : q.ops.some(function(o){ return o[0] === v; });
+      if(!ok) out.push(q.k);
+    });
+  });
+  return out;
+}
+// Si cambia el precio y el plan elegido no existe en esa banda, el más cercano en renta (mockup).
+function precalFijarEn(s, C, k, v){
+  var n = Object.assign({}, s); n[k] = v;
+  if(k === 'banda' && n.plan){
+    var pl = C.bandas.filter(function(b){ return b.id === v; })[0].planes;
+    if(pl.indexOf(n.plan) < 0) n.plan = pl.slice().sort(function(a, b){ return Math.abs(C.planes[a] - C.planes[s.plan]) - Math.abs(C.planes[b] - C.planes[s.plan]); })[0];
+  }
+  return n;
+}
+// Datos de identificación del paso 1. Solo se manda lo capturado.
+function precalIdentidad(cli){
+  var c = cli || {}, id = { consentimiento: !!c.ok };
+  var curp = String(c.curp || '').trim().toUpperCase();
+  if(curp) id.curp = curp;
+  if(/^\d{4}$/.test(String(c.ine || '').trim())) id.ineVigencia = Number(c.ine);
+  if(/^\d{4}-\d{2}-\d{2}$/.test(String(c.nac || ''))) id.fechaNacimientoINE = c.nac;
+  return id;
+}
+// Respuestas → datos del motor. Misma conversión que datosDesde() del mockup.
+function precalDatos(s, C, cli){
+  var ANT = { a6: 3, a11: 9, a23: 18, a24: 30 };
+  var TARDIOS = { corriente: 'ninguno', uno: 'uno', dos: 'dos', vencido: 'ninguno' };
+  function de(lista, id){ return C[lista].filter(function(x){ return x.id === id; })[0]; }
+  var banda = de('bandas', s.banda);
+  var ing = de('ingresos', s.ingreso);
+  var renov = s.tramite === 'renovacion', adic = s.tramite === 'adicional', cuenta = renov || adic;
+  var d = {
+    tramite: s.tramite, tarjeta: s.tarjeta,
+    hipoteca: s.vivienda === 'vivienda' || s.vivienda === 'ambos', auto: s.vivienda === 'auto' || s.vivienda === 'ambos',
+    otrosCreditos: [], pagosOtrosCreditos: de('pagosCreditos', s.pagos).valor,
+    atraso: s.atraso, peorAtraso24: s.peor, quitas: 'no', adeudoOtra: s.otra,
+    solicitudes6m: s.negado === 'si' ? 's1_2' : 'ninguna',
+    ingreso: ing ? ing.valor : null, comprobante: s.comprobante === 'si',
+    identidad: precalIdentidad(cli),
+    pedido: { plan: s.plan, precioEquipo: banda.precioRef, plazo: banda.precioRef > 0 ? s.plazo : 36, enganche: 0 }
+  };
+  if(s.tarjeta !== 'ninguna') d.usoTarjetas = s.limite === 'si' ? 'umas70' : 'u30';
+  if(s.negado === 'si') d.solicitudRechazada = true;
+  if(renov) d.antiguedadMeses = ANT[s.antig];
+  if(cuenta){ d.alCorrienteATT = s.cuenta !== 'vencido'; d.tardiosATT = TARDIOS[s.cuenta]; }
+  if(adic) d.pagoActualATT = Math.max(0, Math.round(+s.pago || 0));
+  if(!cuenta){ d.adeudoATT = s.adeudoATT; d.planActual = s.planActual; }
+  return d;
+}
+function precalDinero(x){ return '$' + Math.round(x).toLocaleString('es-MX'); }
+function precalEquipo(C, bi){
+  var b = C.bandas[bi];
+  return b.precioRef === 0 ? 'Sin equipo' : 'Equipo ' + b.etiqueta.charAt(0).toLowerCase() + b.etiqueta.slice(1);
+}
+function precalDocs(d){
+  var docs = ['INE vigente'];
+  if(d.tarjeta !== 'ninguna') docs.push('Tarjeta de crédito (últimos 4 dígitos)');
+  if(d.hipoteca || d.auto) docs.push('Datos del crédito ' + (d.hipoteca && d.auto ? 'hipotecario y automotriz' : d.hipoteca ? 'hipotecario' : 'automotriz'));
+  docs.push('Comprobante de domicilio');
+  return docs;
+}
+// Lo que muestra el resultado. Mismos cálculos que valsResultado() del mockup.
+function precalVista(r, d, C){
+  function pct(p){ return Math.round(p * 100) + '%'; }
+  var s = r.solicitado, v = {};
+  v.perfil = r.perfil; v.decision = r.decision;
+  v.bloqueado = r.bloqueos.length > 0;
+  v.bloqueos = r.bloqueos.map(function(b){ return b.texto; });
+  v.p = r.p; v.pct = r.p !== null ? pct(r.p) : '—';
+  v.pedidoTxt = s.plan + ' · ' + precalEquipo(C, s.banda) + (s.plazo ? ' · ' + s.plazo + ' meses' : '');
+  v.mensualidadTxt = precalDinero(s.mensualidad) + '/mes' + (r.grupo === 'adicional' ? ' · total con líneas actuales: ' + precalDinero(s.mensualidadEvaluada) : '');
+  v.alt = null;
+  if(r.alterna){
+    var a = r.alterna;
+    v.alt = { pct: pct(a.p), txt: a.plan + ' · ' + precalEquipo(C, a.banda) + (a.plazo ? ' · ' + a.plazo + ' meses' : ''), detalle: precalDinero(a.mensualidad) + '/mes' };
+  }
+  // Historial en escala Buró: 4 segmentos iguales, el rango se ubica dentro de cada banda.
+  var H = C.historial, h = r.historial;
+  function posicion(x, borde){
+    for(var i = 0; i < H.bandas.length; i++){
+      var b = H.bandas[i];
+      if(x <= b.max) return (100 / H.bandas.length) * (i + (x - b.min + borde) / (b.max - b.min + 1));
+    }
+    return 100;
+  }
+  v.hist = { sin: h.sinHistorial, etiqueta: h.etiqueta, banda: h.banda, rango: '', x0: 0, ancho: 0, segmentos: [] };
+  if(!h.sinHistorial){
+    var x0 = posicion(h.min, 0), x1 = posicion(h.max, 1);
+    v.hist.rango = h.min + ' – ' + h.max;
+    v.hist.x0 = Number(x0.toFixed(1)); v.hist.ancho = Number(Math.max(2, x1 - x0).toFixed(1));
+    v.hist.segmentos = H.bandas.map(function(b){ return { id: b.id, label: b.etiqueta, act: b.id === h.banda }; });
+  }
+  v.confianza = r.confianzaRespuestas.nivel;
+  var mostrar = [s.banda]; if(r.alterna && r.alterna.banda !== s.banda) mostrar.push(r.alterna.banda);
+  v.bandas = r.bloqueos.length ? [] : mostrar.map(function(bi){
+    var filas = r.tabla.filter(function(f){ return f.banda === bi; }).sort(function(x, y){ return C.planes[y.plan] - C.planes[x.plan]; });
+    var plazo = bi === s.banda ? s.plazo : Math.max.apply(null, C.plazos);
+    return { titulo: precalEquipo(C, bi) + (C.bandas[bi].precioRef > 0 ? ' · ' + plazo + ' meses' : ''), filas: filas.map(function(f){
+      var esPed = bi === s.banda && f.plan === s.plan;
+      var esAlt = !!(r.alterna && bi === r.alterna.banda && f.plan === r.alterna.plan && r.alterna.tipo !== 'plazo');
+      return { plan: f.plan, mens: precalDinero(f.mensualidad) + (esPed ? ' · solicitado' : esAlt ? ' · alterna' : ''), pct: pct(f.p), p: f.p, marca: esPed || esAlt };
+    }) };
+  });
+  v.efectos = r.efectos.slice(0, 5).filter(function(e){ return e.puntos !== 0; }).map(function(e){
+    return { etiqueta: e.etiqueta, pts: (e.puntos > 0 ? '+' : '−') + Math.abs(e.puntos), positivo: e.puntos > 0 };
+  });
+  v.avisos = r.avisos.map(function(x){ return x.texto; });
+  v.docs = v.bloqueado ? [] : precalDocs(d);
+  v.calibracionTxt = 'Modelo ' + r.versionConfig + ' · ' + r.calibracion.resultados + ' resultados';
+  return v;
+}
+// Combinación que se ingresó a AT&T, para las filas de calibración.
+function precalEnvio(rec, envio){
+  var x = envio === 'alterna' ? rec.resumen.alt : envio === 'pedido' ? rec.resumen : null;
+  return x ? { plan: x.plan, precioEquipo: x.precio, plazo: x.plazo || 36, enganche: x.enganche || 0 } : null;
+}
+// </precal-puro>
+
+function _precalPuedeVer(){
+  return ((typeof _meEsSuper === 'function') && _meEsSuper()) ||
+    (typeof asesorData !== 'undefined' && precalTiendaOK(asesorData));
+}
+function updatePrecalCard(){
+  var card = document.getElementById('precal-home-card');
+  if(card) card.style.display = _precalPuedeVer() ? 'flex' : 'none';
+}
+
+var _precalMotor = null, _precalMotorP = null;
+function _precalCargar(){
+  if(_precalMotor) return Promise.resolve(_precalMotor);
+  if(_precalMotorP) return _precalMotorP;
+  var v = window.BUILD_ID || '0';
+  var js = (typeof window.PrecalMotor !== 'undefined') ? Promise.resolve() : new Promise(function(ok, mal){
+    var sc = document.createElement('script');
+    sc.src = 'precal/precalificacion.js?v=' + v;
+    sc.onload = ok;
+    sc.onerror = function(){ mal(new Error('No se pudo cargar el motor')); };
+    document.head.appendChild(sc);
+  });
+  var cfg = fetch('precal/config.json?v=' + v).then(function(r){
+    if(!r.ok) throw new Error('No se pudo cargar la configuración');
+    return r.json();
+  });
+  _precalMotorP = Promise.all([js, cfg]).then(function(x){
+    _precalMotor = window.PrecalMotor.crear(precalConfig(x[1], PLANS_DATA));
+    return _precalMotor;
+  }).catch(function(e){ _precalMotorP = null; throw e; });
+  return _precalMotorP;
+}
+
+var precalState = { vista: 'inicio', cli: {}, s: {}, marcar: false, res: null, filtro: 'pendientes', abierto: null, reg: {} };
+var PRECAL_CLAVE = 'tg_precal_v1_';
+function precalLista(){
+  try{ var a = JSON.parse(localStorage.getItem(PRECAL_CLAVE + _meAttuid()) || '[]'); return Array.isArray(a) ? a : []; }
+  catch(e){ return []; }
+}
+function precalGuardarLista(a){
+  try{ localStorage.setItem(PRECAL_CLAVE + _meAttuid(), JSON.stringify(a.slice(0, 200))); return true; }
+  catch(e){ return false; }
+}
+function _precalPendiente(x){ return !x.resumen.bloqueado && !x.registro; }
+function _precalEsc(t){ return String(t === undefined || t === null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function _precalCuando(iso){
+  var f = new Date(iso), hoy = new Date(), ayer = new Date();
+  ayer.setDate(hoy.getDate() - 1);
+  var hh = f.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+  if(f.toDateString() === hoy.toDateString()) return 'Hoy ' + hh;
+  if(f.toDateString() === ayer.toDateString()) return 'Ayer ' + hh;
+  return f.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }).replace('.', '') + ' ' + hh;
+}
+
+var PC_ICO_PRECAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>';
+var PC_ICO_DER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+var PC_ICO_ATRAS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+var PC_ICO_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
+var PC_ICO_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+var PC_ICO_EXT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg>';
+var PC_ICO_WA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>';
+
+function precalAbrir(){
+  if(!_precalPuedeVer()) return;
+  precalState.vista = 'inicio';
+  show('s-precal');
+  _precalPintar();
+}
+function precalIr(vista){
+  precalState.vista = vista;
+  _precalPintar();
+  var sc = document.querySelector('#s-precal .scroll-area');
+  if(sc) sc.scrollTop = 0;
+}
+function precalNueva(){
+  precalState.cli = {}; precalState.s = {}; precalState.marcar = false; precalState.res = null;
+  precalIr('cliente');
+}
+function _precalTop(titulo, atras, avance){
+  var h = '<div class="hv3-reco-top"><button type="button" class="hv3-atras" onclick="' + atras + '" aria-label="Regresar">' + PC_ICO_ATRAS + '</button><h1>' + titulo + '</h1></div>';
+  if(avance) h += '<div class="pc-prog" aria-hidden="true"><i style="width:' + avance + '%"></i></div>';
+  return h;
+}
+function _precalPintar(){
+  var el = document.getElementById('precal-wrap');
+  if(!el) return;
+  if(!_precalMotor){
+    el.innerHTML = _precalTop('Precalificar cliente', "show('s-home')") + '<div class="hv3-cred-vacio" id="pc-carga">Cargando…</div>';
+    _precalCargar().then(_precalPintar).catch(function(e){
+      var c = document.getElementById('pc-carga');
+      if(c) c.textContent = e.message + '. Revisa tu conexión e intenta de nuevo.';
+    });
+    return;
+  }
+  var v = precalState.vista;
+  el.innerHTML = v === 'cliente' ? _precalCliente() : v === 'preguntas' ? _precalPreguntasHTML() :
+    v === 'resultado' ? _precalResultado() : v === 'lista' ? _precalListaHTML() : _precalInicio();
+}
+
+function _precalInicio(){
+  var n = precalLista().filter(_precalPendiente).length;
+  var h = _precalTop('Precalificar cliente', "show('s-home')");
+  h += '<button type="button" class="pc-inicio" onclick="precalNueva()"><span class="pc-inicio-ic">' + PC_ICO_PRECAL + '</span><span class="pc-inicio-t">Precalificar cliente</span>' + PC_ICO_DER + '</button>';
+  h += '<button type="button" class="pc-fila-lista" onclick="precalState.filtro=\'pendientes\';precalState.abierto=null;precalIr(\'lista\')"><span>Mis precalificaciones</span>' + (n ? '<b class="pc-badge">' + n + '</b>' : '') + PC_ICO_DER + '</button>';
+  return h;
+}
+
+// ── Paso 1: datos del cliente ──
+function _precalChips(){
+  var c = precalState.cli, out = '';
+  var curp = String(c.curp || '').trim().toUpperCase();
+  if(curp){
+    var vc = _precalMotor.validarCURP(curp, new Date());
+    out += vc.valida ? '<span class="pc-ok">' + PC_ICO_CHECK + 'CURP válida</span>' : '<span class="pc-mal">' + PC_ICO_X + 'CURP: ' + _precalEsc(vc.motivo.toLowerCase()) + '</span>';
+  }
+  if(/^\d{4}$/.test(String(c.ine || '').trim())){
+    out += Number(c.ine) >= new Date().getFullYear() ? '<span class="pc-ok">' + PC_ICO_CHECK + 'INE vigente</span>' : '<span class="pc-mal">' + PC_ICO_X + 'INE vencida</span>';
+  }
+  return out;
+}
+function precalCli(k, v, el){
+  if(k === 'curp' || k === 'nombre'){ v = String(v).toUpperCase(); if(el && el.value !== v) el.value = v; }
+  precalState.cli[k] = v;
+  if(k === 'curp' || k === 'ine'){ var el = document.getElementById('pc-chips'); if(el) el.innerHTML = _precalChips(); }
+}
+function _precalCampo(k, etiqueta, attrs){
+  var val = precalState.cli[k] || '';
+  return '<label class="hv3-field"><span class="hv3-lbl">' + etiqueta + '</span><input class="pc-input" ' + attrs + ' value="' + _precalEsc(val) + '" oninput="precalCli(\'' + k + '\',this.value,this)"></label>';
+}
+function _precalCliente(){
+  var c = precalState.cli;
+  var h = _precalTop('Precalificar cliente', "precalIr('inicio')", 33);
+  h += '<div class="hv3-form">';
+  h += _precalCampo('nombre', 'Nombre', 'type="text" autocomplete="off" autocapitalize="characters"');
+  h += _precalCampo('curp', 'CURP', 'type="text" autocomplete="off" autocapitalize="characters" maxlength="18" spellcheck="false" style="letter-spacing:.03em"');
+  h += '<div class="hv3-2col">' + _precalCampo('nac', 'Fecha de nacimiento', 'type="date"') + _precalCampo('ine', 'Vigencia INE', 'type="text" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="Año"') + '</div>';
+  h += '<div class="pc-estado" id="pc-chips" aria-live="polite">' + _precalChips() + '</div>';
+  h += '<a class="pc-link" href="https://listanominal.ine.mx/scpln/" target="_blank" rel="noopener">Verificar en Lista Nominal' + PC_ICO_EXT + '</a>';
+  h += '</div>';
+  h += '<div class="hv3-form">' + _precalCampo('tel', 'Teléfono', 'type="tel" inputmode="numeric" maxlength="10" autocomplete="off"');
+  h += '<label class="pc-check"><input type="checkbox"' + (c.ok ? ' checked' : '') + ' onchange="precalState.cli.ok=this.checked"><span>El cliente autoriza el tratamiento de sus datos personales</span></label></div>';
+  h += '<button type="button" class="hv3-btn pc-sig" onclick="precalIr(\'preguntas\')">Continuar</button>';
+  return h;
+}
+
+// ── Paso 2: preguntas ──
+function precalFijar(k, v){
+  precalState.s = precalFijarEn(precalState.s, _precalMotor.config, k, v);
+  _precalPintar();
+}
+function _precalPreguntasHTML(){
+  var C = _precalMotor.config, s = precalState.s;
+  var falta = precalState.marcar ? precalFaltan(s, C) : [];
+  var h = _precalTop('Precalificar cliente', "precalIr('cliente')", 66);
+  precalPreguntas(s, C).forEach(function(sec){
+    h += '<section class="hv3-form pc-sec"><h2>' + sec.titulo + '</h2>';
+    sec.preguntas.forEach(function(q){
+      var cls = 'pc-q' + (falta.indexOf(q.k) >= 0 ? ' falta' : '');
+      if(q.numero){
+        h += '<label class="' + cls + '" id="pcq-' + q.k + '"><span>' + q.texto + '</span><div class="hv3-money"><span>$</span><input type="text" inputmode="numeric" autocomplete="off" value="' + _precalEsc(s[q.k] === undefined ? '' : s[q.k]) + '"'
+          + ' oninput="this.value=this.value.replace(/[^0-9]/g,\'\');precalState.s.pago=this.value"></div></label>';
+        return;
+      }
+      h += '<div class="' + cls + '" id="pcq-' + q.k + '" role="group" aria-label="' + _precalEsc(q.texto || sec.titulo) + '">' + (q.texto ? '<span>' + _precalEsc(q.texto) + '</span>' : '');
+      h += '<div class="' + (q.plan ? 'hv3-planes' : 'pc-chips') + '">';
+      q.ops.forEach(function(o){
+        var val = typeof o[0] === 'number' ? o[0] : "'" + o[0] + "'";
+        var cl = q.plan ? 'hv3-planbtn ' + ((typeof planVis === 'function' && planVis(o[0])) ? planVis(o[0]).cls : '') : 'pc-chip';
+        h += '<button type="button" class="' + cl + '" aria-pressed="' + (s[q.k] === o[0]) + '" onclick="precalFijar(\'' + q.k + '\',' + val + ')">' + _precalEsc(o[1]) + '</button>';
+      });
+      h += '</div></div>';
+    });
+    h += '</section>';
+  });
+  h += '<span class="hv3-msg pc-msg" id="pc-msg" role="alert">' + (falta.length ? (falta.length === 1 ? 'Falta 1 respuesta' : 'Faltan ' + falta.length + ' respuestas') : '') + '</span>';
+  h += '<button type="button" class="hv3-btn" onclick="precalCalcular()">Calcular</button>';
+  return h;
+}
+function precalCalcular(){
+  var C = _precalMotor.config, s = precalState.s;
+  var falta = precalFaltan(s, C);
+  if(falta.length){
+    precalState.marcar = true;
+    _precalPintar();
+    var q = document.getElementById('pcq-' + falta[0]);
+    if(q) q.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  precalState.marcar = false;
+  var d = precalDatos(s, C, precalState.cli);
+  try{ precalState.res = { d: d, r: _precalMotor.evaluar(d, { hoy: new Date() }), err: null }; }
+  catch(e){ precalState.res = { d: d, r: null, err: e.message }; }
+  precalIr('resultado');
+}
+
+// ── Resultado ──
+function _precalAnillo(v){
+  var CIRC = 351.86, dash = v.p !== null ? (v.p * CIRC).toFixed(1) : '0';
+  var lbl = v.p !== null ? 'Probabilidad estimada de aprobación ' + v.pct : 'Sin probabilidad: no procede';
+  return '<svg class="pc-anillo" width="112" height="112" viewBox="0 0 132 132" role="img" aria-label="' + lbl + '">'
+    + '<circle cx="66" cy="66" r="56" fill="none" class="pc-anillo-base" stroke-width="12"></circle>'
+    + (v.p !== null ? '<circle cx="66" cy="66" r="56" fill="none" class="pc-anillo-p" stroke-width="12" stroke-linecap="round" stroke-dasharray="' + dash + ' ' + CIRC + '" transform="rotate(-90 66 66)"></circle>' : '')
+    + '<text x="66" y="64" text-anchor="middle" dominant-baseline="middle" class="pc-anillo-n">' + v.pct + '</text>'
+    + '<text x="66" y="92" text-anchor="middle" class="pc-anillo-l">probabilidad</text></svg>';
+}
+function _precalResultado(){
+  var x = precalState.res, C = _precalMotor.config;
+  var h = _precalTop('Resultado', "precalIr('preguntas')");
+  if(!x) return h;
+  if(x.err) return h + '<section class="pc-card"><p class="pc-error">' + _precalEsc(x.err) + '</p></section>';
+  var v = precalVista(x.r, x.d, C);
+  h += '<section class="pc-card pc-c-' + v.perfil + '"><div class="pc-res-top">' + _precalAnillo(v) + '<div class="pc-res-txt">'
+    + '<span class="pc-perfil">Perfil ' + v.perfil + '</span><b>' + _precalEsc(v.pedidoTxt) + '</b><span>' + _precalEsc(v.mensualidadTxt) + '</span></div></div></section>';
+  if(v.bloqueado){
+    h += '<section class="pc-card pc-bloq"><h2>No procede</h2><ul>' + v.bloqueos.map(function(b){ return '<li>' + _precalEsc(b) + '</li>'; }).join('') + '</ul></section>';
+  }
+  if(v.alt){
+    h += '<section class="pc-card pc-alt"><div class="pc-cab"><h2>Opción alterna</h2><b>' + v.alt.pct + '</b></div><span class="pc-alt-t">' + _precalEsc(v.alt.txt) + '</span><span class="pc-sub">' + v.alt.detalle + '</span></section>';
+  }
+  if(!v.bloqueado){
+    h += '<section class="pc-card"><div class="pc-cab"><h2>Historial estimado</h2><span class="pc-sub">Escala Buró ' + C.historial.minimo + '–' + C.historial.maximo + '</span></div>';
+    if(v.hist.sin) h += '<span class="pc-hist-sin">' + _precalEsc(v.hist.etiqueta) + '</span>';
+    else {
+      h += '<div class="pc-cab pc-h-' + v.hist.banda + '"><span class="pc-hist-et">' + _precalEsc(v.hist.etiqueta) + '</span><b class="pc-hist-r">' + v.hist.rango + '</b></div>';
+      h += '<div class="pc-escala" aria-hidden="true">' + C.historial.bandas.map(function(){ return '<i></i>'; }).join('') + '<em class="pc-h-' + v.hist.banda + '" style="left:' + v.hist.x0 + '%;width:' + v.hist.ancho + '%"></em></div>';
+      h += '<div class="pc-escala-l">' + v.hist.segmentos.map(function(g){ return '<span' + (g.act ? ' class="act pc-h-' + g.id + '"' : '') + '>' + _precalEsc(g.label) + '</span>'; }).join('') + '</div>';
+    }
+    h += '<div class="pc-conf"><span>Confiabilidad de las respuestas</span><b>' + v.confianza + '</b></div></section>';
+    h += '<section class="pc-card"><h2>Probabilidad por plan</h2>';
+    v.bandas.forEach(function(b){
+      h += '<div class="pc-banda"><span class="pc-banda-t">' + _precalEsc(b.titulo) + '</span>';
+      b.filas.forEach(function(f){
+        var pv = (typeof planVis === 'function') ? planVis(f.plan) : null;
+        h += '<div class="pc-fila ' + (pv ? pv.cls : '') + (f.marca ? ' marca' : '') + '"><div class="pc-fila-p"><b>' + f.plan + '</b><span>' + f.mens + '</span></div>'
+          + '<div class="pc-barra"><i style="width:' + (f.p * 100).toFixed(1) + '%"></i></div><span class="pc-fila-n">' + f.pct + '</span></div>';
+      });
+      h += '</div>';
+    });
+    h += '</section>';
+    if(v.efectos.length){
+      h += '<section class="pc-card"><h2>Factores</h2><ul class="pc-fact">' + v.efectos.map(function(e){
+        return '<li><span>' + _precalEsc(e.etiqueta) + '</span><b class="' + (e.positivo ? 'pos' : 'neg') + '">' + e.pts + '</b></li>';
+      }).join('') + '</ul></section>';
+    }
+  }
+  if(v.avisos.length) h += '<section class="pc-card"><h2>Observaciones</h2><ul class="pc-obs">' + v.avisos.map(function(a){ return '<li>' + _precalEsc(a) + '</li>'; }).join('') + '</ul></section>';
+  if(v.docs.length){
+    h += '<section class="pc-card"><h2>Documentos requeridos</h2><ul class="pc-docs">' + v.docs.map(function(t){ return '<li>' + PC_ICO_CHECK + '<span>' + t + '</span></li>'; }).join('') + '</ul>'
+      + '<button type="button" class="pc-btn2" onclick="precalEnviarDocs()">' + PC_ICO_WA + 'Enviar lista por WhatsApp</button></section>';
+  }
+  h += '<span class="hv3-msg pc-msg" id="pc-guardar-msg" role="alert"></span><button type="button" class="hv3-btn" onclick="precalGuardar()">Guardar</button>';
+  h += '<p class="pc-pie">' + _precalEsc(v.calibracionTxt) + '</p>';
+  return h;
+}
+function precalEnviarDocs(){
+  var x = precalState.res;
+  if(!x || !x.r) return;
+  var msg = 'Documentos para tu solicitud:\n' + precalDocs(x.d).map(function(t){ return '• ' + t; }).join('\n');
+  var tel = String(precalState.cli.tel || '').replace(/\D/g, '');
+  window.open('https://wa.me/' + (tel.length === 10 ? '52' + tel : '') + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+}
+function precalGuardar(){
+  var x = precalState.res;
+  if(!x || !x.r) return;
+  var r = x.r, s = r.solicitado, a = r.alterna, ahora = new Date().toISOString();
+  var datos = JSON.parse(JSON.stringify(x.d));
+  datos.identidad = { consentimiento: datos.identidad.consentimiento };
+  if(typeof x.d.identidad.ineVigencia === 'number') datos.identidad.ineVigencia = x.d.identidad.ineVigencia;
+  var rec = {
+    id: 'pc' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    fecha: ahora,
+    nombre: String(precalState.cli.nombre || '').trim(),
+    datos: datos,
+    resumen: { p: r.p, perfil: r.perfil, decision: r.decision, bloqueado: r.bloqueos.length > 0, grupo: r.grupo,
+      plan: s.plan, banda: s.banda, plazo: s.plazo, precio: s.precio, enganche: s.enganche,
+      alt: a ? { plan: a.plan, banda: a.banda, plazo: a.plazo, precio: a.precio, enganche: a.enganche, p: a.p } : null },
+    bitacora: _precalMotor.paraBitacora(r, ahora),
+    registro: null
+  };
+  var lista = precalLista();
+  lista.unshift(rec);
+  if(!precalGuardarLista(lista)){ var m = document.getElementById('pc-guardar-msg'); if(m) m.textContent = 'No se pudo guardar en este teléfono'; return; }
+  precalState.cli = {}; precalState.s = {}; precalState.res = null;
+  precalState.filtro = 'pendientes'; precalState.abierto = rec.resumen.bloqueado ? null : rec.id; precalState.reg = {};
+  if(rec.resumen.bloqueado) precalState.filtro = 'todas';
+  precalIr('lista');
+}
+
+// ── Mis precalificaciones: registrar el resultado de AT&T ──
+function _precalSub(x){
+  var C = _precalMotor.config, r = x.resumen;
+  var p = r.p !== null ? Math.round(r.p * 100) + '%' : 'No procede';
+  var t = _precalCuando(x.fecha) + ' · ' + p + ' · ' + r.plan + ' · ' + precalEquipo(C, r.banda);
+  if(x.registro){
+    var R = { aprobado: 'Aprobada', otro: 'Aprobada con ' + (x.registro.plan || 'otro plan'), rechazado: 'Rechazada' };
+    t += ' · ' + R[x.registro.resp];
+  }
+  return t;
+}
+function precalRegFijar(k, v){ precalState.reg[k] = v; _precalPintar(); }
+function precalAbrirReg(id){
+  precalState.abierto = precalState.abierto === id ? null : id;
+  precalState.reg = {};
+  _precalPintar();
+}
+function _precalOpciones(k, ops){
+  var sel = precalState.reg[k];
+  return '<div class="pc-chips">' + ops.map(function(o){
+    return '<button type="button" class="pc-chip" aria-pressed="' + (sel === o[0]) + '" onclick="precalRegFijar(\'' + k + '\',\'' + o[0] + '\')">' + _precalEsc(o[1]) + '</button>';
+  }).join('') + '</div>';
+}
+function _precalRegHTML(x){
+  var C = _precalMotor.config, r = x.resumen, g = precalState.reg;
+  var envios = [['pedido', 'Solicitado · ' + r.plan]];
+  if(r.alt) envios.push(['alterna', 'Alterna · ' + r.alt.plan]);
+  envios.push(['otro', 'Otra']);
+  var h = '<div class="pc-reg"><div class="pc-q"><span>Solicitud ingresada</span>' + _precalOpciones('envio', envios) + '</div>';
+  h += '<div class="pc-q"><span>Resultado de AT&amp;T</span>' + _precalOpciones('resp', [['aprobado', 'Aprobada'], ['otro', 'Aprobada con otro plan'], ['rechazado', 'Rechazada']]) + '</div>';
+  if(g.resp === 'otro'){
+    var e = precalEnvio(x, g.envio) || { precioEquipo: C.bandas[r.banda].precioRef };
+    var bi = _precalMotor.bandaDePrecio(e.precioEquipo);
+    h += '<div class="pc-q"><span>Plan aprobado</span>' + _precalOpciones('plan', C.bandas[bi].planes.map(function(p){ return [p, p]; })) + '</div>';
+  }
+  h += '<span class="hv3-msg" id="pc-reg-msg" role="alert"></span>';
+  h += '<button type="button" class="hv3-btn" onclick="precalRegistrar(\'' + x.id + '\')">Guardar resultado</button></div>';
+  return h;
+}
+function precalRegistrar(id){
+  var g = precalState.reg, msg = document.getElementById('pc-reg-msg');
+  if(!g.envio || !g.resp || (g.resp === 'otro' && !g.plan)){ if(msg) msg.textContent = 'Elige la solicitud y el resultado'; return; }
+  var lista = precalLista(), x = lista.filter(function(y){ return y.id === id; })[0];
+  if(!x) return;
+  var e = precalEnvio(x, g.envio), filas = null;
+  if(e){
+    var resp = g.resp === 'otro' ? { contraoferta: { plan: g.plan, precioEquipo: e.precioEquipo, plazo: e.plazo, enganche: e.enganche } } : g.resp;
+    try{ filas = _precalMotor.filasCalibracion(x.datos, e, resp, { hoy: new Date(x.fecha) }); }catch(err){ filas = null; }
+  }
+  x.registro = { envio: g.envio, resp: g.resp, plan: g.resp === 'otro' ? g.plan : null, fecha: new Date().toISOString(), filas: filas };
+  x.bitacora.resultado = g.resp;
+  if(!precalGuardarLista(lista)){ if(msg) msg.textContent = 'No se pudo guardar en este teléfono'; return; }
+  precalState.abierto = null; precalState.reg = {};
+  _precalPintar();
+}
+function _precalListaHTML(){
+  var lista = precalLista(), pend = lista.filter(_precalPendiente);
+  var ver = precalState.filtro === 'todas' ? lista : pend;
+  var h = _precalTop('Mis precalificaciones', "precalIr('inicio')");
+  h += '<div class="hv3-seg pc-seg" role="group" aria-label="Filtro">'
+    + '<button type="button" aria-pressed="' + (precalState.filtro !== 'todas') + '" onclick="precalState.filtro=\'pendientes\';_precalPintar()">Pendientes · ' + pend.length + '</button>'
+    + '<button type="button" aria-pressed="' + (precalState.filtro === 'todas') + '" onclick="precalState.filtro=\'todas\';_precalPintar()">Todas</button></div>';
+  if(!ver.length) return h + '<div class="hv3-cred-vacio">' + (precalState.filtro === 'todas' ? 'Sin precalificaciones' : 'Sin pendientes') + '</div>';
+  h += '<div class="pc-lista">';
+  ver.forEach(function(x){
+    var abierto = precalState.abierto === x.id && _precalPendiente(x);
+    var cab = '<span class="pc-ini pc-c-' + x.resumen.perfil + '" role="img" aria-label="Perfil ' + x.resumen.perfil + '">' + x.resumen.perfil + '</span>'
+      + '<span class="pc-item-t"><b>' + _precalEsc(x.nombre || 'Cliente sin nombre') + '</b><span>' + _precalEsc(_precalSub(x)) + '</span></span>';
+    if(abierto) h += '<section class="pc-item abierto"><div class="pc-item-cab">' + cab + '</div>' + _precalRegHTML(x) + '</section>';
+    else if(_precalPendiente(x)) h += '<button type="button" class="pc-item" onclick="precalAbrirReg(\'' + x.id + '\')"><span class="pc-item-cab">' + cab + PC_ICO_DER + '</span></button>';
+    else h += '<div class="pc-item"><div class="pc-item-cab">' + cab + '</div></div>';
+  });
+  h += '</div>';
+  return h;
 }
