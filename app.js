@@ -551,12 +551,12 @@ var PLAN_VIS = {
   'Plata':    {cls:'pw-plata',    g1:'#8E9AA8', g2:'#4E5B69', ink:'#4E5B69'},
   'Oro':      {cls:'pw-oro',      g1:'#C99A1B', g2:'#8A5A00', ink:'#8A5A00'},
   'Black':    {cls:'pw-black',    g1:'#3A3A3A', g2:'#0A0A0A', ink:'#111111'},
-  'Platino':  {cls:'pw-platino',  g1:'#9A93B3', g2:'#4C4570', ink:'#4C4570'},
-  'Diamante': {cls:'pw-diamante', g1:'#22A3B5', g2:'#0B4F5A', ink:'#0B4F5A'}
+  'Platino':  {cls:'pw-platino',  g1:'#9A93B3', g2:'#4C4570', ink:'#4C4570'}
 };
 var MESES_LARGOS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
-// Planes de la recomendación, en el orden de PLANS_DATA (Titanio no tiene visual: queda fuera).
+// Planes de la recomendación, en el orden de PLANS_DATA (Titanio y Platino + no tienen visual:
+// quedan fuera; son de iPhone y la recomendación es de Android).
 function recoPlanes(){
   return PLANS_DATA.filter(function(p){ return PLAN_VIS[p.name]; }).map(function(p){ return p.name; });
 }
@@ -1602,9 +1602,12 @@ let curPlan=null, curPlazo=24;
 // EXCEPCIONES:
 //   - iPhone (id comienza con 'ip'): los null son reales — no aplican planes bajos
 //   - Plan Titanio: exclusivo iPhone — Android: Titanio null queda null
+//   - [v1.73.19] Plan Platino +: solo con equipo participante y solo a 36 meses —
+//     su null queda null siempre (la lista lo marca NA donde no aplica)
 //
 // Jerarquía de planes (de menor a mayor):
-//   Azul 1 < Azul 2 < Azul 3 < Plata < Oro < Black < Platino < Diamante < Titanio
+//   Azul 1 < Azul 2 < Azul 3 < Plata < Oro < Black < Platino < Platino + < Titanio
+//   [v1.73.19] Diamante dejó de venderse el 19-nov: Platino + lo sustituye.
 //
 // Jerarquía de plazos (de menor a mayor): 24 < 30 < 36
 //
@@ -1613,7 +1616,16 @@ let curPlan=null, curPlazo=24;
 //   2. ¿Hay algún plazo inferior (mismo plan) con precio? → $0
 //   3. ¿Hay algún (plan_inferior, plazo_inferior) con precio? → $0
 //   Si ninguna: queda null (realmente no aplica)
-const PLAN_ORDER = ['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Diamante','Titanio'];
+const PLAN_ORDER = ['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Platino +','Titanio'];
+// [v1.73.19] Planes con plazo propio: sus plazos salen de PRICES (Titanio 30, Platino + 36).
+const PLANES_PLAZO_PROPIO = ['Titanio','Platino +'];
+// Descuento de portabilidad por plan: 10% en Titanio; Platino + no convive con la
+// promoción (manual AT&T Premium 19-nov); el resto, PORT_DISCOUNT (20%).
+function portPctPlan(plan){
+  if(plan === 'Platino +') return 0;
+  if(plan === 'Titanio') return 0.10;
+  return (typeof PORT_DISCOUNT !== 'undefined') ? PORT_DISCOUNT : 0.20;
+}
 const PLAZO_ORDER = ['24','30','36'];
 
 function resolvePrice(deviceId, planName, plazo){
@@ -1634,6 +1646,8 @@ function resolvePrice(deviceId, planName, plazo){
   
   // Excepción 2: Plan Titanio es exclusivo iPhone — null queda null para Android
   if(planName === 'Titanio') return null;
+  // Excepción 3: Platino + solo existe donde la lista trae precio (36 meses, equipo participante)
+  if(planName === 'Platino +') return null;
   
   // Buscar si hay algún precio en plan/plazo inferior
   const idxPlan = PLAN_ORDER.indexOf(planName);
@@ -1711,22 +1725,24 @@ function selectPlan(planName){
   // se escribe a mano: se deduce de PRICES, así el próximo cambio de esquema
   // solo toca catalog.js. Se habilitan los plazos que tengan precio y se
   // selecciona el primero disponible si el actual quedó sin precio.
+  // [v1.73.19] Lo mismo para Platino + (solo 36 meses): PLANES_PLAZO_PROPIO.
+  const _propio=PLANES_PLAZO_PROPIO.indexOf(planName)>=0;
   const _titanioPlazos=[];
   try{
-  if(planName==='Titanio' && typeof PRICES!=='undefined' && curFichaId && PRICES[curFichaId]){
+  if(_propio && typeof PRICES!=='undefined' && curFichaId && PRICES[curFichaId]){
     // [v1.11.101] Aquí quedó 'curDev' (variable inexistente) al renombrar en la
     // v1.11.100: reventaba selectPlan ANTES de renderPriceResult, así que al
     // pasar a Titanio el precio se quedaba con el del plan anterior hasta que
     // el asesor tocaba un plazo. Nunca dos nombres para lo mismo.
     const _planes=PRICES[curFichaId].planes;
-    const _tp=_planes && _planes['Titanio'];
+    const _tp=_planes && _planes[planName];
     if(_tp) ['24','30','36'].forEach(function(z){
       if(_tp[z]!==null && _tp[z]!==undefined) _titanioPlazos.push(Number(z));
     });
   }
   document.querySelectorAll('.plazo-btn').forEach(function(b){
     const txt=(b.textContent||'').trim();
-    if(planName==='Titanio'){
+    if(_propio){
       const m=txt.match(/\d+/);
       const z=m?Number(m[0]):0;
       const ok=_titanioPlazos.indexOf(z)>=0;
@@ -1740,7 +1756,7 @@ function selectPlan(planName){
   });
   // Si el plazo activo quedó deshabilitado, saltar al primero con precio.
   // (El try/catch de arriba garantiza que renderPriceResult siempre corra.)
-  if(planName==='Titanio' && _titanioPlazos.length && _titanioPlazos.indexOf(curPlazo)<0){
+  if(_propio && _titanioPlazos.length && _titanioPlazos.indexOf(curPlazo)<0){
     const destino=_titanioPlazos[0];
     document.querySelectorAll('.plazo-btn').forEach(function(x){
       const m=(x.textContent||'').match(/\d+/);
@@ -1951,7 +1967,7 @@ function calcBudget(){
     {name:'Azul 1',renta:330},{name:'Azul 2',renta:435},
     {name:'Azul 3',renta:550},{name:'Plata',renta:650},
     {name:'Oro',renta:725},{name:'Black',renta:825},
-    {name:'Platino',renta:1035},{name:'Diamante',renta:1300}
+    {name:'Platino',renta:1035},{name:'Platino +',renta:1299}
   ];
   
   // Filter plans by mensual budget (if provided)
@@ -2105,7 +2121,7 @@ function openCotModal(){
   const promo=resolvePrice(curFichaId, curPlan, curPlazo);
   if(promo===null||promo===undefined){alert('No hay precio para esta combinación');return;}
   
-  const PLANS_RENTAS={'Azul 1':330,'Azul 2':435,'Azul 3':550,'Plata':650,'Oro':725,'Black':825,'Platino':1035,'Diamante':1300,'Titanio':1599};
+  const PLANS_RENTAS={'Azul 1':330,'Azul 2':435,'Azul 3':550,'Plata':650,'Oro':725,'Black':825,'Platino':1035,'Platino +':1299,'Titanio':1599};
   const rentaPlan = PLANS_RENTAS[curPlan]||0;
   const desc = (1 - promo/info.contado)*100;
   
@@ -2180,6 +2196,9 @@ function openCotModal(){
   
   // Reset toggles
   document.getElementById('cot-port-switch').classList.remove('on');
+  // [v1.73.19] Platino + no convive con la portabilidad: la opción no se muestra.
+  const _secPort = document.getElementById('cot-port-switch').closest('.cot-section');
+  if(_secPort) _secPort.style.display = portPctPlan(cotState.plan) > 0 ? '' : 'none';
   document.getElementById('cot-control-switch').classList.remove('on');
   document.getElementById('cot-seguro-switch').classList.remove('on');
   document.getElementById('cot-eng-custom-wrap').classList.remove('show');
@@ -2195,6 +2214,7 @@ function cotClose(){
 
 
 function cotTogglePort(){
+  if(portPctPlan(cotState.plan) === 0){ cotState.port = false; return; } // [v1.73.19] Platino +
   cotState.port = !cotState.port;
   document.getElementById('cot-port-switch').classList.toggle('on', cotState.port);
   cotRender();
@@ -2283,7 +2303,7 @@ function calcularMejorPlan(){
   const plazo = cotState.plazo;
   const planActual = cotState.plan;
   const idxActual = SUGERENCIA_PLANES.indexOf(planActual);
-  if(idxActual < 0) return null; // planes especiales (Titanio/Platino/Diamante) no entran
+  if(idxActual < 0) return null; // planes especiales (Platino, Platino +, Titanio) no entran
 
   // Costo de entrada y mensualidad base del plan ACTUAL
   const promoActual = cotState.promo;
@@ -2348,7 +2368,7 @@ function cotRender(){
   
   // Mensualidad: plan + remanente equipo / plazo + servicios
   let planEffective = cotState.planRenta;
-  /* [v1.8] Titanio: descuento port 10% */ if(cotState.port) planEffective = Math.round(cotState.planRenta * (1 - (cotState.plan==="Titanio"?0.10:PORT_DISCOUNT)));
+  /* [v1.8] Titanio 10% · [v1.73.19] Platino + sin descuento */ if(cotState.port) planEffective = Math.round(cotState.planRenta * (1 - portPctPlan(cotState.plan)));
   
   const seguroPrice = cotState.seguro ? getSeguroPrice(cotState.contado) : 0;
   const controlPrice = cotState.control ? CONTROL_PRICE : 0;
@@ -2400,7 +2420,7 @@ function cotRender(){
   
   if(cotState.port){
     const ahorro = cotState.planRenta - planEffective;
-    h += '<div class="cot-resumen-row discount"><span class="cot-resumen-label">Descuento portabilidad (-'+(cotState.plan==='Titanio'?'10':'20')+'%)</span><span class="cot-resumen-val">-$'+fmx(ahorro)+'</span></div>';
+    h += '<div class="cot-resumen-row discount"><span class="cot-resumen-label">Descuento portabilidad (-'+Math.round(portPctPlan(cotState.plan)*100)+'%)</span><span class="cot-resumen-val">-$'+fmx(ahorro)+'</span></div>';
   }
   
   // Equipo financiamiento
@@ -2526,7 +2546,9 @@ function renderCommission(){
   document.getElementById('comm-amount').textContent = '$' + fmx(c.total);
   
   let h = '';
-  h += '<div class="comm-row"><span class="comm-row-label">Plan ' + cotState.plan + '</span><span class="comm-row-amount">$' + fmx(c.plan) + '</span></div>';
+  // [v1.73.19] Plan sin comisión en el esquema (Platino +): se marca "—", no $0.
+  const _sinEsquema = typeof PLAN_COMMISSION !== 'undefined' && !(cotState.plan in PLAN_COMMISSION);
+  h += '<div class="comm-row"><span class="comm-row-label">Plan ' + cotState.plan + '</span><span class="comm-row-amount">' + (_sinEsquema ? '—' : '$' + fmx(c.plan)) + '</span></div>';
   
   // [v1.73.7] Incentivo de marca en PUNTOS: renglón aparte, no suma al total en pesos.
   const _pts = puntosEquipo(cotState.device.id, cotState.plan);
@@ -2609,7 +2631,7 @@ function cotSend(){
   const totalInicial = engPay + rentasGarantia + depositoGarantia;
   
   let planEffective = cotState.planRenta;
-  /* [v1.8] Titanio: descuento port 10% */ if(cotState.port) planEffective = Math.round(cotState.planRenta * (1 - (cotState.plan==="Titanio"?0.10:PORT_DISCOUNT)));
+  /* [v1.8] Titanio 10% · [v1.73.19] Platino + sin descuento */ if(cotState.port) planEffective = Math.round(cotState.planRenta * (1 - portPctPlan(cotState.plan)));
   const seguroPrice = cotState.seguro ? getSeguroPrice(cotState.contado) : 0;
   const controlPrice = cotState.control ? CONTROL_PRICE : 0;
   const remanente = Math.max(0, cotState.promo - engPay);
@@ -2658,7 +2680,7 @@ function cotSend(){
     msg += '🏷️ Descuento: ' + cotState.descPct + '%\n';
   }
   if(cotState.port){
-    msg += '🔄 Cliente con portabilidad: ' + (cotState.plan==='Titanio'?'10':'20') + '% desc. plan x 6 meses\n';
+    msg += '🔄 Cliente con portabilidad: ' + Math.round(portPctPlan(cotState.plan)*100) + '% desc. plan x 6 meses\n';
   }
   msg += '\n';
   
@@ -3186,7 +3208,7 @@ function showTopComm(){
 function renderTopCommPlanPills(){
   const el = document.getElementById('top-comm-plan-pills');
   if(!el) return;
-  const plans = ['Azul 3','Plata','Oro','Black','Platino','Diamante'];
+  const plans = ['Azul 3','Plata','Oro','Black','Platino']; // [v1.73.19] sin Diamante; Platino + sin comisión definida
   const activeColor = (TOP_COMM_PLAN_COLORS[topCommSelectedPlan] || {b:'#FF6F00'}).b;
   let h = '';
   plans.forEach(function(p){
@@ -3481,7 +3503,7 @@ function _model3dAbierto(){
 
 let descSelectedPlan = 'Plata';
 let descSelectedPlazo = '36';
-const DESC_PLANS = ['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Diamante'];
+const DESC_PLANS = ['Azul 1','Azul 2','Azul 3','Plata','Oro','Black','Platino','Platino +'];
 const DESC_BRACKETS = [
   {k:'inc', label:'Equipo incluido', color:'#10B981'},
   {k:'70',  label:'70% o más',       color:'#34C759'},
@@ -9795,6 +9817,7 @@ function renderDonutPlanes(topPlanes, total){
     'Black':    '#1C1C1E',
     'Platino':  '#185FA5',
     'Diamante': '#5856D6',
+    'Platino +':'#5E35B1',
     'Titanio':  '#878681'
   };
   const colorByPlan = function(planName){
@@ -10041,7 +10064,7 @@ let aiIsSending = false;
 // capacidades para que pueda guiar correctamente al asesor.
 const AI_APP_CAPABILITIES = {
   flujo_cotizacion: [
-    "Desde la ficha del equipo, el asesor selecciona PLAN (Azul 1-3, Plata, Oro, Black, Platino, Diamante, Titanio) y PLAZO (24, 30 o 36 meses). Titanio maneja plazo de 30 meses desde el esquema de agosto 2026 (antes 24).",
+    "Desde la ficha del equipo, el asesor selecciona PLAN (Azul 1-3, Plata, Oro, Black, Platino, Platino +, Titanio) y PLAZO (24, 30 o 36 meses). Titanio maneja plazo de 30 meses desde el esquema de agosto 2026 (antes 24). Platino + ($1,299) solo a 36 meses y con equipo participante; sustituye a Diamante, que dejó de venderse el 19 de noviembre de 2026.",
     "Tap en 'Cotizar' abre el modal donde el asesor configura: enganche (0/10/20/30/40/50% o monto personalizado), rentas en garantía (0-3), depósito de garantía, portabilidad, seguro AT&T Protección, control AT&T.",
     "Puede agregar el nombre del cliente para que el WhatsApp salga personalizado.",
     "La cotización se envía por 2 canales: TEXTO (mensaje de WhatsApp con formato) o IMAGEN (flyer profesional generado, se comparte o descarga).",
@@ -10069,8 +10092,9 @@ const AI_APP_CAPABILITIES = {
     nota: "Requiere acceso CRM autorizado (DC499W lo tiene; otros asesores según su rol o tienda)."
   },
   portabilidad: {
-    descripcion: "Si el cliente porta un número de otra compañía a AT&T, recibe descuento de 20% en su renta mensual durante los primeros 6 meses (esquema vigente desde agosto 2026; antes eran 12). Aplica de Azul 1 a Diamante con smartphone nuevo, e incluye condonación del cargo por activación y TikTok ilimitado.",
-    excepcion_titanio: "En plan Titanio el descuento es del 10%, no 20%."
+    descripcion: "Si el cliente porta un número de otra compañía a AT&T, recibe descuento de 20% en su renta mensual durante los primeros 6 meses (esquema vigente desde agosto 2026; antes eran 12). Aplica de Azul 1 a Platino con smartphone nuevo, e incluye condonación del cargo por activación y TikTok ilimitado.",
+    excepcion_titanio: "En plan Titanio el descuento es del 10%, no 20%.",
+    excepcion_platino_mas: "Platino + no convive con la promoción de portabilidad."
   },
   seguro_proteccion: {
     descripcion: "Seguro AT&T Protección, cubre pantalla rota, daño líquido, robo con violencia.",
@@ -10272,8 +10296,8 @@ function aiBuildRAGContext(question){
     {alias:['plata'],     plan:'Plata'},
     {alias:['oro'],       plan:'Oro'},
     {alias:['black','negro'],   plan:'Black'},
+    {alias:['platino +','platino+','platino plus'], plan:'Platino +'},
     {alias:['platino'],   plan:'Platino'},
-    {alias:['diamante'],  plan:'Diamante'},
     {alias:['titanio'],   plan:'Titanio'}
   ];
   // Patrones que CONFIRMAN intención de plan: "plan X", "en X", "del X", "X de 24/30/36"
@@ -10291,7 +10315,7 @@ function aiBuildRAGContext(question){
   }
   // Excepciones: si el nombre es muy distintivo (Diamante, Platino, Titanio, Black, Azul N),
   // word-boundary basta porque rara vez son palabras comunes.
-  const planesDistintivos = ['azul 1','azul 2','azul 3','azul1','azul2','azul3','plan azul 1','plan azul 2','plan azul 3','platino','diamante','titanio','black','negro'];
+  const planesDistintivos = ['azul 1','azul 2','azul 3','azul1','azul2','azul3','plan azul 1','plan azul 2','plan azul 3','platino +','platino+','platino plus','platino','titanio','black','negro'];
   for(let i=0; i<planNombres.length && !planFiltro; i++){
     const def = planNombres[i];
     for(let j=0; j<def.alias.length; j++){
@@ -10703,10 +10727,10 @@ function aiSystemPrompt(){
   const _region = (asesorData && asesorData.region) ? asesorData.region : '';
   return 'Eres el Asistente de TechGuide, una PWA de Prime MX (distribuidor maestro de AT&T México). Estás hablando con ' + asesor + (_region ? ', regional ' + _region : '') + '.\n\n'
     + 'CONTEXTO DE NEGOCIO:\n'
-    + '• Prime MX es distribuidor AT&T México. Vende equipos con plan pospago en planes Azul 1/2/3, Plata, Oro, Black, Platino, Diamante, Titanio.\n'
+    + '• Prime MX es distribuidor AT&T México. Vende equipos con plan pospago en planes Azul 1/2/3, Plata, Oro, Black, Platino, Platino +, Titanio. Diamante dejó de venderse el 19-nov-2026 (Platino + lo sustituye: $1,299, solo 36 meses y con equipo participante).\n'
     + '• "Incluido en el plan" significa equipo sin costo SUJETO a permanencia del plazo. Cancelación anticipada genera cobro del equipo.\n'
     + '• Plazos disponibles: 24, 30 o 36 meses.\n'
-    + '• Portabilidad: 20% descuento en renta x 6 meses (10% en Titanio, también 6 meses). Incluye condonación del cargo por activación y TikTok ilimitado.\n\n'
+    + '• Portabilidad: 20% descuento en renta x 6 meses (10% en Titanio, también 6 meses; no aplica en Platino +). Incluye condonación del cargo por activación y TikTok ilimitado.\n\n'
     + 'FUNCIONALIDADES DE TECHGUIDE (la app que está usando el asesor):\n'
     + '• Catálogo de equipos iOS y Android con specs, sell points, objeciones, bundles.\n'
     + '• Modal de cotización: enganche, rentas en garantía, depósito, portabilidad, seguro AT&T, plan Control, ACCESORIOS.\n'
@@ -13809,7 +13833,7 @@ let lastGeneratedBlob=null;
 var FLYER_PLAN_ACCENTS = {
   'Azul 1':'#0288D1','Azul 2':'#0288D1','Azul 3':'#0288D1',
   'Plata':'#546E7A','Oro':'#F9A825','Black':'#1C1C1E',
-  'Platino':'#185FA5','Diamante':'#5856D6','Titanio':'#878681'
+  'Platino':'#185FA5','Platino +':'#5E35B1','Diamante':'#5856D6','Titanio':'#878681'
 };
 
 function _flyerFmx(n){ return n.toLocaleString('es-MX'); }
@@ -14028,8 +14052,8 @@ function cotCalcPlan(state, planName, plazoOpt){
   const seguroPrice=state.seguro?getSeguroPrice(state.contado):0;
   const controlPrice=state.control?50:0;
   const totalMensual=renta+equipoMensual+seguroPrice+controlPrice;
-  /* Portabilidad: 10% en Titanio, 20% en el resto — igual que buildFlyerHTML */
-  const portPct=(planName==='Titanio')?0.10:0.20;
+  /* Portabilidad: 10% en Titanio, 0 en Platino +, 20% en el resto — igual que buildFlyerHTML */
+  const portPct=portPctPlan(planName);
   const totalMensualPort=Math.round(renta*(1-portPct))+equipoMensual+seguroPrice+controlPrice;
   return { plan:planName, plazo:plazo, renta:renta, promo:promo, totalInicial:totalInicial,
            totalMensual:totalMensual, totalMensualPort:totalMensualPort };
@@ -14221,7 +14245,7 @@ function buildFlyerHTML(state){
   const depositoGarantia=state.deposito||0;
   const totalInicial=engPay+rentasGarantia+depositoGarantia;
   let planEffective=state.planRenta;
-  const _portPct = state.plan==='Titanio' ? 0.10 : 0.20;
+  const _portPct = portPctPlan(state.plan);
   if(state.port) planEffective=Math.round(state.planRenta*(1-_portPct));
   const seguroPrice=state.seguro?getSeguroPrice(state.contado):0;
   const controlPrice=state.control?50:0;
@@ -14337,7 +14361,7 @@ function buildFlyerHTML(state){
   h+='<span style="font-weight:800;color:#0B1A2B">$'+fmx(totalMensual)+'</span></div>';
   if(state.port && portSavings>0){
     h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0 10px;font-size:13px;border-top:1px solid #E8EBEF">';
-    h+='<span style="color:#16A34A;line-height:1.4">Con portabilidad<br><span style="font-size:11px;color:#6B7A90">primeros 6 meses, '+(state.plan==='Titanio'?'10':'20')+'% en el plan</span></span>';
+    h+='<span style="color:#16A34A;line-height:1.4">Con portabilidad<br><span style="font-size:11px;color:#6B7A90">primeros 6 meses, '+Math.round(portPctPlan(state.plan)*100)+'% en el plan</span></span>';
     h+='<span style="font-weight:800;color:#16A34A;white-space:nowrap">$'+fmx(totalMensualWithPort)+'</span></div>';
   }
   h+='</div></div>';

@@ -17,7 +17,7 @@ test('Find X10: NPI 512 GB con Enco Clip2, precio de la fila 175 hasta el 30-nov
   assert.equal(d.specs['Batería'], '8,000 mAh · 80W SUPERVOOC · inalámbrica 50W AIRVOOC');
   assert.equal(c.PRICES.opfindx10.contado, 29999);
   assert.equal(c.PRICES.opfindx10.planes.Plata['36'], 21299.29);
-  assert.equal(c.PRICES.opfindx10.planes.Diamante['36'], 15299.49);
+  assert.equal(c.PRICES.opfindx10.planes.Diamante['36'], null); // [v1.73.19] Diamante NA desde el 19-nov
   assert.equal(c.VIGENCY.opfindx10, '2026-11-30');
   assert.ok(!c.OCULTOS.includes('opfindx10'));
 });

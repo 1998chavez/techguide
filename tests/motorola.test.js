@@ -17,7 +17,7 @@ test('Edge 70 Fusión 12 GB: NPI, sin bundle, precio de la fila 119 hasta el 30-
   assert.equal(d.specs['Batería'], '5,200 mAh · 68W TurboPower');
   assert.equal(c.PRICES.medge70f_12.contado, 12999);
   assert.equal(c.PRICES.medge70f_12.planes.Plata['36'], 7009.06);
-  assert.equal(c.PRICES.medge70f_12.planes.Diamante['36'], 1059.42);
+  assert.equal(c.PRICES.medge70f_12.planes.Diamante['36'], null); // [v1.73.19] Diamante NA desde el 19-nov
   assert.equal(c.VIGENCY.medge70f_12, '2026-11-30');
 });
 

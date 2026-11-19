@@ -6,8 +6,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { cargar } = require('./cargar-app.js');
 
-const PLANES = ['Azul 1', 'Azul 2', 'Azul 3', 'Plata', 'Oro', 'Black', 'Platino', 'Diamante'];
-const RENTA = { 'Azul 1': 330, 'Azul 2': 435, 'Azul 3': 550, Plata: 650, Oro: 725, Black: 825, Platino: 1035, Diamante: 1300 };
+// [v1.73.19] Diamante dejó de venderse el 19-nov; Platino + (solo iPhone 17) no entra a la recomendación.
+const PLANES = ['Azul 1', 'Azul 2', 'Azul 3', 'Plata', 'Oro', 'Black', 'Platino'];
+const RENTA = { 'Azul 1': 330, 'Azul 2': 435, 'Azul 3': 550, Plata: 650, Oro: 725, Black: 825, Platino: 1035 };
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const ymd = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 const HOY = ymd(new Date());
@@ -52,11 +53,11 @@ function equipo(ctx, { id, name, contado, precios, storage = '128 GB', status = 
 const gratis = () => 0;
 const soloEstos = (ctx) => { ctx.CAT.android = []; ctx.CAT.ios = []; };
 
-test('recoCalcular coincide con un cálculo independiente (420 combinaciones)', () => {
+test('recoCalcular coincide con un cálculo independiente (315 combinaciones)', () => {
   const ctx = cargar();
   let n = 0;
   for (const monto of [1500, 2000, 2500, 3000, 4000]) {
-    for (let i = 0; i < 8; i++) for (let j = i + 1; j < 8; j++) for (const plazo of [24, 30, 36]) {
+    for (let i = 0; i < PLANES.length; i++) for (let j = i + 1; j < PLANES.length; j++) for (const plazo of [24, 30, 36]) {
       const r = ctx.recoCalcular(monto, PLANES[j], PLANES[i], plazo);
       const o = oraculo(ctx, monto, PLANES[i], PLANES[j], plazo);
       assert.deepEqual(plano(r.lista.map((x) => x.id)), o.ids, `${monto} ${PLANES[i]}+${PLANES[j]} ${plazo}`);
@@ -65,7 +66,7 @@ test('recoCalcular coincide con un cálculo independiente (420 combinaciones)', 
       n++;
     }
   }
-  assert.equal(n, 420);
+  assert.equal(n, 315);
 });
 
 test('planes en cualquier orden dan lo mismo', () => {
@@ -219,7 +220,7 @@ test('los 12 modelos que Diego mandó ocultar no salen con el catálogo real', (
   const ocultos = ['hmagic8pro', 'hx5c', 'medge60f', 'medge60pro', 'medge60pro_w', 'mrazr60u', 'opfindx9pro', 'opreno13', 'opreno14', 'opreno14f', 'x15t', 'x15tpro'];
   for (const id of ocultos) assert.equal(ctx.isVigent(id), false, id);
   const vistos = new Set();
-  for (const [a, b] of [['Azul 1', 'Azul 2'], ['Plata', 'Oro'], ['Black', 'Platino'], ['Platino', 'Diamante']]) {
+  for (const [a, b] of [['Azul 1', 'Azul 2'], ['Plata', 'Oro'], ['Black', 'Platino'], ['Oro', 'Platino']]) {
     ctx.recoCalcular(9000, a, b, 36).lista.forEach((x) => vistos.add(x.id));
   }
   ctx.campanaEquipos().forEach((x) => vistos.add(x.id));

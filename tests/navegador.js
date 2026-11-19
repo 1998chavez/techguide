@@ -1,5 +1,5 @@
 // [v1.73.0] Pruebas en navegador (Playwright, Chromium preinstalado).
-// Uso: node tests/navegador.js <inicio|reco|hoja|ficha|puntos|precal>
+// Uso: node tests/navegador.js <inicio|reco|hoja|ficha|puntos|precal|platino>
 // Sirve el repo, entra con una sesión falsa, sin service worker ni red externa,
 // y deja capturas en /tmp/v173 para revisarlas a ojo.
 'use strict';
@@ -293,13 +293,13 @@ async function hoja(nav, base) {
   const sm = await p.evaluate(() => document.querySelector('#flyer-preview-container img').src);
   fs.writeFileSync(OUT + '/hoja-samsung.png', Buffer.from(sm.split(',')[1], 'base64'));
   await p.evaluate(() => { recoState.marca = ''; closeFlyerPreview(); });
-  // Nombres largos e INCLUIDO: Platino y Diamante con $4,000 trae "Moto Edge 70 Pro + Watch"; Azul 1 y 2 con $1,500 trae equipos incluidos.
-  for (const [m, pa, pb, archivo] of [[4000, 'Platino', 'Diamante', 'hoja-larga.png'], [1500, 'Azul 1', 'Azul 2', 'hoja-incluido.png'], [6000, 'Plata', 'Oro', 'hoja-cara.png']]) {
+  // Nombres largos e INCLUIDO: Black y Platino con $4,000 trae "Moto Edge 70 Pro + Watch"; Azul 1 y 2 con $1,500 trae equipos incluidos.
+  for (const [m, pa, pb, archivo] of [[4000, 'Black', 'Platino', 'hoja-larga.png'], [1500, 'Azul 1', 'Azul 2', 'hoja-incluido.png'], [6000, 'Plata', 'Oro', 'hoja-cara.png']]) {
     await p.evaluate(([m, pa, pb]) => { recoState.monto = m; recoState.planes = [pa, pb]; recoState.plazo = 36; recoState.todos = false; }, [m, pa, pb]);
     await p.evaluate(() => { document.getElementById('flyer-preview-container').innerHTML = ''; return recoGenerarHoja(); });
     await p.waitForSelector('#flyer-preview-container img', { timeout: 20000 });
     const d = await desbordes(p, '#cot-flyer-render .hoja-card');
-    if (pa === 'Platino') { const t = await p.evaluate(() => document.querySelector('#cot-flyer-render .hoja-reco').textContent); chk('rentas con separador de miles ($1,035 y $1,300)', t.includes('50 GB | $1,035') && t.includes('55 GB | $1,300')); }
+    if (pb === 'Platino') { const t = await p.evaluate(() => document.querySelector('#cot-flyer-render .hoja-reco').textContent); chk('rentas con separador de miles ($1,035)', t.includes('50 GB | $1,035') && t.includes('42 GB | $825')); }
     chk(archivo + ': nada se desborda en las tarjetas', d.length === 0, d.slice(0, 5));
     const s2 = await p.evaluate(() => document.querySelector('#flyer-preview-container img').src);
     fs.writeFileSync(OUT + '/' + archivo, Buffer.from(s2.split(',')[1], 'base64'));
@@ -469,9 +469,55 @@ async function precal(nav, base) {
   }
 }
 
+// [v1.73.19] Platino + (solo 36 meses, sin portabilidad) en la ficha y la cotización; Diamante ya no sale.
+async function platino(nav, base) {
+  const { ctx, p } = await abrir(nav, base);
+  await p.evaluate(() => { show('s-ficha'); showFicha('ip17'); }); await p.waitForTimeout(900);
+  const chips = await p.evaluate(() => [...document.querySelectorAll('#plan-chips .plan-chip')].map((c) => c.dataset.plan));
+  chk('iPhone 17: trae Platino + y no Diamante', chips.includes('Platino +') && !chips.includes('Diamante'), chips);
+  await p.evaluate(() => { setPlazo(24, document.querySelector('.plazo-btn')); selectPlan('Platino +'); }); await p.waitForTimeout(300);
+  const f = await p.evaluate(() => ({
+    plazos: [...document.querySelectorAll('.plazo-btn')].map((b) => [b.textContent.trim(), b.style.pointerEvents !== 'none', b.classList.contains('active')]),
+    plan: (document.querySelector('.price-result-plan') || {}).textContent || '',
+    promo: (document.querySelector('.price-promo') || {}).textContent || '', cur: curPlazo }));
+  chk('Platino +: solo 36 meses y salta solo a 36', f.cur === 36 && f.plazos.map((x) => x[1]).join() === 'false,false,true' && f.plazos[2][2], f);
+  chk('Platino +: iPhone 17 incluido a 36 meses', /Platino \+ · 36 meses/.test(f.plan) && /Incluido/i.test(f.promo), f);
+  await p.evaluate(() => openCotModal()); await p.waitForTimeout(500);
+  const port = await p.evaluate(() => getComputedStyle(document.getElementById('cot-port-switch').closest('.cot-section')).display);
+  chk('Platino +: la cotización no ofrece portabilidad', port === 'none', port);
+  const com = await p.evaluate(() => { const r = [...document.querySelectorAll('#comm-body-inner .comm-row')].find((x) => /Plan Platino \+/.test(x.textContent)); return r ? r.textContent : ''; });
+  chk('Platino +: comisión del plan "—" (sin dato en el esquema)', /—/.test(com) && !/\$0/.test(com), com);
+  await p.evaluate(() => cotClose());
+  await p.evaluate(() => { selectPlan('Platino'); }); await p.waitForTimeout(200);
+  const vuelta = await p.evaluate(() => [...document.querySelectorAll('.plazo-btn')].map((b) => b.style.pointerEvents !== 'none'));
+  chk('de regreso a Platino se habilitan los 3 plazos', vuelta.every(Boolean), vuelta);
+  await p.evaluate(() => openCotModal()); await p.waitForTimeout(400);
+  const port2 = await p.evaluate(() => getComputedStyle(document.getElementById('cot-port-switch').closest('.cot-section')).display);
+  chk('en Platino sí se ofrece portabilidad', port2 !== 'none', port2);
+  await p.evaluate(() => cotClose());
+  // Un Android no muestra Platino + ni Diamante.
+  await p.evaluate(() => { show('s-ficha'); showFicha('opreno16'); }); await p.waitForTimeout(700);
+  const ch2 = await p.evaluate(() => [...document.querySelectorAll('#plan-chips .plan-chip')].map((c) => c.dataset.plan));
+  chk('Reno 16: sin Platino + ni Diamante', !ch2.includes('Platino +') && !ch2.includes('Diamante') && ch2.includes('Platino'), ch2);
+  // Descuentos: pestaña Platino + a 36 meses con el iPhone 17 incluido.
+  await p.evaluate(() => { showDescuentos(); descSetPlan('Platino +'); descSetPlazo('36'); }); await p.waitForTimeout(400);
+  const d = await p.evaluate(() => ({ pills: [...document.querySelectorAll('#desc-plan-pills button')].map((b) => b.textContent), txt: document.getElementById('desc-list').textContent }));
+  chk('Descuentos: pestaña Platino + (sin Diamante) con el iPhone 17 incluido', d.pills.includes('Platino +') && !d.pills.includes('Diamante') && /iPhone 17/.test(d.txt) && /incluido/i.test(d.txt), d.pills);
+  chk('platino: sin errores de página', p.errores.length === 0, p.errores);
+  await ctx.close();
+  // Catálogo público: iPhone 17 ofrece Platino + solo a 36 meses.
+  const c2 = await nav.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+  const q = await c2.newPage(); const err = []; q.on('pageerror', (e) => err.push(e.message));
+  await q.goto(base + 'catalogo.html', { waitUntil: 'load' }); await q.waitForTimeout(1500);
+  const pl = await q.evaluate(() => { try { var o = Object.values(window).find((v) => v && typeof v === 'object' && Array.isArray(v.PL) && typeof v.mensual === 'function'); return o ? { PL: o.PL, m36: o.mensual('ip17', 'Platino +', 36, 0), m24: o.mensual('ip17', 'Platino +', 24, 0) } : null; } catch (e) { return String(e); } });
+  chk('catálogo público: Platino + $1,299 a 36 meses, nada a 24', pl && pl.PL.includes('Platino +') && !pl.PL.includes('Diamante') && pl.m36 === 1299 && pl.m24 === null, pl);
+  chk('catálogo público: sin errores de página', err.length === 0, err);
+  await c2.close();
+}
+
 (async () => {
   const modo = process.argv[2];
-  const modos = { inicio, reco, hoja, ficha, puntos, precal };
+  const modos = { inicio, reco, hoja, ficha, puntos, precal, platino };
   if (!modos[modo]) { console.error('modo desconocido: ' + modo); process.exit(2); }
   const srv = await servir(RAIZ);
   const base = 'http://127.0.0.1:' + srv.address().port + '/techguide/';
