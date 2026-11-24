@@ -475,6 +475,7 @@ async function platino(nav, base) {
   await p.evaluate(() => { show('s-ficha'); showFicha('ip17'); }); await p.waitForTimeout(900);
   const chips = await p.evaluate(() => [...document.querySelectorAll('#plan-chips .plan-chip')].map((c) => c.dataset.plan));
   chk('iPhone 17: trae Platino + y no Diamante', chips.includes('Platino +') && !chips.includes('Diamante'), chips);
+  chk('iPhone 17: sin Titanio (oculto 24-nov)', !chips.includes('Titanio'), chips);
   await p.evaluate(() => { setPlazo(24, document.querySelector('.plazo-btn')); selectPlan('Platino +'); }); await p.waitForTimeout(300);
   const f = await p.evaluate(() => ({
     plazos: [...document.querySelectorAll('.plazo-btn')].map((b) => [b.textContent.trim(), b.style.pointerEvents !== 'none', b.classList.contains('active')]),
@@ -495,6 +496,9 @@ async function platino(nav, base) {
   const port2 = await p.evaluate(() => getComputedStyle(document.getElementById('cot-port-switch').closest('.cot-section')).display);
   chk('en Platino sí se ofrece portabilidad', port2 !== 'none', port2);
   await p.evaluate(() => cotClose());
+  await p.evaluate(() => { show('s-ficha'); showFicha('ip18pro'); }); await p.waitForTimeout(700);
+  const ch18 = await p.evaluate(() => [...document.querySelectorAll('#plan-chips .plan-chip')].map((c) => c.dataset.plan));
+  chk('iPhone 18 Pro: sigue con Titanio', ch18.includes('Titanio'), ch18);
   // Un Android no muestra Platino + ni Diamante.
   await p.evaluate(() => { show('s-ficha'); showFicha('opreno16'); }); await p.waitForTimeout(700);
   const ch2 = await p.evaluate(() => [...document.querySelectorAll('#plan-chips .plan-chip')].map((c) => c.dataset.plan));
