@@ -4265,6 +4265,7 @@ async function _loadFirebaseReal(){
       orderBy: fsMod.orderBy,
       limit: fsMod.limit,
       getDocs: fsMod.getDocs,
+      documentId: fsMod.documentId,   // [v1.73.21] panel Desarrollador: rango de ids uso_*
       // [v1.9.15] CRM clientes
       addDoc: fsMod.addDoc,
       updateDoc: fsMod.updateDoc,
@@ -10967,6 +10968,9 @@ function updateAdminHomeCard(){
   if(typeof updateAdopcionCard==='function') updateAdopcionCard();
   // [v1.73.18] Precalificación: DC499W y plantillas de León Centro y Plaza Nogal León.
   if(typeof updatePrecalCard==='function') updatePrecalCard();
+  // [v1.73.21] Panel Desarrollador (solo DC499W) y envío diario de clics por herramienta.
+  if(typeof updateUsoClicsCard==='function') updateUsoClicsCard();
+  if(typeof usoEnviar==='function') usoEnviar();
   // [v1.11.62] Esta función corre exactamente cuando una sesión queda activa
   // (login y restauración), así que es el punto natural para el registro de uso.
   // registrarUso() se auto-limita a 1 escritura por día y nunca lanza.
@@ -15578,4 +15582,265 @@ function _precalListaHTML(){
   });
   h += '</div>';
   return h;
+}
+
+// ═══ [v1.73.21] USO DE LA APP: CLICS POR HERRAMIENTA (panel Desarrollador) ════
+// Diego quiere ver dónde se da más clic y qué herramientas no se usan.
+// QUÉ SE GUARDA: solo cuántos clics recibió cada herramienta, por día, región y
+// tienda. NO se guarda quién dio el clic, ni qué equipo, cliente o precio vio.
+// CÓMO: cada clic suma en localStorage; al abrir la app un día nuevo se mandan
+// los días anteriores en UNA escritura por día a /resumenes/uso_{fecha}_{región}
+// (las reglas de /resumenes ya lo permiten, igual que el pre-registro).
+// DC499W no se cuenta: sus pruebas no ensucian el dato.
+// El panel lo ve solo DC499W (menú → Desarrollador).
+// <uso-puro>
+// [selector, clave, sección, etiqueta]. Gana la primera que coincide con el clic.
+var USO_ZONAS = [
+  ['[onclick^="abrirPlatSheet"]', 'ini_catalogo', 'Inicio', 'Catálogo'],
+  ['.hv3-camp-card', 'ini_campana', 'Inicio', 'Campaña'],
+  ['#momento-cards .hv3-tab', 'ini_mom_tab', 'Inicio', 'Equipos del momento · pestaña de plan'],
+  ['#momento-cards .hv3-mcard', 'ini_mom_eq', 'Inicio', 'Equipos del momento · equipo'],
+  ['#credito-cards .hv3-tab', 'ini_cred_tab', 'Inicio', 'Ajustados a crédito · pestaña de plan'],
+  ['#credito-cards .hv3-mcard', 'ini_cred_eq', 'Inicio', 'Ajustados a crédito · equipo'],
+  ['#reco-home .hv3-btn', 'ini_reco', 'Inicio', 'Recomendación · ver equipos'],
+  ['#flash-card', 'ini_flash', 'Inicio', 'Ofertas flash'],
+  ['#pmd-burger', 'menu_abrir', 'Menú', 'Abrir menú'],
+  ['[onclick="pmdGo(\'perfil\')"]', 'menu_perfil', 'Menú', 'Perfil'],
+  ['[onclick="pmdGo(\'momento\')"]', 'menu_momento', 'Menú', 'Equipos del momento'],
+  ['[onclick="pmdGo(\'micatalogo\')"]', 'menu_micatalogo', 'Menú', 'Mi catálogo'],
+  ['[onclick="pmdGo(\'topcomm\')"]', 'menu_topcomm', 'Menú', 'Top comisiones'],
+  ['[onclick="pmdGo(\'descuentos\')"]', 'menu_descuentos', 'Menú', 'Descuentos'],
+  ['[onclick="pmdGo(\'precal\')"]', 'menu_precal', 'Menú', 'Precalificar cliente'],
+  ['[onclick="pmdGo(\'dash\')"]', 'menu_actividad', 'Menú', 'Actividad'],
+  ['[onclick="pmdGo(\'calc\')"]', 'menu_calc', 'Menú', 'Calculadora'],
+  ['[onclick="pmdGo(\'diag\')"]', 'menu_diag', 'Menú', 'Diagnóstico'],
+  ['[onclick="pmdGo(\'accesos\')"]', 'menu_accesos', 'Menú', 'Accesos'],
+  ['[onclick="pmdGo(\'vigencias\')"]', 'menu_vigencias', 'Menú', 'Vigencias'],
+  ['[onclick="pmdGo(\'adopcion\')"]', 'menu_adopcion', 'Menú', 'Adopción'],
+  ['#pmd-theme', 'menu_tema', 'Menú', 'Modo oscuro'],
+  ['#pmd-desktop', 'menu_escritorio', 'Menú', 'Modo escritorio'],
+  ['[onclick="pmdGo(\'refresh\')"]', 'menu_actualizar', 'Menú', 'Actualizar app'],
+  ['[onclick="pmdGo(\'logout\')"]', 'menu_salir', 'Menú', 'Cerrar sesión'],
+  ['#reco-res .hv3-compartir', 'reco_hoja', 'Recomendación', 'Hoja para WhatsApp'],
+  ['#reco-res .hv3-rcard', 'reco_eq', 'Recomendación', 'Abrir equipo'],
+  ['#reco-res .hv3-mas', 'reco_mas', 'Recomendación', 'Ver todos'],
+  ['#reco-ctrl button', 'reco_filtros', 'Recomendación', 'Cambiar planes, plazo o marca'],
+  ['[onclick^="setFilter"]', 'cat_marca', 'Catálogo', 'Filtro de marca'],
+  ['#search-in', 'cat_buscar', 'Catálogo', 'Buscador'],
+  ['#view-btn', 'cat_vista', 'Catálogo', 'Cambiar vista'],
+  ['.d-card, .d-row', 'cat_eq', 'Catálogo', 'Abrir equipo'],
+  ['[onclick^="goCompare"]', 'cat_comparar', 'Catálogo', 'Ver comparación'],
+  ['.plan-chip', 'ficha_plan', 'Ficha', 'Elegir plan'],
+  ['.plazo-btn', 'ficha_plazo', 'Ficha', 'Elegir plazo'],
+  ['.storage-btn', 'ficha_cap', 'Ficha', 'Capacidad'],
+  ['[onclick^="swTab(\'plans\'"]', 'ficha_t_planes', 'Ficha', 'Pestaña Planes'],
+  ['[onclick^="swTab(\'specs\'"]', 'ficha_t_specs', 'Ficha', 'Pestaña Especificaciones'],
+  ['[onclick^="swTab(\'sell\'"]', 'ficha_t_argumentos', 'Ficha', 'Pestaña Argumentos'],
+  ['[onclick^="swTab(\'sim\'"]', 'ficha_t_similares', 'Ficha', 'Pestaña Similares'],
+  ['[onclick^="swTab(\'acc\'"]', 'ficha_t_accesorios', 'Ficha', 'Pestaña Accesorios'],
+  ['[onclick^="swTab(\'tt\'"]', 'ficha_t_youtube', 'Ficha', 'Pestaña YouTube'],
+  ['.tt-btn', 'ficha_video', 'Ficha', 'Ver video'],
+  ['[onclick^="toggleAcc"]', 'ficha_accesorio', 'Ficha', 'Agregar accesorio'],
+  ['#f-cmp-btn', 'ficha_comparar', 'Ficha', 'Agregar a comparar'],
+  ['[onclick^="enviarCotizacion"]', 'ficha_cotizar', 'Ficha', 'Cotizar'],
+  ['[onclick^="cotSetTipo"]', 'cot_tipo', 'Cotización', 'Tipo de operación'],
+  ['#cot-port-switch', 'cot_port', 'Cotización', 'Portabilidad'],
+  ['[onclick^="cotToggleSeguro"]', 'cot_seguro', 'Cotización', 'Seguro'],
+  ['[onclick^="cotToggleControl"]', 'cot_control', 'Cotización', 'Control'],
+  ['#comm-section', 'cot_comision', 'Cotización', 'Ver comisión'],
+  ['[onclick^="cotSend()"]', 'cot_texto', 'Cotización', 'Enviar por texto'],
+  ['[onclick^="cotSendImage"]', 'cot_imagen', 'Cotización', 'Generar imagen'],
+  ['[onclick^="shareFlyerImage"]', 'cot_compartir', 'Cotización', 'Compartir imagen'],
+  ['[onclick^="generateSpecsPDF"]', 'cot_pdf', 'Cotización', 'PDF de especificaciones'],
+  ['[onclick^="setTopCommPlan"]', 'top_plan', 'Top comisiones', 'Cambiar plan'],
+  ['[onclick^="descSetPlan"], [onclick^="descSetPlazo"]', 'desc_filtro', 'Descuentos', 'Cambiar plan o plazo'],
+  ['#s-calc input', 'calc_monto', 'Calculadora', 'Escribir presupuesto'],
+  ['[onclick^="precalNueva"]', 'pc_nueva', 'Precalificación', 'Nueva precalificación'],
+  ['[onclick^="precalCalcular"]', 'pc_calcular', 'Precalificación', 'Calcular'],
+  ['[onclick^="precalGuardar"]', 'pc_guardar', 'Precalificación', 'Guardar'],
+  ['[onclick^="precalRegistrar"]', 'pc_registrar', 'Precalificación', 'Registrar resultado de AT&T']
+];
+// Misma limpieza que los resúmenes de cotizaciones: sin . / [ ] $ # * ~ ` ni espacios.
+function usoLlave(s){ return String(s || '').replace(/[\/\.\[\]\$#\*~`]/g, '_').replace(/\s+/g, '_'); }
+function usoFechaLocal(d){
+  d = d || new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+// Suma un clic al día en el registro local {dias:{AAAA-MM-DD:{clave:n}}}; guarda 14 días como máximo.
+function usoSumar(reg, dia, clave){
+  var r = (reg && reg.dias) ? reg : { dias: {} };
+  var d = r.dias[dia] || (r.dias[dia] = {});
+  d[clave] = (d[clave] || 0) + 1;
+  var ds = Object.keys(r.dias).sort();
+  while(ds.length > 14) delete r.dias[ds.shift()];
+  return r;
+}
+// Documento de un día: por región (así ningún documento recibe a todo el país) y por tienda.
+function usoDocumento(dia, conteos, region, tienda){
+  var reg = String(region || '').trim(), tie = String(tienda || '').trim();
+  var total = {}, porTienda = {};
+  Object.keys(conteos).forEach(function(k){ if(conteos[k] > 0){ total[k] = conteos[k]; porTienda[k] = conteos[k]; } });
+  var t = {}; t[usoLlave(tie || 'SIN TIENDA')] = porTienda;
+  return { id: 'uso_' + dia + '_' + usoLlave(reg || 'SIN REGION'), data: { tipo: 'uso', fecha: dia, region: reg, total: total, tienda: t } };
+}
+// Suma los documentos del periodo con el filtro de región y tienda.
+function usoAgregar(docs, f){
+  f = f || {};
+  var clics = {}, regiones = {}, tiendas = {}, dias = {}, total = 0;
+  (docs || []).forEach(function(d){
+    if(!d || d.tipo !== 'uso') return;
+    if(f.desde && d.fecha < f.desde) return;
+    if(f.hasta && d.fecha > f.hasta) return;
+    var rk = d.region || 'SIN REGION';
+    regiones[rk] = 1;
+    if(f.region && rk !== f.region) return;
+    Object.keys(d.tienda || {}).forEach(function(t){
+      tiendas[t] = 1;
+      if(f.tienda && t !== f.tienda) return;
+      var m = d.tienda[t] || {};
+      Object.keys(m).forEach(function(k){ clics[k] = (clics[k] || 0) + m[k]; total += m[k]; });
+      dias[d.fecha] = 1;
+    });
+  });
+  return { clics: clics, total: total, dias: Object.keys(dias).length,
+    regiones: Object.keys(regiones).sort(), tiendas: Object.keys(tiendas).sort() };
+}
+// Periodos del panel en fechas locales AAAA-MM-DD.
+function usoPeriodo(p, hoy){
+  hoy = hoy || new Date();
+  var y = hoy.getFullYear(), m = hoy.getMonth();
+  if(p === 'mes') return { desde: usoFechaLocal(new Date(y, m, 1)), hasta: usoFechaLocal(hoy) };
+  if(p === 'mespasado') return { desde: usoFechaLocal(new Date(y, m - 1, 1)), hasta: usoFechaLocal(new Date(y, m, 0)) };
+  var d = new Date(y, m, hoy.getDate() - 6);
+  return { desde: usoFechaLocal(d), hasta: usoFechaLocal(hoy) };
+}
+// </uso-puro>
+
+var USO_CLICS_KEY = 'primemx_uso_clics_v1';
+function usoLeerLocal(){ try{ var r = JSON.parse(localStorage.getItem(USO_CLICS_KEY) || 'null'); return (r && r.dias) ? r : { dias: {} }; }catch(e){ return { dias: {} }; } }
+function usoGuardarLocal(r){ try{ localStorage.setItem(USO_CLICS_KEY, JSON.stringify(r)); }catch(e){} }
+function usoContar(clave){
+  try{
+    if(typeof asesorData === 'undefined' || !asesorData || !asesorData.attuid) return;
+    if(typeof _meEsSuper === 'function' && _meEsSuper()) return;   // DC499W no se cuenta
+    usoGuardarLocal(usoSumar(usoLeerLocal(), usoFechaLocal(), clave));
+  }catch(e){}
+}
+function usoZonaDe(el){
+  if(!el || !el.closest) return null;
+  for(var i = 0; i < USO_ZONAS.length; i++){ if(el.closest(USO_ZONAS[i][0])) return USO_ZONAS[i][1]; }
+  return null;
+}
+if(typeof document !== 'undefined'){
+  document.addEventListener('click', function(e){
+    try{ var k = usoZonaDe(e.target); if(k) usoContar(k); }catch(err){}
+  }, true);
+}
+// Manda los días anteriores a hoy (uno por escritura). Nunca rompe la app.
+var _usoEnviando = false;
+async function usoEnviar(){
+  if(_usoEnviando) return;
+  try{
+    if(typeof asesorData === 'undefined' || !asesorData || !asesorData.attuid) return;
+    if(!navigator.onLine) return;
+    var reg = usoLeerLocal(), hoy = usoFechaLocal();
+    var pend = Object.keys(reg.dias).filter(function(d){ return d < hoy && Object.keys(reg.dias[d]).length; }).sort();
+    if(!pend.length) return;
+    _usoEnviando = true;
+    await loadFirebase();
+    var region = (typeof regionCanon === 'function' && asesorData.region) ? regionCanon(asesorData.region) : (asesorData.region || '');
+    var tienda = asesorData.tienda || asesorData.sucursal || '';
+    for(var i = 0; i < pend.length; i++){
+      var doc = usoDocumento(pend[i], reg.dias[pend[i]], region, tienda);
+      var inc = function(o){ var r = {}; Object.keys(o).forEach(function(k){ r[k] = firestoreFns.increment(o[k]); }); return r; };
+      var t = {}; Object.keys(doc.data.tienda).forEach(function(k){ t[k] = inc(doc.data.tienda[k]); });
+      await firestoreFns.setDoc(firestoreFns.doc(firestoreDB, 'resumenes', doc.id),
+        { tipo: 'uso', fecha: doc.data.fecha, region: doc.data.region, total: inc(doc.data.total), tienda: t }, { merge: true });
+      var actual = usoLeerLocal(); delete actual.dias[pend[i]]; usoGuardarLocal(actual);
+    }
+  }catch(e){
+    console.warn('[uso] clics no enviados:', e && e.message);   // se reintenta la próxima vez que abra
+  }finally{ _usoEnviando = false; }
+}
+
+// ── Panel Desarrollador (solo DC499W) ──
+function _usoPuedeVer(){ return (typeof _meEsSuper === 'function') && _meEsSuper(); }
+function updateUsoClicsCard(){
+  var card = document.getElementById('dev-home-card');
+  if(card) card.style.display = _usoPuedeVer() ? 'flex' : 'none';
+}
+var usoPanel = { periodo: 'mes', region: '', tienda: '', docs: null, rango: '', error: '' };
+// Lee los documentos de uso del rango (una lectura por día y región). Se puede sustituir en pruebas.
+var usoLeerDocs = async function(desde, hasta){
+  await loadFirebase();
+  var col = firestoreFns.collection(firestoreDB, 'resumenes');
+  var q = firestoreFns.query(col, firestoreFns.where(firestoreFns.documentId(), '>=', 'uso_' + desde),
+    firestoreFns.where(firestoreFns.documentId(), '<=', 'uso_' + hasta + '_'));
+  var out = []; (await firestoreFns.getDocs(q)).forEach(function(s){ out.push(s.data() || {}); });
+  return out;
+};
+function usoAbrir(){
+  if(!_usoPuedeVer()) return;
+  show('s-uso');
+  usoCargar();
+}
+async function usoCargar(){
+  var p = usoPeriodo(usoPanel.periodo), rango = p.desde + '|' + p.hasta;
+  if(usoPanel.docs && usoPanel.rango === rango){ usoPintar(); return; }
+  usoPanel.docs = null; usoPanel.error = ''; usoPanel.rango = rango;
+  usoPintar();
+  try{ usoPanel.docs = await usoLeerDocs(p.desde, p.hasta); }
+  catch(e){ usoPanel.docs = []; usoPanel.error = 'No se pudo leer el uso: ' + ((e && e.message) || ''); }
+  if(usoPanel.rango === rango) usoPintar();
+}
+function usoSetPeriodo(p){ usoPanel.periodo = p; usoCargar(); }
+function usoSetRegion(r){ usoPanel.region = r; usoPanel.tienda = ''; usoPintar(); }
+function usoSetTienda(t){ usoPanel.tienda = t; usoPintar(); }
+function usoPintar(){
+  var el = document.getElementById('uso-wrap');
+  if(!el) return;
+  var esc = function(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+  var nom = function(k){ return String(k).replace(/_/g, ' ').replace(/^PRM TDA /, ''); };   // nombre corto de tienda
+  var h = '<div class="hv3-reco-top"><button type="button" class="hv3-atras" onclick="show(\'s-home\')" aria-label="Regresar">' + PC_ICO_ATRAS + '</button><h1>Uso de la app</h1></div>';
+  h += '<div class="hv3-seg uso-seg" role="group" aria-label="Periodo">';
+  [['7d', '7 días'], ['mes', 'Este mes'], ['mespasado', 'Mes pasado']].forEach(function(o){
+    h += '<button type="button" aria-pressed="' + (usoPanel.periodo === o[0]) + '" onclick="usoSetPeriodo(\'' + o[0] + '\')">' + o[1] + '</button>';
+  });
+  h += '</div>';
+  if(!usoPanel.docs){ el.innerHTML = h + '<div class="hv3-cred-vacio">Cargando…</div>'; return; }
+  var p = usoPeriodo(usoPanel.periodo);
+  var todo = usoAgregar(usoPanel.docs, { desde: p.desde, hasta: p.hasta });
+  var regTiendas = usoAgregar(usoPanel.docs, { desde: p.desde, hasta: p.hasta, region: usoPanel.region });
+  var a = usoAgregar(usoPanel.docs, { desde: p.desde, hasta: p.hasta, region: usoPanel.region, tienda: usoPanel.tienda });
+  var opR = '<option value="">Todas las regiones</option>' + todo.regiones.map(function(r){ return '<option value="' + esc(r) + '"' + (r === usoPanel.region ? ' selected' : '') + '>' + esc(r) + '</option>'; }).join('');
+  var opT = '<option value="">Todas las tiendas</option>' + (usoPanel.region ? regTiendas.tiendas : []).map(function(t){ return '<option value="' + esc(t) + '"' + (t === usoPanel.tienda ? ' selected' : '') + '>' + esc(nom(t)) + '</option>'; }).join('');
+  h += '<div class="uso-filtros">'
+    + '<div class="hv3-pick"><span class="uso-sel">' + esc(usoPanel.region || 'Todas las regiones') + '</span>' + ICO_CHEVRON + '<select aria-label="Región" onchange="usoSetRegion(this.value)">' + opR + '</select></div>'
+    + '<div class="hv3-pick' + (usoPanel.region ? '' : ' uso-off') + '"><span class="uso-sel">' + esc(usoPanel.tienda ? nom(usoPanel.tienda) : 'Todas las tiendas') + '</span>' + ICO_CHEVRON + '<select aria-label="Tienda" onchange="usoSetTienda(this.value)"' + (usoPanel.region ? '' : ' disabled') + '>' + opT + '</select></div></div>';
+  if(usoPanel.error) h += '<p class="hv3-msg uso-err">' + esc(usoPanel.error) + '</p>';
+  var usadas = USO_ZONAS.filter(function(z){ return a.clics[z[1]] > 0; }).length;
+  h += '<div class="uso-resumen"><div><b>' + a.total.toLocaleString('es-MX') + '</b><span>clics</span></div><div><b>' + usadas + ' / ' + USO_ZONAS.length + '</b><span>herramientas con clics</span></div><div><b>' + a.dias + '</b><span>días con datos</span></div></div>';
+  if(!a.total){ el.innerHTML = h + '<div class="hv3-cred-vacio">Sin clics en el periodo</div><p class="uso-nota">Datos hasta el día anterior</p>'; return; }
+  var max = Math.max.apply(null, USO_ZONAS.map(function(z){ return a.clics[z[1]] || 0; }));
+  var secciones = [];
+  USO_ZONAS.forEach(function(z){ if(secciones.indexOf(z[2]) < 0) secciones.push(z[2]); });
+  // Más usadas: las 10 con más clics de todas las secciones.
+  var top = USO_ZONAS.filter(function(z){ return a.clics[z[1]] > 0; }).sort(function(x, y){ return a.clics[y[1]] - a.clics[x[1]]; }).slice(0, 10);
+  // La sección va debajo solo en "Más usadas"; dentro de su tarjeta sería repetirla.
+  var fila = function(z, conSeccion){
+    var n = a.clics[z[1]] || 0;
+    return '<div class="uso-fila"><div class="uso-et"><b>' + esc(z[3]) + '</b>' + (conSeccion ? '<span>' + esc(z[2]) + '</span>' : '') + '</div><div class="uso-barra"><i style="width:' + (max ? (n * 100 / max).toFixed(1) : 0) + '%"></i></div><span class="uso-n">' + n.toLocaleString('es-MX') + '</span></div>';
+  };
+  h += '<section class="pc-card"><h2>Más usadas</h2>' + top.map(function(z){ return fila(z, true); }).join('') + '</section>';
+  secciones.forEach(function(s){
+    var zs = USO_ZONAS.filter(function(z){ return z[2] === s; }).sort(function(x, y){ return (a.clics[y[1]] || 0) - (a.clics[x[1]] || 0); });
+    var con = zs.filter(function(z){ return a.clics[z[1]] > 0; });
+    var sin = zs.filter(function(z){ return !(a.clics[z[1]] > 0); });
+    h += '<section class="pc-card"><div class="pc-cab"><h2>' + esc(s) + '</h2><span class="pc-sub">' + con.reduce(function(t, z){ return t + a.clics[z[1]]; }, 0).toLocaleString('es-MX') + ' clics</span></div>';
+    h += con.map(function(z){ return fila(z, false); }).join('');
+    if(sin.length) h += '<div class="uso-sin"><span>Sin clics</span>' + sin.map(function(z){ return '<em>' + esc(z[3]) + '</em>'; }).join('') + '</div>';
+    h += '</section>';
+  });
+  h += '<p class="uso-nota">Datos hasta el día anterior · sin datos de personas</p>';
+  el.innerHTML = h;
 }

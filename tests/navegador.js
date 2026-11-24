@@ -1,5 +1,5 @@
 // [v1.73.0] Pruebas en navegador (Playwright, Chromium preinstalado).
-// Uso: node tests/navegador.js <inicio|reco|hoja|ficha|puntos|precal|platino>
+// Uso: node tests/navegador.js <inicio|reco|hoja|ficha|puntos|precal|platino|uso>
 // Sirve el repo, entra con una sesión falsa, sin service worker ni red externa,
 // y deja capturas en /tmp/v173 para revisarlas a ojo.
 'use strict';
@@ -519,9 +519,87 @@ async function platino(nav, base) {
   await c2.close();
 }
 
+// [v1.73.21] Uso de la app: los clics reales suman en su herramienta, se mandan sin datos de la persona
+// y el panel Desarrollador solo lo ve DC499W.
+const USO_FIXTURE = [
+  { tipo: 'uso', fecha: '2026-11-20', region: 'BAJIO', tienda: { PRM_TDA_LEON_CENTRO: { ini_campana: 40, ficha_cotizar: 31, ficha_plan: 58, cot_texto: 22, menu_calc: 3 }, PRM_TDA_PLAZA_NOGAL_LEON: { ini_campana: 18, ini_reco: 12, ficha_plan: 20 } } },
+  { tipo: 'uso', fecha: '2026-11-21', region: 'BAJIO', tienda: { PRM_TDA_LEON_CENTRO: { ini_mom_eq: 25, cat_eq: 44, cot_imagen: 9 } } },
+  { tipo: 'uso', fecha: '2026-11-21', region: 'NORTE', tienda: { PRM_TDA_MONTERREY: { cat_eq: 70, ficha_t_specs: 15 } } },
+];
+async function uso(nav, base) {
+  const asesor = Object.assign({}, SES, { name: 'ASESOR PRUEBA', attuid: 'AP123X', rol: 'asesor', tiendasAsignadas: [], tienda: 'PRM TDA LEON CENTRO', sucursal: 'PRM TDA LEON CENTRO' });
+  let { ctx, p } = await abrir(nav, base, { ses: asesor });
+  await p.evaluate(() => localStorage.removeItem('primemx_uso_clics_v1'));
+  const clic = async (sel) => { await p.locator(sel).first().scrollIntoViewIfNeeded(); await p.locator(sel).first().click(); await p.waitForTimeout(350); };
+  await clic('.hv3-camp-card'); await p.evaluate(() => show('s-home'));
+  await clic('#momento-cards .hv3-tab >> nth=1');
+  await clic('#reco-home .hv3-btn'); await clic('#reco-res .hv3-rcard'); await p.evaluate(() => show('s-home'));
+  await clic('#pmd-burger'); await clic('[onclick="pmdGo(\'calc\')"]'); await p.waitForTimeout(300);
+  await p.evaluate(() => show('s-home')); await clic('[onclick^="abrirPlatSheet"]'); await clic('[onclick="elegirPlataforma(\'android\')"]');
+  await clic('#dev-wrap .d-card, #dev-wrap .d-row'); await clic('.plan-chip >> nth=1'); await clic('.plazo-btn >> nth=2');
+  await clic('[onclick^="enviarCotizacion"]'); await clic('#cot-port-switch');
+  await p.evaluate(() => cotClose());
+  const hoy = await p.evaluate(() => usoFechaLocal());
+  const reg = await p.evaluate(() => JSON.parse(localStorage.getItem('primemx_uso_clics_v1') || '{}'));
+  const dia = (reg.dias || {})[hoy] || {};
+  const esperadas = ['ini_campana', 'ini_mom_tab', 'ini_reco', 'reco_eq', 'menu_abrir', 'menu_calc', 'ini_catalogo', 'cat_eq', 'ficha_plan', 'ficha_plazo', 'ficha_cotizar', 'cot_port'];
+  chk('clics reales: cada uno suma en su herramienta', esperadas.every((k) => dia[k] >= 1), { faltan: esperadas.filter((k) => !dia[k]), dia });
+  chk('asesor: no ve el botón Desarrollador ni abre el panel', await p.evaluate(() => { usoAbrir(); return getComputedStyle(document.getElementById('dev-home-card')).display === 'none' && !document.getElementById('s-uso').classList.contains('active'); }));
+  // Envío con Firestore simulado: solo días anteriores, sin datos de la persona.
+  const env = await p.evaluate(async (hoy) => {
+    const r = JSON.parse(localStorage.getItem('primemx_uso_clics_v1'));
+    r.dias['2026-01-02'] = { ini_campana: 3, menu_calc: 1 };
+    localStorage.setItem('primemx_uso_clics_v1', JSON.stringify(r));
+    window.__escrito = [];
+    window.loadFirebase = async () => {};
+    firestoreDB = {};
+    firestoreFns = { doc: (db, col, id) => ({ col, id }), increment: (n) => ({ inc: n }),
+      setDoc: async (ref, data, opt) => { window.__escrito.push({ ref, data, opt }); } };
+    await usoEnviar();
+    const despues = JSON.parse(localStorage.getItem('primemx_uso_clics_v1'));
+    return { escrito: window.__escrito, quedan: Object.keys(despues.dias), hoy };
+  }, hoy);
+  const w = env.escrito[0] || {};
+  chk('envío: una escritura por día pendiente a /resumenes/uso_{fecha}_{región}', env.escrito.length === 1 && w.ref.col === 'resumenes' && w.ref.id === 'uso_2026-01-02_BAJIO' && w.opt.merge === true, env.escrito.map((x) => x.ref));
+  chk('envío: solo tipo, fecha, región y conteos por tienda (con increment)', JSON.stringify(Object.keys(w.data || {})) === '["tipo","fecha","region","total","tienda"]'
+    && w.data.tienda.PRM_TDA_LEON_CENTRO.ini_campana.inc === 3 && w.data.total.menu_calc.inc === 1, w.data);
+  chk('envío: sin ATTUID, nombre ni teléfono', !/AP123X|ASESOR PRUEBA|4771234567/.test(JSON.stringify(env.escrito)));
+  chk('envío: el día mandado se borra y el de hoy se queda', env.quedan.join() === env.hoy, env.quedan);
+  chk('uso (asesor): sin errores de página', p.errores.length === 0, p.errores);
+  await ctx.close();
+  // DC499W: sus clics no cuentan; ve el panel.
+  for (const tema of ['light', 'dark']) {
+    ({ ctx, p } = await abrir(nav, base, { tema }));
+    await p.evaluate(() => localStorage.removeItem('primemx_uso_clics_v1'));
+    await p.locator('.hv3-camp-card').first().click(); await p.waitForTimeout(300);
+    chk(tema + ': los clics de DC499W no se cuentan', await p.evaluate(() => !localStorage.getItem('primemx_uso_clics_v1')));
+    await p.evaluate((fx) => { usoLeerDocs = async () => fx; usoPanel.docs = null; usoPanel.periodo = 'mes'; }, USO_FIXTURE);
+    await p.evaluate(() => { show('s-home'); pmdOpen(); }); await p.waitForTimeout(300);
+    chk(tema + ': DC499W ve el botón Desarrollador', await p.locator('#dev-home-card').isVisible());
+    await p.locator('#dev-home-card').click(); await p.waitForTimeout(700);
+    const v = await p.evaluate(() => ({ activo: document.getElementById('s-uso').classList.contains('active'), txt: document.getElementById('uso-wrap').textContent,
+      top: [...document.querySelectorAll('#uso-wrap .pc-card')][0].querySelectorAll('.uso-fila').length }));
+    const mes = await p.evaluate(() => usoPeriodo('mes'));
+    const enMes = USO_FIXTURE.filter((d) => d.fecha >= mes.desde && d.fecha <= mes.hasta);
+    const totalEsperado = enMes.reduce((t, d) => t + Object.values(d.tienda).reduce((a, m) => a + Object.values(m).reduce((x, y) => x + y, 0), 0), 0);
+    const distintas = new Set(enMes.flatMap((d) => Object.values(d.tienda).flatMap((m) => Object.keys(m)))).size;
+    chk(tema + ': panel con total, más usadas y secciones con "Sin clics"', v.activo && v.txt.includes(totalEsperado.toLocaleString('es-MX') + 'clics') && v.top === Math.min(10, distintas) && /Sin clics/.test(v.txt), { total: totalEsperado, top: v.top, distintas });
+    await p.locator('#uso-wrap select[aria-label="Región"]').selectOption('BAJIO'); await p.waitForTimeout(200);
+    const t = await p.evaluate(() => [...document.querySelectorAll('#uso-wrap select[aria-label="Tienda"] option')].map((o) => o.textContent));
+    chk(tema + ': región BAJIO lista sus tiendas', t.join('|') === 'Todas las tiendas|LEON CENTRO|PLAZA NOGAL LEON', t);
+    await p.locator('#uso-wrap select[aria-label="Tienda"]').selectOption('PRM_TDA_PLAZA_NOGAL_LEON'); await p.waitForTimeout(200);
+    chk(tema + ': filtro por tienda', await p.evaluate(() => usoAgregar(usoPanel.docs, Object.assign(usoPeriodo('mes'), { region: 'BAJIO', tienda: 'PRM_TDA_PLAZA_NOGAL_LEON' })).total) === 50);
+    chk(tema + ': nada se sale a lo ancho', (await desbordes(p, '#uso-wrap')).length === 0, await desbordes(p, '#uso-wrap'));
+    await p.locator('#uso-wrap select[aria-label="Región"]').selectOption(''); await p.waitForTimeout(200);
+    await captura(p, OUT + '/uso-' + tema + '.png');
+    chk(tema + ': sin errores de página', p.errores.length === 0, p.errores);
+    await ctx.close();
+  }
+}
+
 (async () => {
   const modo = process.argv[2];
-  const modos = { inicio, reco, hoja, ficha, puntos, precal, platino };
+  const modos = { inicio, reco, hoja, ficha, puntos, precal, platino, uso };
   if (!modos[modo]) { console.error('modo desconocido: ' + modo); process.exit(2); }
   const srv = await servir(RAIZ);
   const base = 'http://127.0.0.1:' + srv.address().port + '/techguide/';
