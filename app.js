@@ -15820,7 +15820,8 @@ function usoPintar(){
   if(usoPanel.error) h += '<p class="hv3-msg uso-err">' + esc(usoPanel.error) + '</p>';
   var usadas = USO_ZONAS.filter(function(z){ return a.clics[z[1]] > 0; }).length;
   h += '<div class="uso-resumen"><div><b>' + a.total.toLocaleString('es-MX') + '</b><span>clics</span></div><div><b>' + usadas + ' / ' + USO_ZONAS.length + '</b><span>herramientas con clics</span></div><div><b>' + a.dias + '</b><span>días con datos</span></div></div>';
-  if(!a.total){ el.innerHTML = h + '<div class="hv3-cred-vacio">Sin clics en el periodo</div><p class="uso-nota">Datos hasta el día anterior</p>'; return; }
+  // [v1.73.22] Sin clics en el periodo también se listan todas las herramientas
+  // (antes solo salía "Sin clics en el periodo" y no se veía cuáles).
   var max = Math.max.apply(null, USO_ZONAS.map(function(z){ return a.clics[z[1]] || 0; }));
   var secciones = [];
   USO_ZONAS.forEach(function(z){ if(secciones.indexOf(z[2]) < 0) secciones.push(z[2]); });
@@ -15831,7 +15832,7 @@ function usoPintar(){
     var n = a.clics[z[1]] || 0;
     return '<div class="uso-fila"><div class="uso-et"><b>' + esc(z[3]) + '</b>' + (conSeccion ? '<span>' + esc(z[2]) + '</span>' : '') + '</div><div class="uso-barra"><i style="width:' + (max ? (n * 100 / max).toFixed(1) : 0) + '%"></i></div><span class="uso-n">' + n.toLocaleString('es-MX') + '</span></div>';
   };
-  h += '<section class="pc-card"><h2>Más usadas</h2>' + top.map(function(z){ return fila(z, true); }).join('') + '</section>';
+  if(top.length) h += '<section class="pc-card"><h2>Más usadas</h2>' + top.map(function(z){ return fila(z, true); }).join('') + '</section>';
   secciones.forEach(function(s){
     var zs = USO_ZONAS.filter(function(z){ return z[2] === s; }).sort(function(x, y){ return (a.clics[y[1]] || 0) - (a.clics[x[1]] || 0); });
     var con = zs.filter(function(z){ return a.clics[z[1]] > 0; });
