@@ -592,6 +592,14 @@ async function uso(nav, base) {
     chk(tema + ': nada se sale a lo ancho', (await desbordes(p, '#uso-wrap')).length === 0, await desbordes(p, '#uso-wrap'));
     await p.locator('#uso-wrap select[aria-label="Región"]').selectOption(''); await p.waitForTimeout(200);
     await captura(p, OUT + '/uso-' + tema + '.png');
+    // [v1.73.22] Sin ningún clic en el periodo: igual se listan las 63 herramientas como "Sin clics".
+    await p.evaluate(() => { usoLeerDocs = async () => []; usoPanel.docs = null; usoPanel.region = ''; usoPanel.tienda = ''; usoCargar(); });
+    await p.waitForTimeout(400);
+    const vacio = await p.evaluate(() => ({ chips: document.querySelectorAll('#uso-wrap .uso-sin em').length, secciones: document.querySelectorAll('#uso-wrap .pc-card').length,
+      top: [...document.querySelectorAll('#uso-wrap .pc-card h2')].some((x) => x.textContent === 'Más usadas'), total: USO_ZONAS.length,
+      nsec: new Set(USO_ZONAS.map((z) => z[2])).size }));
+    chk(tema + ': sin clics en el periodo igual lista todas las herramientas sin uso', vacio.chips === vacio.total && vacio.secciones === vacio.nsec && !vacio.top, vacio);
+    await captura(p, OUT + '/uso-vacio-' + tema + '.png');
     chk(tema + ': sin errores de página', p.errores.length === 0, p.errores);
     await ctx.close();
   }
