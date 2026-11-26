@@ -12,7 +12,7 @@
      otro script, porque catalog.js/vendors.js la usan para el cache-busting y
      el registro del SW la compara. Si HTML y SW no coinciden → recarga forzada.
      Al empacar cada versión, este número se actualiza igual que el cache del SW. -->
-<script>window.BUILD_ID = '1795132800';
+<script>window.BUILD_ID = '1795219200';
 
   /* [v1.55] APP_JS_V se define AQUI, no al 88% del archivo, para poder emitir
      los preload con la URL exacta que despues pediran los document.write.
@@ -21,12 +21,12 @@
      Con esto, catalog.js (169 KB) y app.js (654 KB) empiezan a bajar de
      inmediato en vez de esperar a que el parser llegue al final del body,
      solapandose con los 187 KB de CSS y los 61 KB de markup. */
-  window.APP_JS_V = 'c9d1e3ed99';
+  window.APP_JS_V = 'e3b29372f8';
   document.write('<link rel="preload" as="script" href="catalog.js?v='+window.BUILD_ID+'">');
   document.write('<link rel="preload" as="script" href="app.js?v='+window.APP_JS_V+'">');
 // [v1.11.61] APP_VERSION vive aquí desde que el bloque principal salió a app.js.
 // El ritual de release NO cambia: 2 constantes aquí + 2 en sw.js.
-const APP_VERSION = 'v1.73.22';</script>
+const APP_VERSION = 'v1.73.23';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -5252,6 +5252,277 @@ html.con-upd body{padding-top:52px}
 [data-theme="dark"] .upd-bar{background:rgba(10,32,45,.97);border-bottom-color:rgba(0,168,224,.3)}
 [data-theme="dark"] .upd-txt{color:#CFE9F5}
 [data-theme="dark"] .upd-x{color:#7E97A6}
+/* ═══ [v1.73.23] REDISEÑO COMPACTO: CATÁLOGO, FICHA Y COTIZACIÓN ═════════════
+   Menos scroll con la misma lógica. Clases nuevas: cv- (catálogo), fx- (ficha),
+   ct- (cotización). Se conservan las que usan la lógica, las pruebas y el panel
+   de uso (.d-card, .d-row, .fpill, .plan-chip, .plazo-btn, .storage-btn, .tb,
+   .tp e ids de la cotización). Va al final del <style> para ganar la cascada. */
+:root{--v23-on:#13203E;--v23-on-ink:#FFFFFF}
+[data-theme="dark"]{--v23-on:#EDF2F8;--v23-on-ink:#0B1524}
+/* Colores de los planes de iPhone que no tienen visual en PLAN_VIS */
+.pw-platinomas{--pw1:#7E57C2;--pw2:#4527A0;--pink:#4527A0}
+.pw-titanio{--pw1:#9A9993;--pw2:#5C5B58;--pink:#5C5B58}
+[data-theme="dark"] .pw-platinomas{--pw1:#D1C4E9;--pw2:#9575CD;--pink:#B39DDB}
+[data-theme="dark"] .pw-titanio{--pw1:#E3E2DD;--pw2:#A9A8A2;--pink:#CFCEC8}
+/* Estatus en texto (catálogo y ficha) */
+#s-catalog .bs,#s-ficha .fx-badges .fhb{display:inline-block;font-size:10.5px;font-weight:700;line-height:1.3;padding:2px 6px;border-radius:6px;white-space:nowrap;animation:none}
+#s-ficha .fx-badges .fhb{font-size:11px;padding:2px 7px;border-radius:999px}
+#s-catalog .bs-r,#s-ficha .fhb-r{background:rgba(23,138,102,.12);color:#137A5A}
+#s-catalog .bs-l,#s-ficha .fhb-l{background:rgba(230,140,0,.14);color:#8A5200}
+#s-catalog .bs-n,#s-ficha .fhb-n{background:rgba(14,125,190,.12);color:#0B6AA2}
+#s-catalog .bs-nr,#s-ficha .fhb-nr{background:#EBEFF4;color:#4E5B6C}
+[data-theme="dark"] #s-catalog .bs-r,[data-theme="dark"] #s-ficha .fhb-r{background:rgba(59,194,146,.16);color:#3BC292}
+[data-theme="dark"] #s-catalog .bs-l,[data-theme="dark"] #s-ficha .fhb-l{background:rgba(255,170,60,.16);color:#FFB55C}
+[data-theme="dark"] #s-catalog .bs-n,[data-theme="dark"] #s-ficha .fhb-n{background:rgba(49,165,229,.16);color:#4DB4EC}
+[data-theme="dark"] #s-catalog .bs-nr,[data-theme="dark"] #s-ficha .fhb-nr{background:rgba(255,255,255,.08);color:#A3AFC0}
+
+/* ── Catálogo ── */
+#s-catalog .cv-vista{display:flex;gap:2px;padding:3px;margin-left:auto;border-radius:12px;background:var(--hv2-card-soft)}
+#s-catalog .cv-vbtn{width:40px;height:36px;padding:0;border:0;border-radius:9px;background:transparent;color:var(--hv2-ink3);display:flex;align-items:center;justify-content:center;cursor:pointer}
+#s-catalog .cv-vbtn[aria-pressed="true"]{background:var(--hv2-card);color:var(--hv2-ink);box-shadow:0 1px 2px rgba(11,21,36,.14)}
+#s-catalog .fpill{min-height:36px;padding:0 13px;display:inline-flex;align-items:center;font-family:inherit;font-size:12.5px;font-weight:700;
+  border-radius:999px;background:var(--hv2-card);color:var(--hv2-ink);border:1px solid var(--hv3-campo);box-shadow:none}
+#s-catalog .fpill.on{background:var(--v23-on);color:var(--v23-on-ink);border-color:var(--v23-on)}
+#s-catalog .cv-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:10px 12px calc(var(--safe-bot) + 24px)}
+@media(min-width:600px){#s-catalog .cv-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(min-width:900px){#s-catalog .cv-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
+[data-desktop="1"] #s-catalog .cv-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+#s-catalog .cv-card{display:flex;flex-direction:column;background:var(--hv2-card);border:1px solid var(--hv2-line);border-radius:16px;overflow:hidden;box-shadow:none}
+#s-catalog .cv-card.sel{border-color:var(--hv2-accent);box-shadow:0 0 0 1px var(--hv2-accent)}
+#s-catalog .cv-foto{position:relative;aspect-ratio:20/19;background:#FFFFFF;display:flex;align-items:center;justify-content:center}
+#s-catalog .cv-foto>img{width:76%!important;height:76%!important}
+#s-catalog .cv-foto>svg{width:100%;height:100%}
+#s-catalog .cv-foto .b-bun{position:absolute;top:6px;left:6px;font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;color:#6D28D9;background:rgba(124,58,237,.12)}
+#s-catalog .cv-cmp{position:absolute;top:0;right:0;width:40px;height:40px;padding:0;border:0;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer}
+#s-catalog .cv-cmp>span{width:24px;height:24px;box-sizing:border-box;border-radius:50%;border:1.5px solid #9AA6B6;background:rgba(255,255,255,.92);color:#FFFFFF;display:flex;align-items:center;justify-content:center}
+#s-catalog .cv-cmp.sel>span{background:var(--hv2-accent);border-color:var(--hv2-accent)}
+#s-catalog .cv-foto .pts-pill.pts-pill{position:absolute;left:4px;bottom:4px;z-index:2;gap:3px;padding:2px 6px 2px 2px;font-size:9.5px}
+#s-catalog .cv-foto .pts-pill.pts-pill b{font-size:10.5px}
+#s-catalog .cv-foto .pts-pill svg{width:12px;height:12px}
+#s-catalog .cv-info{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:8px 9px 10px}
+#s-catalog .cv-nombre{width:100%;min-height:31px;font-size:12.5px;font-weight:800;line-height:1.25;color:var(--hv2-ink);
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+#s-catalog .cv-sub{font-size:11.5px;color:var(--hv2-ink2)}
+#s-catalog .cv-info .bs{margin-top:2px}
+#s-catalog .cv-prox{font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;background:linear-gradient(135deg,#FF9500,#FF6F00);color:#FFFFFF;text-transform:uppercase}
+#s-catalog .cv-list{margin:10px 12px calc(var(--safe-bot) + 24px);background:var(--hv2-card);border:1px solid var(--hv2-line);border-radius:18px;overflow:hidden}
+#s-catalog .cv-row{display:flex;align-items:center;gap:12px;min-height:68px;box-sizing:border-box;padding:8px 10px 8px 12px;
+  background:transparent;border:0;border-bottom:1px solid var(--hv2-line);border-radius:0;box-shadow:none}
+#s-catalog .cv-row:last-child{border-bottom:0}
+#s-catalog .cv-row:hover{background:var(--hv2-card-soft)}
+#s-catalog .cv-row-foto{width:52px;height:52px;flex:0 0 52px;border-radius:10px;background:#FFFFFF;box-shadow:inset 0 0 0 1px rgba(11,21,36,.06);
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+#s-catalog .cv-row-foto>img{width:88%!important;height:88%!important}
+#s-catalog .cv-row-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+#s-catalog .cv-row-nombre{font-size:14.5px;font-weight:800;color:var(--hv2-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#s-catalog .cv-chips{display:flex;align-items:center;flex-wrap:wrap;gap:4px 5px}
+#s-catalog .cv-gb{font-size:12px;color:var(--hv2-ink2);margin-right:2px}
+#s-catalog .cv-chips .pts-pill.pts-pill{gap:3px;padding:2px 6px 2px 2px;font-size:9.5px;box-shadow:none}
+#s-catalog .cv-chips .pts-pill.pts-pill b{font-size:10.5px}
+#s-catalog .cv-chips .pts-pill svg{width:12px;height:12px}
+#s-catalog .cv-chips .b-bun{font-size:10.5px;font-weight:800;padding:2px 6px;border-radius:6px;color:#6D28D9;background:rgba(124,58,237,.12)}
+[data-theme="dark"] #s-catalog .cv-chips .b-bun{color:#C4B5FD;background:rgba(167,139,250,.2)}
+#s-catalog .cv-chev{width:16px;height:16px;flex:0 0 16px;color:var(--hv2-ink3)}
+#s-catalog .cmp-bar{margin:0 12px calc(var(--safe-bot) + 10px);padding:8px 8px 8px 16px;border:0;border-radius:18px;
+  background:var(--hv2-navy);box-shadow:0 12px 28px -10px rgba(11,21,36,.45);backdrop-filter:none;-webkit-backdrop-filter:none}
+[data-theme="dark"] #s-catalog .cmp-bar{background:#1B2C4A}
+#s-catalog .cmp-bar-lbl{color:#FFFFFF;font-size:14px;font-weight:700}
+#s-catalog .cmp-clear{min-height:44px;padding:0 12px;border-radius:12px;color:#C9D6E6;font-family:inherit;font-size:14px;font-weight:700}
+#s-catalog .cmp-go{min-height:44px;padding:0 18px;border-radius:12px;background:#FFFFFF;color:#13203E;font-family:inherit;font-size:14px;font-weight:800}
+#s-catalog .cmp-go:disabled{opacity:.45;cursor:default}
+
+/* ── Ficha ── */
+#s-ficha .fx{max-width:720px;margin:0 auto}
+#s-ficha .fx-hero{display:flex;align-items:center;gap:12px;margin:10px 16px 0;padding:12px;background:var(--hv2-card);border:1px solid var(--hv2-line);border-radius:20px}
+#s-ficha .fx-foto{position:relative;width:108px;height:108px;flex:0 0 108px;border-radius:14px;background:#FFFFFF;box-shadow:inset 0 0 0 1px rgba(11,21,36,.06);
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+#s-ficha .fx-foto>img{width:88%!important;height:88%!important}
+#s-ficha .fx-foto>svg{width:100%;height:100%}
+#s-ficha .fx-foto .pts-pill.pts-pill{position:absolute;left:4px;bottom:4px;z-index:2;padding:2px 7px 2px 3px;font-size:10px}
+#s-ficha .fx-foto .pts-pill.pts-pill b{font-size:11px}
+#s-ficha .fx-foto .pts-pill svg{width:13px;height:13px}
+#s-ficha .fx-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+#s-ficha .fx-badges{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#s-ficha .fx-marca{font-size:11.5px;font-weight:700;letter-spacing:.08em;color:var(--hv2-ink3)}
+#s-ficha .fx-nombre{font-size:20px;font-weight:800;letter-spacing:-.01em;line-height:1.15;color:var(--hv2-ink);overflow-wrap:anywhere}
+#s-ficha .fx-sub{font-size:13px;font-weight:600;line-height:1.35;color:var(--hv2-ink2)}
+#s-ficha .fx-sub>span+span::before{content:' · ';color:var(--hv2-ink2)}
+#s-ficha .fx-bundle{color:#6D28D9}
+[data-theme="dark"] #s-ficha .fx-bundle{color:#C4B5FD}
+#s-ficha .fx-cap{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+#s-ficha .fx-cap .storage-btn{min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--hv3-campo);background:var(--hv2-card);color:var(--hv2-ink);
+  font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;animation:none}
+#s-ficha .fx-cap .storage-btn.active{background:var(--v23-on);border-color:var(--v23-on);color:var(--v23-on-ink)}
+#s-ficha .fx-vig{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--hv2-ink)}
+#s-ficha .fx-vig-dot{width:7px;height:7px;flex:0 0 7px;border-radius:50%}
+#s-ficha .fx-planes{display:flex;flex-direction:column;gap:10px;margin:10px 0 0}
+#s-ficha .fx-planes>*{margin-left:16px;margin-right:16px}
+#s-ficha .fx-planes>.fx-chips{position:relative;display:flex;gap:6px;margin:0;padding:0 16px 2px;overflow-x:auto;scrollbar-width:none;scroll-padding:0 16px}
+#s-ficha .fx-chips::-webkit-scrollbar{display:none}
+#s-ficha .fx-chips .plan-chip{flex:0 0 auto;min-height:46px;padding:0 12px;border-radius:12px;border:1px solid var(--hv3-campo);background:var(--hv2-card);
+  color:var(--pink,var(--hv2-ink));font-family:inherit;font-size:13.5px;font-weight:800;letter-spacing:0;display:flex;align-items:center;gap:6px;
+  box-shadow:none;opacity:1;transform:none;cursor:pointer}
+#s-ficha .fx-chips .plan-chip span{font-size:11.5px;font-weight:600;opacity:.85}
+#s-ficha .fx-chips .plan-chip.active{background:var(--pink,var(--v23-on));border-color:var(--pink,var(--v23-on));color:#FFFFFF;box-shadow:none;transform:none}
+[data-theme="dark"] #s-ficha .fx-chips .plan-chip.active{color:#0B1524}
+#s-ficha .fx-plazos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;margin-top:0;margin-bottom:0;padding:0;background:var(--hv3-campo);border:1px solid var(--hv3-campo);border-radius:12px;overflow:hidden}
+#s-ficha .fx-plazos .plazo-btn{min-height:44px;padding:0;border:0;border-radius:0;background:var(--hv2-card);color:var(--hv2-ink);font-family:inherit;font-size:13px;font-weight:700;box-shadow:none;cursor:pointer}
+#s-ficha .fx-plazos .plazo-btn.active{background:var(--v23-on);color:var(--v23-on-ink)}
+#s-ficha .fx-planes .future-notice{margin:0}
+#s-ficha .fx-precio{display:flex;flex-direction:column;gap:10px;padding:16px;background:var(--hv2-card);border:1px solid var(--hv2-line);border-radius:22px;box-shadow:var(--hv2-shadow-1)}
+#s-ficha .fx-precio-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+#s-ficha .fx-precio-col{display:flex;flex-direction:column;gap:3px;min-width:0}
+#s-ficha .fx-pw{font-size:26px;align-self:flex-start}
+#s-ficha .fx-info{font-size:12px;font-weight:600;color:var(--pink,var(--hv2-ink2))}
+#s-ficha .fx-monto{margin-top:6px;font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1.05;color:var(--pink,var(--hv2-ink));font-variant-numeric:tabular-nums;white-space:nowrap}
+#s-ficha .fx-monto small{font-size:.6em;font-weight:800}
+#s-ficha .fx-monto.fx-incl{font-size:24px;white-space:normal}
+#s-ficha .fx-antes{font-size:12.5px;color:var(--hv2-ink3);text-decoration:line-through}
+#s-ficha .fx-legal{font-size:10.5px;line-height:1.35;color:var(--hv2-ink3);font-style:italic}
+#s-ficha .fx-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding-top:10px;border-top:1px solid var(--hv2-line)}
+#s-ficha .fx-col{display:flex;flex-direction:column;gap:1px;min-width:0}
+#s-ficha .fx-col:first-child{padding-right:10px}
+#s-ficha .fx-col+.fx-col{padding-left:12px;border-left:1px solid var(--hv2-line)}
+#s-ficha .fx-col span{font-size:12px;color:var(--hv2-ink2)}
+#s-ficha .fx-col b{font-size:19px;font-weight:800;color:var(--hv2-ink);font-variant-numeric:tabular-nums}
+#s-ficha .fx-col b.fx-rango{font-size:16px}
+#s-ficha .fx-nota{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px;padding:9px 12px;border-radius:12px;background:var(--hv2-card-soft);font-size:12.5px;color:var(--hv2-ink2)}
+#s-ficha .fx-nota b{font-weight:700;color:var(--hv2-ink)}
+#s-ficha .fx-seguro{font-size:12px}
+#s-ficha .fx-cotizar{display:flex;align-items:center;justify-content:center;gap:8px;width:auto;min-height:52px;border:0;border-radius:14px;
+  background:var(--hv2-navy);color:#FFFFFF;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer}
+[data-theme="dark"] #s-ficha .fx-cotizar{background:#1B2C4A}
+#s-ficha .fx-cotizar svg{width:18px;height:18px;flex:0 0 18px}
+#s-ficha .fx-cotizar:active{transform:scale(.985)}
+#s-ficha .fx-tabs{display:flex;gap:2px;margin:16px 0 0;padding:0 16px;background:transparent;border-bottom:1px solid var(--hv2-line);overflow-x:auto;scrollbar-width:none}
+#s-ficha .fx-tabs .tb{flex:0 0 auto;position:relative;min-height:44px;padding:0 8px;border:0;border-bottom:3px solid transparent;background:transparent;
+  color:var(--hv2-ink3);font-family:inherit;font-size:13px;font-weight:600;opacity:1;cursor:pointer}
+#s-ficha .fx-tabs .tb.on{color:var(--hv2-ink);border-bottom-color:var(--hv2-ink);font-weight:800}
+#s-ficha .fx-tabs .tb.on::after{content:none}
+#s-ficha .fx-tabs .tb:hover{transform:none}
+#s-ficha .fx-specs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 16px 0}
+#s-ficha .fx-spec{display:flex;flex-direction:column;gap:3px;min-width:0;padding:10px 12px;background:var(--hv2-card);border:1px solid var(--hv2-line);border-radius:14px}
+#s-ficha .fx-spec.ancho{grid-column:1/-1}
+#s-ficha .fx-spec span{font-size:11.5px;font-weight:600;color:var(--hv2-ink2)}
+#s-ficha .fx-spec b{font-size:13px;font-weight:700;line-height:1.3;color:var(--hv2-ink);overflow-wrap:anywhere}
+#s-ficha .fx-fin{height:calc(var(--safe-bot) + 32px)}
+#s-ficha .similar-grid{grid-template-columns:minmax(0,1fr)}   /* el nombre largo ya no empuja la tarjeta fuera de la pantalla */
+
+/* ── Cotización (solo el modal #cot-overlay: .cot-modal se usa en otras vistas) ── */
+#cot-overlay .cot-modal{background:var(--hv2-bg)}
+#cot-overlay .ct-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px 4px 18px;border-bottom:0}
+#cot-overlay .ct-head .cot-title{font-size:18px;font-weight:800;color:var(--hv2-ink)}
+#cot-overlay .ct-x{width:44px;height:44px;flex:0 0 44px;padding:0;border:0;border-radius:22px;background:transparent;color:var(--hv2-ink);display:flex;align-items:center;justify-content:center;cursor:pointer}
+#cot-overlay .cot-body{display:flex;flex-direction:column;gap:10px;padding:4px 16px 16px}
+#cot-overlay .cot-body>*{flex-shrink:0}
+#cot-overlay .ct-card{display:flex;flex-direction:column;gap:10px;padding:12px;background:var(--hv2-card);border:1px solid var(--hv2-line);border-radius:20px}
+#cot-overlay .ct-pago{gap:12px;padding:14px}
+#cot-overlay .ct-eq{display:flex;align-items:center;gap:12px}
+#cot-overlay .ct-eq-foto{width:52px;height:52px;flex:0 0 52px;border-radius:12px;background:#FFFFFF;box-shadow:inset 0 0 0 1px rgba(11,21,36,.06);display:flex;align-items:center;justify-content:center;overflow:hidden}
+#cot-overlay .ct-eq-foto img{width:46px;height:46px;object-fit:contain}
+#cot-overlay .ct-eq-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+#cot-overlay .ct-eq-nombre{font-size:15px;font-weight:800;color:var(--hv2-ink)}
+#cot-overlay .ct-eq-plan{display:flex;align-items:center;flex-wrap:wrap;gap:2px 8px;margin:0;font-size:12.5px;color:var(--hv2-ink2)}
+#cot-overlay .ct-eq-plan .pw{font-size:14px}
+#cot-overlay .ct-input{width:100%;min-height:44px;box-sizing:border-box;padding:0 14px;border:1px solid var(--hv3-campo);border-radius:12px;background:var(--hv2-card);color:var(--hv2-ink);font-family:inherit;font-size:15px}
+#cot-overlay .ct-input:focus{outline:none;border-color:var(--hv2-accent);box-shadow:0 0 0 3px var(--hv2-accent-soft)}
+#cot-overlay .ct-seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--hv3-campo);border:1px solid var(--hv3-campo);border-radius:12px;overflow:hidden}
+#cot-overlay .ct-seg .cot-tipo-btn{min-height:52px;padding:4px 8px;border:0;border-radius:0;background:var(--hv2-card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-family:inherit;cursor:pointer}
+#cot-overlay .ct-seg .cot-tipo-nombre{font-size:14.5px;font-weight:800;color:var(--hv2-ink)}
+#cot-overlay .ct-seg .cot-tipo-desc{font-size:11.5px;color:var(--hv2-ink2)}
+#cot-overlay .ct-seg .cot-tipo-btn.cot-tipo-on{background:var(--v23-on)}
+#cot-overlay .ct-seg .cot-tipo-btn.cot-tipo-on .cot-tipo-nombre,#cot-overlay .ct-seg .cot-tipo-btn.cot-tipo-on .cot-tipo-desc{color:var(--v23-on-ink)}
+#cot-overlay .cot-tipo-aviso{margin-top:-6px;font-size:12px;font-weight:700;color:#B45309}
+[data-theme="dark"] #cot-overlay .cot-tipo-aviso{color:#FFB55C}
+#cot-overlay .ct-bloque{display:flex;flex-direction:column;gap:6px}
+#cot-overlay .ct-fila-lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:600;color:var(--hv2-ink2)}
+#cot-overlay .ct-fila-lbl b{font-size:13.5px;font-weight:800;color:var(--hv2-ink)}
+#cot-overlay .cot-pill{min-height:44px;padding:0;border-radius:10px;border:1px solid var(--hv3-campo);background:var(--hv2-card);color:var(--hv2-ink);
+  font-family:inherit;font-size:12.5px;font-weight:700;box-shadow:none;cursor:pointer}
+#cot-overlay .cot-pill.on,#cot-overlay .cot-pill-custom.on{background:var(--v23-on);border-color:var(--v23-on);color:var(--v23-on-ink);box-shadow:none}
+#cot-overlay .ct-eng{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+#cot-overlay .ct-fila{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#cot-overlay .ct-lbl{font-size:13px;font-weight:600;color:var(--hv2-ink2)}
+#cot-overlay .ct-rentas{display:grid;grid-template-columns:repeat(4,44px);gap:1px;background:var(--hv3-campo);border:1px solid var(--hv3-campo);border-radius:12px;overflow:hidden}
+#cot-overlay .ct-rentas .cot-pill{min-height:42px;border:0;border-radius:0}
+#cot-overlay .ct-dep{min-height:40px;padding:0 14px;border-radius:12px;border-style:solid}
+#cot-overlay .ct-dep .ct-dep-on{display:none}
+#cot-overlay .ct-dep.on .ct-dep-on{display:inline}
+#cot-overlay .ct-dep.on .ct-dep-off{display:none}
+#cot-overlay .cot-custom-wrap{margin-top:0;min-height:44px;box-sizing:border-box;padding:0 12px;border:1px solid var(--hv3-campo);border-radius:12px;background:var(--hv2-card)}
+#cot-overlay .cot-custom-prefix{font-size:15px;color:var(--hv2-ink2)}
+#cot-overlay .cot-custom-input{min-width:0;font-size:15px;color:var(--hv2-ink)}
+#cot-overlay .ct-servicios{display:flex;gap:8px}
+/* Prendido = relleno y palomita verde en la esquina; así el nombre usa todo el ancho. */
+#cot-overlay .ct-serv{position:relative;flex:1 1 0;min-width:0;min-height:60px;box-sizing:border-box;margin:0;padding:8px 10px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+  background:var(--hv2-card);border:1px solid var(--hv3-campo);border-radius:14px}
+#cot-overlay .ct-serv .cot-switch-text{width:100%;min-width:0}
+#cot-overlay .ct-serv .cot-switch-name{font-size:13px;font-weight:800;line-height:1.2;color:var(--hv2-ink)}
+#cot-overlay .ct-serv .cot-switch-desc{margin-top:2px;font-size:11.5px;color:var(--hv2-ink2)}
+#cot-overlay .ct-check{display:none}
+#cot-overlay .ct-serv.on{background:var(--v23-on);border-color:var(--v23-on)}
+#cot-overlay .ct-serv.on .cot-switch-name,#cot-overlay .ct-serv.on .cot-switch-desc{color:var(--v23-on-ink)}
+#cot-overlay .ct-serv.on .ct-check{position:absolute;top:-6px;right:-6px;width:20px;height:20px;box-sizing:border-box;border-radius:50%;background:var(--hv2-pos);border:2px solid var(--hv2-bg);
+  display:flex;align-items:center;justify-content:center}
+#cot-overlay .ct-serv.on .ct-check::after{content:'';width:7px;height:3.5px;border-left:2px solid #FFFFFF;border-bottom:2px solid #FFFFFF;transform:translateY(-1px) rotate(-45deg)}
+#cot-overlay .ct-resumen{margin:0;padding:16px;background:var(--hv2-card);border:1px solid var(--hv2-line);border-radius:22px;box-shadow:0 8px 24px -12px rgba(11,21,36,.22)}
+[data-theme="dark"] #cot-overlay .ct-resumen{background:var(--hv2-card)}
+#cot-overlay .ct-totales{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+#cot-overlay .ct-total{display:flex;flex-direction:column;gap:2px;min-width:0}
+#cot-overlay .ct-total:first-child{padding-right:10px}
+#cot-overlay .ct-total+.ct-total{padding-left:12px;border-left:1px solid var(--hv2-line)}
+#cot-overlay .ct-total span{font-size:12.5px;color:var(--hv2-ink2)}
+#cot-overlay .ct-total b{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1.1;color:var(--hv2-ink);font-variant-numeric:tabular-nums}
+#cot-overlay .ct-desglose{margin-top:10px;padding-top:4px;border-top:1px solid var(--hv2-line)}
+#cot-overlay .ct-desglose .cot-resumen-row{padding:6px 0;font-size:13.5px;gap:12px;border:0}
+#cot-overlay .ct-desglose .cot-resumen-row+.cot-resumen-row{border-top:0}
+#cot-overlay .ct-desglose .cot-resumen-row.ct-sep{margin-top:4px;padding-top:10px;border-top:1px dashed var(--hv2-line)}
+#cot-overlay .ct-desglose .cot-resumen-val{font-variant-numeric:tabular-nums;white-space:nowrap}
+#cot-overlay .ct-acc .cot-resumen-label{font-weight:700}
+#cot-overlay .ct-acc .cot-resumen-val{color:#B45309}
+[data-theme="dark"] #cot-overlay .ct-acc .cot-resumen-val{color:#FFA040}
+#cot-overlay .ct-port-nota{margin-top:6px;font-size:11px;font-style:italic;text-align:right;color:var(--hv2-ink3)}
+#cot-overlay #cot-sugerencia:empty{display:none}
+#cot-overlay .ct-up{margin:0;padding:12px 14px;display:flex;flex-direction:column;gap:10px;border-radius:20px;background:var(--hv2-accent-soft);border:1px solid rgba(14,125,190,.30)}
+[data-theme="dark"] #cot-overlay .ct-up{background:var(--hv2-accent-soft);border-color:rgba(49,165,229,.35)}
+#cot-overlay .ct-up-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#cot-overlay .ct-up-tit{display:flex;align-items:baseline;gap:8px;min-width:0;font-size:13.5px;font-weight:700;color:var(--hv2-ink)}
+#cot-overlay .ct-up .plan-upsell-btn{flex:0 0 auto;margin:0;min-height:40px;padding:0 14px;border-radius:12px;border:1.5px solid var(--hv2-accent-ink);background:var(--hv2-card);
+  color:var(--hv2-accent-ink);font-family:inherit;font-size:13.5px;font-weight:800;white-space:nowrap;cursor:pointer}
+#cot-overlay .ct-up .plan-upsell-boxes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+#cot-overlay .ct-up .plan-upsell-boxes.tres{grid-template-columns:repeat(3,minmax(0,1fr))}
+#cot-overlay .ct-up .plan-upsell-box,#cot-overlay .ct-up .pu-mio{min-width:0;padding:8px 10px;border:0!important;border-radius:12px;background:var(--hv2-card)!important}
+#cot-overlay .ct-up .plan-upsell-box-label{margin:0 0 1px;font-size:11.5px;color:var(--hv2-ink2)}
+#cot-overlay .ct-up .plan-upsell-box-val{display:flex;align-items:baseline;flex-wrap:wrap;gap:0 5px;font-variant-numeric:tabular-nums}
+#cot-overlay .ct-up .plan-upsell-box-val s{font-size:11.5px;color:var(--hv2-ink3)}
+#cot-overlay .ct-up .plan-upsell-box-val b{font-size:15px;font-weight:800;color:var(--hv2-ink)}
+#cot-overlay .ct-up .pu-baja b,#cot-overlay .ct-up .pu-mio b{color:var(--hv2-pos)}
+#cot-overlay .ct-up .pu-unlock{margin:0;font-size:11.5px;color:#B45309}
+[data-theme="dark"] #cot-overlay .ct-up .pu-unlock{color:#FFA040}
+#cot-overlay .comm-section{margin:0;background:var(--hv2-card);border:1px solid var(--hv2-line);border-radius:18px}
+#cot-overlay .comm-section-toggle{min-height:60px;box-sizing:border-box;padding:0 16px;gap:12px}
+#cot-overlay .comm-section-title{font-size:14px;font-weight:800;color:var(--hv2-ink)}
+#cot-overlay .comm-section-sub{font-size:12px;color:var(--hv2-ink2)}
+#cot-overlay .comm-section-amount{color:#B45309}
+[data-theme="dark"] #cot-overlay .comm-section-amount{color:#FFA040}
+#cot-overlay .comm-section-chevron{color:var(--hv2-ink3)}
+#cot-overlay .comm-section-body-inner{border-top-color:var(--hv2-line)}
+#cot-overlay .ct-cmp{display:flex;flex-direction:column;gap:8px;margin:4px -16px 0}
+#cot-overlay .ct-cmp-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 16px}
+#cot-overlay .ct-cmp-head span{font-size:14px;font-weight:800;color:var(--hv2-ink)}
+#cot-overlay .ct-cmp-head small{font-size:12px;color:var(--hv2-ink2)}
+#cot-overlay .ct-cmp-pills{display:flex;flex-wrap:nowrap;gap:6px;margin:0;padding:0 16px 2px;overflow-x:auto;scrollbar-width:none}
+#cot-overlay .ct-cmp-pills::-webkit-scrollbar{display:none}
+#cot-overlay .ct-cmp-pills .cot-pill{flex:0 0 auto;min-height:40px;padding:0 14px;border-radius:999px;color:var(--pink,var(--hv2-ink));font-size:13px;font-weight:800;white-space:nowrap}
+#cot-overlay .ct-cmp-pills .cot-pill.on{background:var(--pink,var(--v23-on));border-color:var(--pink,var(--v23-on));color:#FFFFFF}
+[data-theme="dark"] #cot-overlay .ct-cmp-pills .cot-pill.on{color:#0B1524}
+#cot-overlay .ct-acciones{display:grid;grid-template-columns:52px 52px minmax(0,1fr);gap:8px;padding:10px 16px calc(var(--safe-bot) + 12px);background:var(--hv2-bg);border-top:1px solid var(--hv2-line)}
+#cot-overlay .ct-acciones .cot-btn{min-height:52px;padding:0;border-radius:14px;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px}
+#cot-overlay .ct-ico{background:var(--hv2-card);border:1px solid var(--hv3-campo);color:var(--hv2-ink);box-shadow:none}
+#cot-overlay .ct-wa{background:var(--hv2-navy);color:#FFFFFF;font-size:15px;font-weight:700;box-shadow:none}
+[data-theme="dark"] #cot-overlay .ct-wa{background:#1B2C4A}
+#cot-overlay .ct-spin{width:18px;height:18px;box-sizing:border-box;border-radius:50%;border:2px solid var(--hv3-campo);border-top-color:var(--hv2-ink);animation:ctGira .8s linear infinite}
+@keyframes ctGira{to{transform:rotate(360deg)}}
 </style>
 <!-- [v1.9.22] vendors.js (html2canvas + jsPDF) se carga lazy via loadVendors() -->
 </head>
@@ -5643,12 +5914,15 @@ html.con-upd body{padding-top:52px}
   <div class="nav">
     <button class="nav-back" onclick="goHome()"><svg viewBox="0 0 9 15" fill="none"><path d="M7.5 1L1 7.5 7.5 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Inicio</button>
     <span class="nav-title" id="cat-title">Catálogo</span>
-    <button class="nav-right" id="view-btn" onclick="toggleView()">Lista</button>
+    <div class="nav-right cv-vista" id="view-btn" role="group" aria-label="Vista">
+      <button type="button" class="cv-vbtn" id="view-grid" aria-label="Cuadrícula" aria-pressed="true" onclick="setVista(true)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg></button>
+      <button type="button" class="cv-vbtn" id="view-list" aria-label="Lista" aria-pressed="false" onclick="setVista(false)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor"/></svg></button>
+    </div>
   </div>
   <div class="sticky-search">
     <div class="search-box">
       <svg viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13 13l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      <input id="search-in" placeholder="Buscar equipo o marca..." oninput="renderDevsDebounced()">
+      <input id="search-in" aria-label="Buscar equipo o marca" placeholder="Buscar equipo o marca..." oninput="renderDevsDebounced()">
     </div>
   </div>
   <div class="filter-scroll" id="fbar"></div>
@@ -5656,8 +5930,8 @@ html.con-upd body{padding-top:52px}
   <div class="scroll-area" id="dev-wrap"></div>
   <div class="cmp-bar" id="cmp-bar">
     <span class="cmp-bar-lbl" id="cmp-lbl">0 seleccionados</span>
-    <button class="cmp-clear" onclick="clearCmp()">Limpiar</button>
-    <button class="cmp-go" onclick="goCompare()">Comparar →</button>
+    <button type="button" class="cmp-clear" onclick="clearCmp()">Limpiar</button>
+    <button type="button" class="cmp-go" onclick="goCompare()">Comparar</button>
   </div>
 </div>
 
@@ -5829,31 +6103,36 @@ document.write('<scr'+'ipt src="app.js?v='+window.APP_JS_V+'"></scr'+'ipt>');
 </script>
 
 <!-- COTIZACION MODAL -->
+<!-- [v1.73.23] Cotización compacta: mismos ids y funciones; cambia el orden y la
+     piel. El resumen sube junto a lo que el asesor elige, la comparación de
+     planes queda junto a los botones de envío y los 3 envíos van en una fila. -->
 <div class="cot-overlay" id="cot-overlay">
   <div class="cot-modal">
     <div class="cot-handle"></div>
-    <div class="cot-header">
+    <div class="cot-header ct-head">
       <div class="cot-title">Personaliza tu cotización</div>
-      <div class="cot-sub" id="cot-device-info">—</div>
+      <button type="button" class="ct-x" aria-label="Cerrar" onclick="cotClose()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div class="cot-body">
-      
-      <!-- [v1.9.25] Nombre del cliente (opcional, para personalizar saludo) -->
-      <div class="cot-section">
-        <div class="cot-section-label">Nombre del cliente <span style="color:var(--label3);font-weight:400">(opcional)</span></div>
-        <div class="cot-cliente-wrap">
-          <input class="cot-cliente-input" id="cot-cliente-input" type="text" 
-            placeholder="Ej. Juan Pérez (se usan hasta 2 nombres)" 
-            autocomplete="off" maxlength="40"
-            oninput="cotClienteOnInput(event)" />
-          <div class="cot-cliente-hint">Personalizará el saludo: "Hola Juan Pérez,..."</div>
+
+      <!-- Equipo y [v1.9.25] nombre del cliente (opcional, para personalizar saludo) -->
+      <section class="ct-card ct-equipo">
+        <div class="ct-eq">
+          <div class="ct-eq-foto" id="cot-eq-foto"></div>
+          <div class="ct-eq-info">
+            <b class="ct-eq-nombre" id="cot-eq-nombre"></b>
+            <div class="cot-sub ct-eq-plan" id="cot-device-info">—</div>
+          </div>
         </div>
-      </div>
-      
-      <!-- [v1.10.25] Tipo de operación — OBLIGATORIO, sin default -->
-      <div class="cot-section">
-        <div class="cot-section-label">Tipo de operación <span style="color:#FF3B30;font-weight:600">*</span></div>
-        <div class="cot-tipo-grid" id="cot-tipo-grid">
+        <input class="cot-cliente-input ct-input" id="cot-cliente-input" type="text"
+          aria-label="Nombre del cliente (opcional)" placeholder="Nombre del cliente (opcional)"
+          autocomplete="off" maxlength="40"
+          oninput="cotClienteOnInput(event)" />
+      </section>
+
+      <section class="ct-card ct-pago">
+        <!-- [v1.10.25] Tipo de operación — OBLIGATORIO, sin default -->
+        <div class="cot-tipo-grid ct-seg" id="cot-tipo-grid" role="group" aria-label="Tipo de operación">
           <button type="button" class="cot-tipo-btn" id="cot-tipo-pospago" onclick="cotSetTipo('POSPAGO')">
             <span class="cot-tipo-nombre">Pospago</span>
             <span class="cot-tipo-desc">Línea nueva</span>
@@ -5864,66 +6143,64 @@ document.write('<scr'+'ipt src="app.js?v='+window.APP_JS_V+'"></scr'+'ipt>');
           </button>
         </div>
         <div class="cot-tipo-aviso" id="cot-tipo-aviso">Selecciona el tipo de operación para continuar</div>
-      </div>
-      
-      <div class="cot-section">
-        <div class="cot-section-label">Portabilidad</div>
-        <div class="cot-switch" id="cot-port-switch" onclick="cotTogglePort()">
-          <div class="cot-switch-text">
-            <div class="cot-switch-name">Cliente con portabilidad</div>
-            <div class="cot-switch-desc">20% desc. en plan x 6 meses · 10% en Titanio</div>
+
+        <div class="ct-bloque">
+          <div class="ct-fila-lbl"><span>Enganche</span><b id="cot-eng-monto">$0</b></div>
+          <div class="cot-pills ct-eng" id="cot-eng-pills" role="group" aria-label="Enganche"></div>
+          <div class="cot-custom-wrap" id="cot-eng-custom-wrap">
+            <span class="cot-custom-prefix">$</span>
+            <input class="cot-custom-input" id="cot-eng-custom-input" type="number" inputmode="numeric" aria-label="Monto de enganche" placeholder="0" oninput="cotRender()" />
           </div>
-          <div class="cot-switch-toggle"></div>
         </div>
-      </div>
-      
-      <div class="cot-section">
-        <div class="cot-section-label">Servicios adicionales</div>
-        <div class="cot-switch" id="cot-control-switch" onclick="cotToggleControl()">
-          <div class="cot-switch-text">
-            <div class="cot-switch-name">Control de datos</div>
-            <div class="cot-switch-desc" id="cot-control-desc">$50/mes</div>
-          </div>
-          <div class="cot-switch-toggle"></div>
+
+        <div class="ct-fila">
+          <span class="ct-lbl">Rentas en garantía</span>
+          <div class="cot-pills ct-rentas" id="cot-rentas-pills" role="group" aria-label="Rentas en garantía"></div>
         </div>
-        <div class="cot-switch" id="cot-seguro-switch" onclick="cotToggleSeguro()">
-          <div class="cot-switch-text">
-            <div class="cot-switch-name">Seguro AT&T Protección</div>
-            <div class="cot-switch-desc" id="cot-seguro-desc">—</div>
-          </div>
-          <div class="cot-switch-toggle"></div>
+
+        <!-- [v1.8.2] Depósito de garantía: independiente de las rentas -->
+        <div class="ct-fila">
+          <span class="ct-lbl">Depósito de garantía</span>
+          <button type="button" class="cot-pill cot-pill-custom ct-dep" id="cot-deposito-pill" onclick="cotSetDeposito()"><span class="ct-dep-off">Agregar</span><span class="ct-dep-on">Quitar</span></button>
         </div>
-      </div>
-      
-      <div class="cot-section">
-        <div class="cot-section-label">Enganche</div>
-        <div class="cot-pills" id="cot-eng-pills"></div>
-        <div class="cot-custom-wrap" id="cot-eng-custom-wrap">
-          <span class="cot-custom-prefix">$</span>
-          <input class="cot-custom-input" id="cot-eng-custom-input" type="number" placeholder="0" oninput="cotRender()" />
-        </div>
-      </div>
-      
-      <div class="cot-section">
-        <div class="cot-section-label">Rentas en garantía</div>
-        <div class="cot-pills" id="cot-rentas-pills"></div>
         <div class="cot-custom-wrap" id="cot-deposito-custom-wrap">
           <span class="cot-custom-prefix">$</span>
-          <input class="cot-custom-input" id="cot-deposito-input" type="number" placeholder="Monto del depósito" oninput="cotRender()" />
+          <input class="cot-custom-input" id="cot-deposito-input" type="number" inputmode="numeric" aria-label="Monto del depósito" placeholder="Monto del depósito" oninput="cotRender()" />
+        </div>
+      </section>
+
+      <!-- Portabilidad y servicios adicionales. La portabilidad lleva .cot-section:
+           openCotModal la oculta en Platino + ([v1.73.19]). -->
+      <div class="ct-servicios">
+        <div class="cot-switch cot-section ct-serv" id="cot-port-switch" role="button" tabindex="0" onclick="cotTogglePort()">
+          <span class="ct-check" aria-hidden="true"></span>
+          <div class="cot-switch-text">
+            <div class="cot-switch-name">Portabilidad</div>
+            <div class="cot-switch-desc" id="cot-port-desc">20% x 6 meses</div>
+          </div>
+        </div>
+        <div class="cot-switch ct-serv" id="cot-control-switch" role="button" tabindex="0" onclick="cotToggleControl()">
+          <span class="ct-check" aria-hidden="true"></span>
+          <div class="cot-switch-text">
+            <div class="cot-switch-name">Control</div>
+            <div class="cot-switch-desc" id="cot-control-desc">$50/mes</div>
+          </div>
+        </div>
+        <div class="cot-switch ct-serv" id="cot-seguro-switch" role="button" tabindex="0" onclick="cotToggleSeguro()">
+          <span class="ct-check" aria-hidden="true"></span>
+          <div class="cot-switch-text">
+            <div class="cot-switch-name">Seguro</div>
+            <div class="cot-switch-desc" id="cot-seguro-desc">—</div>
+          </div>
         </div>
       </div>
-      
-      <div class="cot-section">
-        <div class="cot-section-label">Comparar planes</div>
-        <div class="cot-pills" id="cot-cmp-pills"></div>
-      </div>
-      
-      <div class="cot-section">
-        <div class="cot-section-label">Resumen</div>
-        <div class="cot-resumen" id="cot-resumen">—</div>
-      </div>
-      
-      <div class="comm-section" id="comm-section" onclick="toggleCommSection(event)">
+
+      <div class="cot-resumen ct-resumen" id="cot-resumen">—</div>
+
+      <!-- [v1.10.76] Sugerencia de subir de plan (la llena cotRender) -->
+      <div id="cot-sugerencia"></div>
+
+      <div class="comm-section" id="comm-section" role="button" tabindex="0" aria-expanded="false" onclick="toggleCommSection(event)">
         <div class="comm-section-toggle">
           <div class="comm-section-info">
             <div class="comm-section-title">Tu comisión potencial</div>
@@ -5936,24 +6213,24 @@ document.write('<scr'+'ipt src="app.js?v='+window.APP_JS_V+'"></scr'+'ipt>');
           <div class="comm-section-body-inner" id="comm-body-inner">—</div>
         </div>
       </div>
-      
-    </div>
-    <div class="cot-actions" style="flex-direction:column;gap:8px">
-      <button class="cot-btn cot-btn-send" onclick="cotSendImage()" style="width:100%;background:var(--hv2-navy);box-shadow:var(--hv2-shadow-2)">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
-        Enviar cotización como imagen
-      </button>
-      <button class="cot-btn cot-btn-send" onclick="generateSpecsPDF()" style="width:100%;background:#2A3646;box-shadow:var(--hv2-shadow-1);color:#fff;margin-top:8px">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-        Enviar ficha técnica (PDF)
-      </button>
-      <div style="display:flex;gap:8px;width:100%">
-        <button class="cot-btn cot-btn-cancel" onclick="cotClose()" style="flex:1">Cancelar</button>
-        <button class="cot-btn cot-btn-send" onclick="cotSend()" style="flex:2;font-size:13px">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19.05 4.91A9.816 9.816 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01zm-7.01 15.24c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.264 8.264 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42a8.183 8.183 0 0 1 2.41 5.83c.02 4.54-3.68 8.23-8.22 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43s.17-.25.25-.41c.08-.17.04-.31-.02-.43s-.56-1.34-.76-1.84c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18s-.22-.16-.47-.28z"/></svg>
-        Enviar WhatsApp
-        </button>
+
+      <div class="ct-cmp">
+        <div class="ct-cmp-head"><span>Comparar planes</span><small>en la imagen · hasta 2</small></div>
+        <div class="cot-pills ct-cmp-pills" id="cot-cmp-pills" role="group" aria-label="Comparar planes"></div>
       </div>
+
+    </div>
+    <div class="cot-actions ct-acciones">
+      <button type="button" class="cot-btn ct-ico" onclick="cotSendImage()" aria-label="Enviar cotización como imagen" title="Enviar cotización como imagen">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-9 9"/></svg>
+      </button>
+      <button type="button" class="cot-btn ct-ico" onclick="generateSpecsPDF()" aria-label="Enviar ficha técnica (PDF)" title="Enviar ficha técnica (PDF)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
+      </button>
+      <button type="button" class="cot-btn cot-btn-send ct-wa" onclick="cotSend()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.05 4.91A9.816 9.816 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01zm-7.01 15.24c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.264 8.264 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42a8.183 8.183 0 0 1 2.41 5.83c.02 4.54-3.68 8.23-8.22 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43s.17-.25.25-.41c.08-.17.04-.31-.02-.43s-.56-1.34-.76-1.84c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18s-.22-.16-.47-.28z"/></svg>
+        Enviar WhatsApp
+      </button>
     </div>
   </div>
 </div>

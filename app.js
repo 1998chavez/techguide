@@ -529,7 +529,7 @@ function abrirMomento(os,id,plan,plazo){
   setTimeout(function(){
     showFicha(id);
     setTimeout(function(){
-      document.querySelectorAll('.tb').forEach(function(t){if(t.textContent.includes('Planes'))swTab('plans',t);});
+      // [v1.73.23] Planes ya no es pestaña: plan, plazo y precio van fijos arriba.
       if(document.querySelector('.plan-chip[data-plan="'+plan+'"]')) selectPlan(plan);
       const b=[...document.querySelectorAll('.plazo-btn')].find(function(x){return parseInt(x.textContent,10)===plazo;});
       if(b) setPlazo(plazo,b);
@@ -700,6 +700,35 @@ function fmtMoneda(n){
   var s = Number(n || 0).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
   var k = s.lastIndexOf('.');
   return {ent:'$' + s.slice(0, k), dec:s.slice(k)};
+}
+// [v1.73.23] REDISEÑO COMPACTO (catálogo, ficha y cotización) — cálculo sin DOM.
+// Debajo del nombre en el catálogo: la marca solo si el nombre no la trae
+// ("Oppo A5" ya la dice; "Pixel 10" no) y no hay una marca elegida en el filtro.
+// En iOS todo es Apple; en la cuadrícula de 3 columnas no cabe: solo la capacidad.
+function catSub(d, os, sinMarca){
+  var n = String(d && d.name || '').toLowerCase(), b = String(d && d.brand || '');
+  var conMarca = !sinMarca && os !== 'ios' && b && n.indexOf(b.toLowerCase()) < 0;
+  return (conMarca ? b + ' · ' : '') + (d && d.storage || '');
+}
+// Colores del plan (wordmark, chips): los de PLAN_VIS y, para los planes de
+// iPhone que no tienen visual (Platino +, Titanio), clases propias del CSS.
+var PLAN_CLS_EXTRA = {'Platino +':'pw-platinomas', 'Titanio':'pw-titanio'};
+function planCls(nombre){
+  return (PLAN_VIS[nombre] && PLAN_VIS[nombre].cls) || PLAN_CLS_EXTRA[nombre] || '';
+}
+// Números de la tarjeta de precio de la ficha, con las reglas de siempre:
+// 70% o más de descuento = de 1 a 3 rentas en garantía (no bajan el equipo);
+// abajo de 70% = enganche hasta 50% del precio promo. Sin enganche, el equipo
+// completo se reparte en el plazo.
+function fichaOferta(promo, contado, renta, plazo){
+  var desc = (1 - promo / contado) * 100, alto = desc >= 70;
+  return {
+    pct: pctMostrar(desc), incluido: promo === 0, alto: alto,
+    engMax: alto ? renta * 3 : Math.round(promo * 0.5),
+    rentaMin: renta, rentaMax: renta * 3,
+    mensualidad: mensualidadMax(promo, contado, renta, plazo),
+    mensualSinEng: renta + Math.round(promo / Number(plazo))
+  };
 }
 // </reco-puro> ────────────────────────────────────────────────────────────────
 
@@ -1258,21 +1287,37 @@ function showCatalog(os){
   curOS=os;curBrand='Todos';
   document.getElementById('cat-title').textContent=os==='ios'?'iPhone & iOS':'Android';
   document.getElementById('search-in').value='';
+  _pintarVista();
   buildFilters(os);renderDevs();show('s-catalog');
 }
 function buildFilters(os){
   const brands=['Todos',...new Set(CAT[os].map(d=>d.brand))];
-  document.getElementById('fbar').innerHTML=brands.map(b=>`<div class="fpill${b==='Todos'?' on':''}" onclick="setFilter('${b}')">${b}</div>`).join('');
+  // [v1.73.23] Botones (accesibles con teclado); el riel de escritorio sigue leyendo .fpill/.on.
+  document.getElementById('fbar').innerHTML=brands.map(b=>`<button type="button" class="fpill${b==='Todos'?' on':''}" aria-pressed="${b==='Todos'}" onclick="setFilter('${b}')">${b}</button>`).join('');
 }
 function setFilter(b){
   curBrand=b;
-  document.querySelectorAll('.fpill').forEach(p=>p.classList.toggle('on',p.textContent===b));
+  document.querySelectorAll('.fpill').forEach(p=>{p.classList.toggle('on',p.textContent===b);p.setAttribute('aria-pressed',String(p.textContent===b));});
+  // [v1.73.23] La marca elegida queda a la vista dentro de la fila de marcas.
+  const bar=document.getElementById('fbar'), on=bar&&bar.querySelector('.fpill.on');
+  if(on){
+    const br=bar.getBoundingClientRect(), r=on.getBoundingClientRect();
+    if(r.right>br.right) bar.scrollLeft+=r.right-br.right+16;
+    else if(r.left<br.left) bar.scrollLeft-=br.left-r.left+16;
+  }
   renderDevs();
 }
+// [v1.73.23] La vista se elige con dos botones (cuadrícula / lista) dentro de #view-btn.
 function toggleView(){
   gridMode=!gridMode;
-  document.getElementById('view-btn').textContent=gridMode?'Lista':'Grid';
+  _pintarVista();
   renderDevs();
+}
+function setVista(grid){ if(gridMode!==!!grid) toggleView(); }
+function _pintarVista(){
+  const g=document.getElementById('view-grid'), l=document.getElementById('view-list');
+  if(g) g.setAttribute('aria-pressed',String(gridMode));
+  if(l) l.setAttribute('aria-pressed',String(!gridMode));
 }
 function dc(s){return s==='RESURTIBLE'?'dot-r':s==='INV. LIMITADO EN CANAL'?'dot-l':'dot-n'}
 function bs(s){const m={RESURTIBLE:'bs-r Resurtible','INV. LIMITADO EN CANAL':'bs-l Inv. limitado',NPI:'bs-n NPI','NO RESURTIBLE':'bs-nr No resurtible'};const[c,...t]=(m[s]||'bs-r Resurtible').split(' ');return`<span class="bs ${c}">${t.join(' ')}</span>`}
@@ -1344,43 +1389,48 @@ function renderDevs(){
   const wrap=document.getElementById('dev-wrap');
   if(!devs.length){wrap.innerHTML='<div class="no-r">Sin resultados</div>';updateCmpBar();return;}
 
+  // [v1.73.23] Catálogo compacto. Cuadrícula de 3 columnas: foto con Bundle,
+  // círculo de comparar y puntos encima; nombre, capacidad y estatus en texto
+  // (antes era un punto de color sin leyenda). Lista: un solo bloque con filas
+  // de 2 renglones. La lógica (marca, búsqueda, vigentes, comparar máx. 3) es la misma.
   let h='';
   if(gridMode){
-    h='<div class="d-grid">';
+    h='<div class="cv-grid">';
     devs.forEach(function(d){
-      h+='<div class="d-card" onclick="showFicha(\''+d.id+'\')">';
-      h+='<div class="d-img-wrap">';
-      h+=imgI(d.id,'d-img');
-      h+='<div class="d-dot '+dc(d.status)+'"></div>';
-      h+='<div class="d-cmp'+(cmpSet.has(d.id)?' sel':'')+'" onclick="event.stopPropagation();tCmp(\''+d.id+'\')">'+(cmpSet.has(d.id)?'✓':'')+'</div>';
+      const sel=cmpSet.has(d.id);
+      h+='<div class="d-card cv-card'+(sel?' sel':'')+'" onclick="showFicha(\''+d.id+'\')">';
+      h+='<div class="cv-foto">';
+      h+=imgI(d.id,'');
+      if(d.bundle) h+='<span class="b-bun">Bundle</span>';
+      h+='<button type="button" class="cv-cmp'+(sel?' sel':'')+'" aria-pressed="'+sel+'" aria-label="Comparar '+d.name+' '+d.storage+'" onclick="event.stopPropagation();tCmp(\''+d.id+'\')"><span aria-hidden="true">'+(sel?CV_CHECK:'')+'</span></button>';
       h+=ptsPastilla(d.id);   // [v1.73.7] puntos de marca
       h+='</div>';
-      h+='<div class="d-info">';
-      h+='<div class="d-name">'+d.name+'</div>';
-      if(UPCOMING_ONLY.indexOf(d.id)>=0){h+='<span class="b-up" style="display:inline-block;font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;background:linear-gradient(135deg,#FF9500,#FF6F00);color:#fff;margin-bottom:4px">🚀 PRÓXIMAMENTE</span>';}
-      h+='<div class="d-row2"><span class="d-brand">'+d.brand+' · '+d.storage+'</span>';
-      if(d.bundle) h+='<span class="b-bun">Bundle</span>';
-      h+='</div></div></div>';
+      h+='<div class="cv-info">';
+      h+='<div class="cv-nombre">'+d.name+'</div>';
+      h+='<div class="cv-sub">'+catSub(d,curOS,true)+'</div>';
+      if(UPCOMING_ONLY.indexOf(d.id)>=0) h+='<span class="b-up cv-prox">Próximamente</span>';
+      h+=bs(d.status);
+      h+='</div></div>';
     });
     h+='</div>';
   } else {
-    h='<div class="d-list">';
+    h='<div class="cv-list">';
     devs.forEach(function(d){
-      h+='<div class="d-row" onclick="showFicha(\''+d.id+'\')">';
-      h+='<div class="d-row-img">'+imgI(d.id,'')+'</div>';
-      h+='<div class="d-row-info">';
-      h+='<div class="d-row-name">'+d.name+'</div>';
-      h+='<div class="d-row-sub">'+d.brand+' · '+d.storage+'</div>';
-      h+='<div class="d-row-badges">'+bs(d.status)+ptsPastilla(d.id);
+      h+='<div class="d-row cv-row" onclick="showFicha(\''+d.id+'\')">';
+      h+='<div class="cv-row-foto">'+imgI(d.id,'')+'</div>';
+      h+='<div class="cv-row-info">';
+      h+='<div class="cv-row-nombre">'+d.name+'</div>';
+      h+='<div class="cv-chips"><span class="cv-gb">'+catSub(d,curOS,curBrand!=='Todos')+'</span>'+bs(d.status)+ptsPastilla(d.id);
       if(d.bundle) h+='<span class="b-bun">Bundle</span>';
       h+='</div></div>';
-      h+='<span class="d-row-chev">›</span></div>';
+      h+='<svg class="cv-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></div>';
     });
     h+='</div>';
   }
   wrap.innerHTML=h;
   updateCmpBar();
 }
+var CV_CHECK='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
 function tCmp(id){if(cmpSet.has(id))cmpSet.delete(id);else if(cmpSet.size<3)cmpSet.add(id);renderDevs()}
 function clearCmp(){cmpSet.clear();renderDevs()}
@@ -1388,6 +1438,9 @@ function updateCmpBar(){
   const bar=document.getElementById('cmp-bar');
   document.getElementById('cmp-lbl').textContent=`${cmpSet.size} seleccionado${cmpSet.size!==1?'s':''} de 3`;
   bar.classList.toggle('vis',cmpSet.size>0);
+  // [v1.73.23] Con uno solo no hay qué comparar (goCompare pide 2): el botón se ve apagado.
+  const go=bar.querySelector('.cmp-go');
+  if(go) go.disabled=cmpSet.size<2;
 }
 function toggleFichaCmp(){
   if(!curFichaId)return;
@@ -1418,21 +1471,14 @@ function showFicha(id){
   // Build HTML using concatenation — no nested backticks
   let h='';
 
-  // Hero
-  h+='<div class="ficha-hero"><div class="fh-inner">';
-  h+='<div class="fh-img">'+imgI(id,'fh-img img')+'</div>';
-  h+='<div class="fh-meta">';
-  h+='<div class="fh-brand-lbl">'+d.brand+'</div>';
-  h+='<div class="fh-name">'+d.name+'</div>';
+  // [v1.73.23] FICHA COMPACTA. Encabezado horizontal (foto a la izquierda);
+  // plan, plazo, precio y Cotizar quedan fijos arriba (Planes ya no es
+  // pestaña) para que Cotizar se vea sin hacer scroll; abajo las pestañas, con
+  // Especificaciones primero en cuadritos de 2 columnas. Mismos ids y funciones.
   const _vc=getVigColor(VIGENCY[id]||null);
   const _vl=formatVigDate(VIGENCY[id]||null);
   const _vd=daysLeft(id);
   const _vwarn=_vd<=7&&_vd>=0?' — ¡Vence pronto!':'';
-  h+='<div class="fh-badges">'+bsF(d.status);
-  if(d.bundle) h+='<span class="fhb fhb-bun">Bundle</span>';
-  // [v1.73.7] El incentivo de marca ahora es en puntos (antes "+$" en pesos).
-  h+=ptsPastilla(id);
-  h+='</div>';
   // Storage selector if device has variants
   // Find variants only for the CURRENT device id (not stale global var)
   let _variants=STORAGE_VARIANTS[id]||null;
@@ -1445,49 +1491,64 @@ function showFicha(id){
       }
     }
   }
+  h+='<div class="fx">';
+  h+='<section class="fx-hero">';
+  h+='<div class="fx-foto">'+imgI(id,'')+ptsPastilla(id)+'</div>';   // [v1.73.7] puntos de marca
+  h+='<div class="fx-meta">';
+  h+='<div class="fx-badges"><span class="fx-marca">'+d.brand+'</span>'+bsF(d.status)+'</div>';
+  h+='<div class="fx-nombre">'+d.name+'</div>';
+  if(!_variants || d.bundle){
+    h+='<div class="fx-sub">';
+    if(!_variants) h+='<span>'+d.storage+'</span>';
+    if(d.bundle) h+='<span class="fx-bundle">'+d.bundle+'</span>';
+    h+='</div>';
+  }
   if(_variants){
-    h+='<div class="storage-sel" id="storage-sel">';
+    h+='<div class="storage-sel fx-cap" id="storage-sel" role="group" aria-label="Capacidad">';
     _variants.forEach(function(v){
       const isActive=v[1]===id;
-      h+='<button class="storage-btn'+(isActive?' active':'')+'" onclick="switchStorage(\''+v[1]+'\')" style="'+(isActive?'background:var(--ios-blue);color:#fff;border-color:var(--ios-blue)':'')+'">';
-      h+=v[0]+'</button>';
+      h+='<button type="button" class="storage-btn'+(isActive?' active':'')+'" aria-pressed="'+isActive+'" onclick="switchStorage(\''+v[1]+'\')">'+v[0]+'</button>';
     });
     h+='</div>';
   }
-  h+='<div style="margin-top:5px;display:flex;align-items:center;gap:5px">';
-  h+='<div style="width:6px;height:6px;border-radius:50%;background:'+_vc+';flex-shrink:0"></div>';
-  h+='<span style="font-size:10px;color:var(--label3)">Vigente hasta '+_vl+_vwarn+'</span>';
-  h+='</div>';
-  h+='</div></div></div>';
+  // Sin fecha: "Sin vencimiento" a secas (antes decía "Vigente hasta Sin vencimiento").
+  const _vtxt=(VIGENCY[id] && VIGENCY[id]!=='indefinido') ? 'Vigente hasta '+_vl+_vwarn : _vl;
+  h+='<div class="fx-vig"><span class="fx-vig-dot" style="background:'+_vc+'"></span>'+_vtxt+'</div>';
+  h+='</div></section>';
 
-  // Bundle pill
-  if(d.bundle){
-    h+='<div class="bundle-pill"><div class="bp-head">Incluye de regalo</div>';
-    h+='<div class="bp-body">'+d.bundle+'</div></div>';
-  }
-
-  // Tab bar
-  // [v1.10.24] Orden optimizado para cotizar rápido: Planes primero (es lo
-  // que el asesor usa en cada venta), luego Accesorios, Similares, Argumentos,
-  // Especificaciones, YouTube. ANTES arrancaba en Especificaciones.
-  h+='<div class="tab-bar">';
-  h+='<div class="tb on" onclick="swTab(\'plans\',this)">Planes</div>';
-  h+='<div class="tb" onclick="swTab(\'acc\',this)">Accesorios</div>';
-  h+='<div class="tb" onclick="swTab(\'sim\',this)">Similares</div>';
-  h+='<div class="tb" onclick="swTab(\'sell\',this)">Argumentos</div>';
-  h+='<div class="tb" onclick="swTab(\'specs\',this)">Especificaciones</div>';
-  h+='<div class="tb" onclick="swTab(\'tt\',this)">▶ YouTube</div>';
+  // Plan, plazo, precio y Cotizar
+  h+='<section class="fx-planes">';
+  h+='<div class="plan-seg fx-chips" id="plan-chips" role="group" aria-label="Plan"></div>';
+  h+='<div class="plazo-seg fx-plazos" id="plazo-btns" role="group" aria-label="Plazo">';
+  [24,30,36].forEach(function(z){
+    h+='<button type="button" class="plazo-btn'+(z===24?' active':'')+'" onclick="setPlazo('+z+',this)">'+z+' meses</button>';
+  });
   h+='</div>';
+  h+='<div id="price-result"></div>';
+  h+='<button type="button" class="fx-cotizar" onclick="enviarCotizacion()">Cotizar'+ICO_FLECHA+'</button>';
+  h+='</section>';
+
+  // Pestañas
+  // (Escritas una por una: el panel de uso busca cada onclick en el código.)
+  h+='<div class="tab-bar fx-tabs" role="tablist" aria-label="Información del equipo">';
+  h+='<button type="button" role="tab" class="tb on" aria-selected="true" onclick="swTab(\'specs\',this)">Especificaciones</button>';
+  h+='<button type="button" role="tab" class="tb" aria-selected="false" onclick="swTab(\'sell\',this)">Argumentos</button>';
+  h+='<button type="button" role="tab" class="tb" aria-selected="false" onclick="swTab(\'sim\',this)">Similares</button>';
+  h+='<button type="button" role="tab" class="tb" aria-selected="false" onclick="swTab(\'acc\',this)">Accesorios</button>';
+  h+='<button type="button" role="tab" class="tb" aria-selected="false" onclick="swTab(\'tt\',this)">YouTube</button>';
+  h+='</div>';
+  curActiveTab='specs';
 
   // Specs tab
-  h+='<div id="tp-specs" class="tp">';
+  h+='<div id="tp-specs" class="tp on">';
   // [v1.11.90] Botón 3D: va HASTA ARRIBA del panel, antes de la ficha técnica.
-  // El orden de las specs y la imagen del hero quedan intactos. Solo se pinta
-  // si el equipo tiene entrada en MODEL3D.
+  // Solo se pinta si el equipo tiene entrada en MODEL3D.
   h+=_model3dBtn(id);
-  h+='<div class="spec-card"><div class="spec-head">Ficha técnica</div>';
+  // Los valores largos ocupan el ancho completo para no hacer columnas altísimas.
+  h+='<div class="fx-specs">';
   Object.entries(d.specs).forEach(function(e){
-    h+='<div class="spec-r"><span class="spec-k">'+e[0]+'</span><span class="spec-v">'+e[1]+'</span></div>';
+    const v=String(e[1]);
+    h+='<div class="fx-spec'+(v.length>38?' ancho':'')+'"><span>'+e[0]+'</span><b>'+v+'</b></div>';
   });
   h+='</div></div>';
 
@@ -1507,33 +1568,14 @@ function showFicha(id){
   // Similar devices tab
   h+='<div id="tp-sim" class="tp">';
   h+='<div class="sell-card"><div class="sell-card-head">Dispositivos similares</div>';
-  h+='<div class="sell-card-sub" style="font-size:11px;color:var(--label3);margin-top:-2px;margin-bottom:10px;font-weight:400">Te recomendamos estas opciones con características parecidas para que puedas comparar y elegir la mejor.</div>';
   h+='<div id="similar-grid-'+id+'" class="similar-grid"></div>';
   h+='</div></div>';
 
-  // Plans tab
-  h+='<div id="tp-plans" class="tp on">';
-  h+='<div class="plan-selector">';
-  h+='<div class="sec-title" style="margin-bottom:8px">Selecciona plan</div>';
-  h+='<div class="plan-seg" id="plan-chips"></div>';
-  h+='<div class="sec-title" style="margin-bottom:8px">Plazo</div>';
-  h+='<div class="plazo-seg" id="plazo-btns">';
-  h+='<div class="plazo-btn active" onclick="setPlazo(24,this)">24 meses</div>';
-  h+='<div class="plazo-btn" onclick="setPlazo(30,this)">30 meses</div>';
-  h+='<div class="plazo-btn" onclick="setPlazo(36,this)">36 meses</div>';
-  h+='</div></div>';
-  h+='<div id="price-result"></div>';
-  h+='<div style="padding:0 16px 24px">';
-  h+='<button onclick="enviarCotizacion()" class="wa-btn" style="width:100%;padding:14px;color:#fff;font-size:15px;font-weight:700;border:none;border-radius:var(--r-xl);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">';
-  h+='<svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.112.548 4.095 1.508 5.82L0 24l6.335-1.652C8.07 23.368 9.996 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.89 0-3.652-.52-5.163-1.426l-.371-.219-3.822.997 1.021-3.713-.24-.381C2.554 15.68 2 13.902 2 12 2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>';
-  h+=' Enviar cotización por WhatsApp</button>';
-  h+='</div></div>';
+  // Accessories tab
+  h+='<div id="tp-acc" class="tp"><div id="acc-tab-content" style="padding:0 16px"></div></div>';
 
   // YouTube tab
-    // Accessories tab
-  h+='<div id="tp-acc" class="tp"><div id="acc-tab-content" style="padding:0 16px"></div></div>';
-  
-h+='<div id="tp-tt" class="tp">';
+  h+='<div id="tp-tt" class="tp">';
   h+='<div class="tt-section"><div class="tt-card">';
   h+='<div class="tt-logo" style="background:#FF0000;border-radius:14px;display:flex;align-items:center;justify-content:center">';
   h+='<svg viewBox="0 0 90 63" xmlns="http://www.w3.org/2000/svg" width="42" height="30">';
@@ -1546,9 +1588,8 @@ h+='<div id="tp-tt" class="tp">';
   h+=' Ver en YouTube</button>';
   h+='<div class="tt-note">Se abre en la app de YouTube o en el navegador</div>';
   h+='</div></div></div>';
-
-  // Action buttons
-
+  h+='<div class="fx-fin"></div>';
+  h+='</div>';
 
   document.getElementById('f-body').innerHTML=h;
   show('s-ficha');
@@ -1567,9 +1608,10 @@ function bsF(s){
 
 function swTab(t,el){
   curActiveTab=t;
-  document.querySelectorAll('.tb').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.tb').forEach(x=>{x.classList.remove('on');if(x.hasAttribute('aria-selected'))x.setAttribute('aria-selected','false');});
   document.querySelectorAll('.tp').forEach(x=>x.classList.remove('on'));
   el.classList.add('on');
+  if(el.hasAttribute('aria-selected')) el.setAttribute('aria-selected','true');
   if(t==='acc') setTimeout(renderAccTab,0);
   if(t==='sim') setTimeout(renderSimilarTab,0);
   document.getElementById('tp-'+t).classList.add('on');
@@ -1704,11 +1746,12 @@ function initPlans(deviceId){
     );
     if(!hasAny) return;
     if(!firstPlan) firstPlan=plan.name;
-    const chip=document.createElement('div');
-    chip.className='plan-chip';
-    chip.textContent=plan.name+' $'+plan.renta+'/mes';
-    chip.style.background=plan.color;
-    chip.style.color=plan.text||'#fff';
+    // [v1.73.23] Chip con el color del plan en el texto; el elegido va relleno (CSS).
+    const chip=document.createElement('button');
+    chip.type='button';
+    chip.className='plan-chip '+planCls(plan.name);
+    chip.innerHTML=plan.name+'<span>$'+plan.renta.toLocaleString('es-MX')+'</span>';
+    chip.setAttribute('aria-pressed','false');
     chip.dataset.plan=plan.name;
     chip.onclick=function(){selectPlan(plan.name);};
     chips.appendChild(chip);
@@ -1836,69 +1879,58 @@ function renderPriceResult(){
   // [v1.9.28] Bloquear solo si NO hay precio (null/undefined). $0 es válido —
   // significa que el equipo se incluye en el plan al plazo seleccionado.
   if(promo===null||promo===undefined){
-    el.innerHTML='<div class="no-plan-msg" style="margin:0 16px;background:var(--surface);border-radius:var(--r-lg);padding:24px;text-align:center">'
+    el.innerHTML='<div class="no-plan-msg" style="margin:0;background:var(--hv2-card);border:1px solid var(--hv2-line);border-radius:20px;padding:20px;text-align:center">'
       +'<div style="font-size:20px;margin-bottom:8px">—</div>'
       +'<div style="font-size:13px;color:var(--label3)">Este equipo no tiene precio de promoción<br>con el plan <b>'+curPlan+'</b> a <b>'+curPlazo+' meses</b></div>'
       +'</div>';
+    _fxAria();
     return;
   }
 
-  const descExact=(1-promo/contado)*100;
-  const descPct=pctMostrar(descExact);
-  const rentaPlan=planObj.renta;
-  const isHighDiscount=descExact>=70;
-  const eng1=Math.round(rentaPlan);
-  const eng3=Math.round(rentaPlan*3);
-  const eng50pct=Math.round(promo*0.5);
-  const fmx=n=>n.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+  // [v1.73.23] Tarjeta de precio compacta, con la misma lectura que la campaña
+  // del inicio: wordmark del plan, GB y renta, precio, "Antes" y sello; abajo
+  // enganche y mensualidad (fichaOferta: mismas reglas de 70% y 50% de siempre).
+  const o=fichaOferta(promo, contado, planObj.renta, curPlazo);
   const fmx0=n=>n.toLocaleString('es-MX');
-
-  // Price card
-  let h='<div class="price-result-card">';
-  h+='<div class="price-result-header" style="background:'+planObj.color+';color:'+(planObj.text||'#fff')+'">';
-  h+='<div class="price-result-plan">Plan '+curPlan+' · '+curPlazo+' meses · $'+rentaPlan+'/mes</div>';
-  // [v1.9.30] Texto "Incluido en el plan*" con leyenda legal (PROFECO/permanencia).
-  // El equipo NO es gratis: va sin costo si el cliente respeta el plazo.
-  if(promo === 0){
-    h+='<div class="price-result-main"><span class="price-promo" style="font-size:32px;letter-spacing:-1px">Incluido en el plan*</span></div>';
-    h+='<div class="price-legal-note" style="font-size:10px;line-height:1.3;opacity:0.85;margin-top:6px;padding:0 8px;font-style:italic">*Equipo sin costo sujeto a permanencia del plazo contratado. Cancelación anticipada genera cobro del equipo.</div>';
-  } else {
-    h+='<div class="price-result-main"><span class="price-currency">$</span><span class="price-promo">'+fmx(promo)+'</span></div>';
-  }
-  h+='<div class="price-contado-row">';
-  h+='<span class="price-contado-lbl">Precio contado:</span>';
-  h+='<span class="price-contado-val">$'+fmx0(contado)+'</span>';
-  h+='<span class="price-desc-badge">'+(promo===0?'SIN COSTO':descPct+'% desc.')+'</span>';
-  h+='</div></div>';
-  h+='<div class="price-details" style="color:'+planObj.dark+'">';
-  h+='<div class="price-detail-item"><div class="pd-lbl" style="color:'+planObj.dark+'">Ahorro</div><div class="pd-val">$'+fmx(contado-promo)+'</div></div>';
-  h+='<div class="price-detail-item"><div class="pd-lbl" style="color:'+planObj.dark+'">Renta del plan</div><div class="pd-val">$'+rentaPlan+'/mes</div></div>';
-  h+='<div class="price-detail-item"><div class="pd-lbl" style="color:'+planObj.dark+'">Precio contado</div><div class="pd-val">$'+fmx0(contado)+'</div></div>';
-  h+='<div class="price-detail-item"><div class="pd-lbl" style="color:'+planObj.dark+'">Descuento</div><div class="pd-val">'+descPct+'%</div></div>';
-  h+='</div></div>';
-
-  // Enganche card
-  const engIcon=isHighDiscount?'🟢':'🟡';
-  const engTitle=isHighDiscount?'Descuento ≥ 70% — Enganche en rentas':'Descuento < 70% — Enganche según historial';
-  const engSub=isHighDiscount?'Se solicitan rentas del plan como garantía':'El enganche depende del historial crediticio del cliente';
-  h+='<div class="enganche-card">';
-  h+='<div class="enganche-header">';
-  h+='<div class="enganche-icon" style="background:'+(isHighDiscount?'#E8F9EE':'#FFF3E0')+'">'+engIcon+'</div>';
-  h+='<div><div class="enganche-title">'+engTitle+'</div><div class="enganche-sub">'+engSub+'</div></div>';
+  const m=fmtMoneda(promo);
+  let h='<div class="fx-precio '+planCls(curPlan)+'" data-plan="'+curPlan+'" data-plazo="'+curPlazo+'">';
+  h+='<div class="fx-precio-top"><div class="fx-precio-col">';
+  h+='<span class="pw fx-pw">'+curPlan.toUpperCase()+'</span>';
+  h+='<span class="fx-info">'+planObj.gb+' GB | $'+fmx0(planObj.renta)+' al mes · '+curPlazo+' meses</span>';
+  // [v1.9.30] "Incluido en el plan*" con leyenda legal (PROFECO/permanencia):
+  // el equipo NO es gratis, va sin costo si el cliente respeta el plazo.
+  if(o.incluido) h+='<span class="fx-monto fx-incl">Incluido en el plan*</span>';
+  else h+='<span class="fx-monto">'+m.ent+'<small>'+m.dec+'</small></span>';
+  h+='<span class="fx-antes">Antes $'+fmx0(contado)+'</span>';
   h+='</div>';
-  h+='<div class="enganche-rows">';
-  if(isHighDiscount){
-    h+='<div class="enganche-row"><span class="eng-lbl">Mínimo (1 renta)</span><span class="eng-val green">$'+fmx0(eng1)+'</span></div>';
-    h+='<div class="enganche-row" style="border-top:.5px solid var(--sep)"><span class="eng-lbl">Máximo (3 rentas)</span><span class="eng-val">$'+fmx0(eng3)+'</span></div>';
-    h+='<div class="enganche-row" style="border-top:.5px solid var(--sep);background:#F9F9F9"><span class="eng-lbl" style="font-size:11px;color:var(--label3)">Rentas = precio del plan seleccionado</span></div>';
-  } else {
-    h+='<div class="enganche-row"><span class="eng-lbl">Sin enganche (historial excelente)</span><span class="eng-val green">$0</span></div>';
-    h+='<div class="enganche-row" style="border-top:.5px solid var(--sep)"><span class="eng-lbl">Hasta 50% del precio promo</span><span class="eng-val">$'+fmx0(eng50pct)+'</span></div>';
-    h+='<div class="enganche-row" style="border-top:.5px solid var(--sep);background:#F9F9F9"><span class="eng-lbl" style="font-size:11px;color:var(--label3)">Sujeto al historial crediticio del cliente</span></div>';
-  }
-  h+='</div></div>';
+  if(!o.incluido && o.pct>0) h+=selloHTML(o.pct, 58);
+  h+='</div>';
+  if(o.incluido) h+='<div class="fx-legal">*Equipo sin costo sujeto a permanencia del plazo contratado. Cancelación anticipada genera cobro del equipo.</div>';
+  h+='<div class="fx-cols">';
+  if(o.alto) h+='<div class="fx-col"><span>Enganche en rentas</span><b class="fx-rango">$'+fmx0(o.rentaMin)+' a $'+fmx0(o.rentaMax)+'</b></div>';
+  else h+='<div class="fx-col"><span>Enganche máx</span><b>$'+fmx0(o.engMax)+'</b></div>';
+  h+='<div class="fx-col"><span>Mensualidad</span><b>$'+fmx0(o.mensualidad)+'</b></div>';
+  h+='</div>';
+  if(o.alto) h+='<div class="fx-nota"><span>De 1 a 3 rentas del plan como garantía</span></div>';
+  else h+='<div class="fx-nota"><span>Sin enganche (historial excelente)</span><b>$0 hoy · $'+fmx0(o.mensualSinEng)+' al mes</b></div>';
+  h+='<div class="hv3-seguro fx-seguro">'+ICO_ESCUDO+'Protégelo por sólo $'+getSeguroPrice(contado)+' al mes</div>';
+  h+='</div>';
 
   el.innerHTML=_notice+h;
+  _fxAria();
+}
+// [v1.73.23] aria-pressed de chips de plan y plazos según su clase .active, y el
+// plan elegido a la vista dentro de su fila (abrir desde el inicio en Oro, etc.).
+function _fxAria(){
+  document.querySelectorAll('#s-ficha .plan-chip, #s-ficha .plazo-btn').forEach(function(b){
+    b.setAttribute('aria-pressed', b.classList.contains('active') ? 'true' : 'false');
+  });
+  const w=document.getElementById('plan-chips'), a=w && w.querySelector('.plan-chip.active');
+  if(a){
+    const l=a.offsetLeft, r=l+a.offsetWidth;
+    if(l<w.scrollLeft) w.scrollLeft=Math.max(0,l-16);
+    else if(r>w.scrollLeft+w.clientWidth) w.scrollLeft=r-w.clientWidth+16;
+  }
 }
 
 // Stats
@@ -2039,7 +2071,7 @@ function calcBudget(){
     const imgHtml=IMG[d.id]?'<img src="'+IMG[d.id]+'" alt="">':'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8492A3" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg>';
     const tagText=deal.type==='rentas'?'3 rentas garantía':'50% enganche';
     const tagClass=deal.type==='rentas'?'match':'eng';
-    h+='<div class="calc-result-card" onclick="(function(){show(\'s-ficha\');showFicha(\''+d.id+'\');setTimeout(function(){var tabs=document.querySelectorAll(\'.tb\');tabs.forEach(function(t){if(t.textContent.indexOf(\'Planes\')>=0)swTab(\'plans\',t);});},80);})()" style="animation-delay:'+(i*25)+'ms">';
+    h+='<div class="calc-result-card" onclick="show(\'s-ficha\');showFicha(\''+d.id+'\')" style="animation-delay:'+(i*25)+'ms">';
     h+='<div class="calc-result-img">'+imgHtml+'</div>';
     h+='<div class="calc-result-info">';
     h+='<div class="calc-result-name">'+d.name+'</div>';
@@ -2101,6 +2133,8 @@ function cotSetTipo(tipo){
   const bRen = document.getElementById('cot-tipo-renovacion');
   if(bPos) bPos.classList.toggle('cot-tipo-on', tipo === 'POSPAGO');
   if(bRen) bRen.classList.toggle('cot-tipo-on', tipo === 'RENOVACION');
+  if(bPos) bPos.setAttribute('aria-pressed', String(tipo === 'POSPAGO'));     // [v1.73.23]
+  if(bRen) bRen.setAttribute('aria-pressed', String(tipo === 'RENOVACION'));
   const aviso = document.getElementById('cot-tipo-aviso');
   if(aviso) aviso.classList.add('cot-tipo-aviso-ok'); // lo oculta
   // Re-evaluar estado de los botones de envío
@@ -2151,7 +2185,7 @@ function openCotModal(){
   // [v1.10.25] Reset visual del selector tipo de operación
   ['cot-tipo-pospago','cot-tipo-renovacion'].forEach(function(id){
     const b = document.getElementById(id);
-    if(b) b.classList.remove('cot-tipo-on');
+    if(b){ b.classList.remove('cot-tipo-on'); b.setAttribute('aria-pressed','false'); }
   });
   const _avisoTipo = document.getElementById('cot-tipo-aviso');
   if(_avisoTipo){
@@ -2159,9 +2193,15 @@ function openCotModal(){
     _avisoTipo.classList.remove('cot-tipo-aviso-ok');
   }
   
-  let _subtitle = dev.name + ' · ' + curPlan + ' · ' + curPlazo + ' meses';
-  if(cartAcc.length > 0) _subtitle += ' · ' + cartAcc.length + ' accesorio'+(cartAcc.length>1?'s':'');
-  document.getElementById('cot-device-info').textContent = _subtitle;
+  // [v1.73.23] Tarjeta del equipo: foto, nombre y capacidad; abajo plan, plazo y precio.
+  const _fotoEq = document.getElementById('cot-eq-foto');
+  if(_fotoEq) _fotoEq.innerHTML = fotoHTML(dev.id);
+  const _nomEq = document.getElementById('cot-eq-nombre');
+  if(_nomEq) _nomEq.textContent = dev.name + ' · ' + dev.storage;
+  let _subtitle = '<span class="pw ' + planCls(curPlan) + '">' + curPlan.toUpperCase() + '</span>'
+    + '<span>' + curPlazo + ' meses · ' + (promo === 0 ? 'Incluido' : '$' + promo.toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2})) + '</span>';
+  if(cartAcc.length > 0) _subtitle += '<span>' + cartAcc.length + ' accesorio'+(cartAcc.length>1?'s':'') + '</span>';
+  document.getElementById('cot-device-info').innerHTML = _subtitle;
   
   // Build enganche pills (0,10,20,30,40,50% + custom)
   const engPills = document.getElementById('cot-eng-pills');
@@ -2169,16 +2209,16 @@ function openCotModal(){
   [0,10,20,30,40,50].forEach(function(pct){
     engHtml += '<button class="cot-pill'+(pct===0?' on':'')+'" onclick="cotSetEng('+pct+')" data-pct="'+pct+'">'+pct+'%</button>';
   });
-  engHtml += '<button class="cot-pill cot-pill-custom" onclick="cotSetEngCustom()" id="cot-eng-pill-custom">$ Otro monto</button>';
+  engHtml += '<button class="cot-pill cot-pill-custom" onclick="cotSetEngCustom()" id="cot-eng-pill-custom" aria-label="Otro monto">Otro</button>';
   engPills.innerHTML = engHtml;
   
-  // Build rentas pills (0,1,2,3) + [v1.8.2] botón "Depósito de garantía"
+  // Build rentas pills (0,1,2,3). [v1.73.23] El botón del depósito de garantía
+  // ([v1.8.2]) ya vive fijo en su propio renglón (#cot-deposito-pill).
   const rentasPills = document.getElementById('cot-rentas-pills');
   let rentasHtml = '';
   [0,1,2,3].forEach(function(n){
-    rentasHtml += '<button class="cot-pill'+(n===0?' on':'')+'" onclick="cotSetRentas('+n+')" data-n="'+n+'">'+n+' renta'+(n!==1?'s':'')+'</button>';
+    rentasHtml += '<button class="cot-pill'+(n===0?' on':'')+'" onclick="cotSetRentas('+n+')" data-n="'+n+'" aria-label="'+n+' renta'+(n!==1?'s':'')+'">'+n+'</button>';
   });
-  rentasHtml += '<button class="cot-pill cot-pill-custom" onclick="cotSetDeposito()" id="cot-deposito-pill">Depósito de garantía</button>';
   rentasPills.innerHTML = rentasHtml;
   cotBuildCmpPills(); // [v1.11.78] comparador de planes (opcional)
   // Reset depósito al abrir cotización
@@ -2189,16 +2229,20 @@ function openCotModal(){
     const depInput = document.getElementById('cot-deposito-input');
     if(depInput) depInput.value = '';
   }
+  const depPill = document.getElementById('cot-deposito-pill');
+  if(depPill) depPill.classList.remove('on');
   
   // Update seguro description with detected price
   const seguroPrice = getSeguroPrice(info.contado);
-  document.getElementById('cot-seguro-desc').textContent = '$'+seguroPrice+'/mes (según precio del equipo)';
+  document.getElementById('cot-seguro-desc').textContent = '$'+seguroPrice+'/mes';
   
   // Reset toggles
   document.getElementById('cot-port-switch').classList.remove('on');
   // [v1.73.19] Platino + no convive con la portabilidad: la opción no se muestra.
   const _secPort = document.getElementById('cot-port-switch').closest('.cot-section');
   if(_secPort) _secPort.style.display = portPctPlan(cotState.plan) > 0 ? '' : 'none';
+  const _portDesc = document.getElementById('cot-port-desc');   // [v1.73.23] 20%, o 10% en Titanio
+  if(_portDesc) _portDesc.textContent = Math.round(portPctPlan(cotState.plan) * 100) + '% x 6 meses';
   document.getElementById('cot-control-switch').classList.remove('on');
   document.getElementById('cot-seguro-switch').classList.remove('on');
   document.getElementById('cot-eng-custom-wrap').classList.remove('show');
@@ -2381,6 +2425,8 @@ function cotRender(){
   
   const fmx = function(n){return n.toLocaleString('es-MX');};
   
+  // [v1.73.23] Resumen compacto: arriba los dos números que pregunta el cliente
+  // (pago inicial y mensualidad); abajo el mismo desglose de siempre.
   let h = '';
   
   // [v1.9.6] Upcoming notice — solo si la fecha es REALMENTE futura
@@ -2392,8 +2438,14 @@ function cotRender(){
     }
   }
   
+  h += '<div class="ct-totales">';
+  h += '<div class="ct-total"><span>Pago inicial</span><b>$'+fmx(totalInicial)+'</b></div>';
+  h += '<div class="ct-total"><span>Mensualidad total</span><b>$'+fmx(totalMensual)+'</b></div>';
+  h += '</div>';
+  h += '<div class="ct-desglose">';
+  
   // Equipo
-  h += '<div class="cot-resumen-row"><span class="cot-resumen-label">Precio promo equipo</span><span class="cot-resumen-val">$'+fmx(cotState.promo.toFixed(2))+'</span></div>';
+  h += '<div class="cot-resumen-row"><span class="cot-resumen-label">Precio promo equipo</span><span class="cot-resumen-val">'+(cotState.promo === 0 ? 'Incluido' : '$'+cotState.promo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}))+'</span></div>';
   
   // Enganche
   h += '<div class="cot-resumen-row"><span class="cot-resumen-label">Enganche';
@@ -2409,14 +2461,8 @@ function cotRender(){
     h += '<div class="cot-resumen-row"><span class="cot-resumen-label">Depósito de garantía</span><span class="cot-resumen-val">$'+fmx(depositoGarantia)+'</span></div>';
   }
   
-  // Total inicial
-  if(totalInicial>0){
-    h += '<div class="cot-resumen-row" style="background:rgba(0,122,255,.06);margin:6px -16px 0;padding:8px 16px;border-radius:8px"><span class="cot-resumen-label" style="font-weight:700">Pago inicial</span><span class="cot-resumen-val" style="color:var(--ios-blue);font-size:16px">$'+fmx(totalInicial)+'</span></div>';
-  }
-  
   // Mensualidad detail
-  h += '<div style="height:8px"></div>';
-  h += '<div class="cot-resumen-row"><span class="cot-resumen-label">Plan '+cotState.plan+'</span><span class="cot-resumen-val">$'+fmx(cotState.planRenta)+'</span></div>';
+  h += '<div class="cot-resumen-row ct-sep"><span class="cot-resumen-label">Plan '+cotState.plan+'</span><span class="cot-resumen-val">$'+fmx(cotState.planRenta)+'</span></div>';
   
   if(cotState.port){
     const ahorro = cotState.planRenta - planEffective;
@@ -2438,20 +2484,12 @@ function cotRender(){
   // Accessories (paid in cash, NOT financed)
   if(cartAcc.length > 0){
     const accTotal = cartAcc.reduce(function(s,a){return s+a.price;},0);
-    h += '<div style="height:8px"></div>';
-    h += '<div class="cot-resumen-row" style="background:rgba(255,149,0,.08);margin:0 -16px;padding:8px 16px"><span class="cot-resumen-label" style="font-weight:700">Accesorios (contado)</span><span class="cot-resumen-val" style="color:#FF6F00">$'+fmx(accTotal)+'</span></div>';
+    h += '<div class="cot-resumen-row ct-sep ct-acc"><span class="cot-resumen-label">Accesorios (contado)</span><span class="cot-resumen-val">$'+fmx(accTotal)+'</span></div>';
     cartAcc.forEach(function(a){
       h += '<div class="cot-acc-row"><span>• '+a.name+'</span><span>$'+fmx(a.price)+'</span></div>';
     });
   }
-  
-  // Total mensual
-  h += '<div class="cot-resumen-row cot-resumen-total"><span class="cot-resumen-label">Mensualidad total</span><span class="cot-resumen-val">$'+fmx(totalMensual)+'</span></div>';
-
-  // [v1.10.76] Sugerencia de subir de plan (solo si le baja el desembolso de hoy
-  // al cliente, con balance). No aplica si el asesor ya puso enganche/garantía
-  // manual distinto del tope, para no confundir el comparativo.
-  h += _bloqueSugerenciaPlan();
+  h += '</div>';
   
   // [v1.8.2] Bullet especial del plan Titanio: argumento de cierre
   if(cotState.plan==='Titanio'){
@@ -2459,59 +2497,52 @@ function cotRender(){
   }
   
   if(cotState.port){
-    h += '<div style="font-size:10px;color:var(--label3);text-align:right;margin-top:4px;font-style:italic">Descuento por 6 meses, después: $'+fmx(cotState.planRenta + equipoMensual + seguroPrice + controlPrice)+'/mes</div>';
+    h += '<div class="ct-port-nota">Descuento por 6 meses, después: $'+fmx(cotState.planRenta + equipoMensual + seguroPrice + controlPrice)+'/mes</div>';
   }
   
   document.getElementById('cot-resumen').innerHTML = h;
+  // [v1.10.76] Sugerencia de subir de plan (solo si le baja el desembolso de hoy
+  // al cliente, con balance). [v1.73.23] En su propio bloque, abajo del resumen.
+  const _sug = document.getElementById('cot-sugerencia');
+  if(_sug) _sug.innerHTML = _bloqueSugerenciaPlan();
+  const _engMonto = document.getElementById('cot-eng-monto');
+  if(_engMonto) _engMonto.textContent = '$' + fmx(engPay);
   if(typeof renderCommission === 'function') renderCommission();
 }
 
 // [v1.10.76] HTML del bloque de sugerencia de plan. [v1.10.80] tematizado (clases .plan-upsell).
+// [v1.73.23] Compacto: plan sugerido y botón en un renglón; abajo las cajas
+// (sale hoy, mensualidad y, si sube, tu comisión) con el antes tachado.
 function _bloqueSugerenciaPlan(){
   const s = calcularMejorPlan();
   if(!s) return '';
   const fmx0 = function(n){return Math.round(n).toLocaleString('es-MX');};
-  const txtNuevo  = s.tipo === 'garantia' ? '3 rentas de garantía' : 'enganche';
-  let h = '';
-  h += '<div class="plan-upsell">';
-  h += '<div class="plan-upsell-head">';
-  h += '<span class="plan-upsell-title">Le conviene subir a '+s.plan+'</span>';
-  h += '</div>';
-  h += '<div class="plan-upsell-body">Subiendo a <b>'+s.plan+'</b>, lo que paga hoy baja a <b>$'+fmx0(s.entrada)+'</b>'+(s.tipo==='garantia'?' ('+txtNuevo+')':'')+' — '+(s.aumentoMensual>0?('solo <b>$'+fmx0(s.aumentoMensual)+' más al mes</b>'):'<b>sin pagar más al mes</b>')+'.</div>';
-  // dos mini-cajas: lo que sale hoy / mensualidad
-  h += '<div class="plan-upsell-boxes">';
-  h += '<div class="plan-upsell-box">';
-  h += '<div class="plan-upsell-box-label">Sale hoy</div>';
-  h += '<div class="plan-upsell-box-val"><span class="pu-old">$'+fmx0(s.entradaActual)+'</span> <span class="pu-new">→ $'+fmx0(s.entrada)+'</span></div>';
-  h += '</div>';
-  h += '<div class="plan-upsell-box">';
-  h += '<div class="plan-upsell-box-label">Mensualidad</div>';
-  h += '<div class="plan-upsell-box-val">$'+fmx0(s.mensualActual)+' <span class="pu-arrow">→ $'+fmx0(s.mensual)+'</span></div>';
-  h += '</div>';
-  // [v1.11.63] Tercera caja: lo que el cambio de plan le deja AL ASESOR.
-  // Antes el bloque solo argumentaba a favor del cliente; quien tiene que hacer
-  // el esfuerzo de proponer el cambio no veía su propio número. Ojo con el
-  // detalle grande: el incentivo de equipo NO paga abajo de Azul 3, así que
-  // subir de Azul 2 a Azul 3 no solo mejora la comisión de plan — desbloquea el
-  // bono de marca completo. Eso es justo lo que este bloque hace visible.
+  const caja = function(lbl, antes, ahora, cls){
+    return '<div class="plan-upsell-box'+(cls?' '+cls:'')+'"><div class="plan-upsell-box-label">'+lbl+'</div>'
+      +'<div class="plan-upsell-box-val"><s>$'+fmx0(antes)+'</s><b>$'+fmx0(ahora)+'</b></div></div>';
+  };
+  // [v1.11.63] Lo que el cambio de plan le deja AL ASESOR. El incentivo de
+  // equipo NO paga abajo de Azul 3: subir de Azul 2 a Azul 3 desbloquea el bono
+  // de marca completo. [v1.73.7] El bono de marca ahora es en puntos.
   const _cAct = getPlanCommission(cotState.plan) + getEquipmentIncentive(cotState.device.id, cotState.plan);
   const _cNew = getPlanCommission(s.plan) + getEquipmentIncentive(cotState.device.id, s.plan);
   const _dif = _cNew - _cAct;
+  let h = '';
+  h += '<div class="plan-upsell ct-up">';
+  h += '<div class="ct-up-head"><div class="ct-up-tit">'+wordmarkHTML(s.plan,17)+'<span>conviene más</span></div>';
+  h += '<button type="button" class="plan-upsell-btn" onclick="aplicarSugerenciaPlan(\''+s.plan.replace(/'/g,"\\'")+'\')">Cambiar a '+s.plan+'</button></div>';
+  h += '<div class="plan-upsell-boxes'+(_dif > 0 ? ' tres' : '')+'">';
+  h += caja(s.tipo === 'garantia' ? 'Sale hoy (garantía)' : 'Sale hoy', s.entradaActual, s.entrada, 'pu-baja');
+  h += caja('Mensualidad', s.mensualActual, s.mensual, '');
+  if(_dif > 0) h += caja('Tu comisión', _cAct, _cNew, 'pu-mio');
+  h += '</div>';
   if(_dif > 0){
-    // [v1.73.7] El bono de marca ahora es en puntos.
     const _incAct = puntosEquipo(cotState.device.id, cotState.plan);
     const _incNew = puntosEquipo(cotState.device.id, s.plan);
-    h += '<div class="plan-upsell-box pu-mio">';
-    h += '<div class="plan-upsell-box-label">Tu comisión</div>';
-    h += '<div class="plan-upsell-box-val">$'+fmx0(_cAct)+' <span class="pu-arrow">→ $'+fmx0(_cNew)+'</span> <span class="pu-gain">+$'+fmx0(_dif)+'</span></div>';
     if(_incNew > 0 && _incAct === 0){
       h += '<div class="pu-unlock">Desbloquea '+fmx0(_incNew)+' pts de '+cotState.device.brand.toLowerCase()+'</div>';
     }
-    h += '</div>';
   }
-  h += '</div>';
-  // botón cambiar
-  h += '<div class="plan-upsell-btn" onclick="aplicarSugerenciaPlan(\''+s.plan.replace(/'/g,"\\'")+'\')">Cambiar a '+s.plan+'</div>';
   h += '</div>';
   return h;
 }
@@ -2527,8 +2558,21 @@ function aplicarSugerenciaPlan(plan){
 function toggleCommSection(e){
   if(e) e.stopPropagation();
   const sec = document.getElementById('comm-section');
-  if(sec) sec.classList.toggle('expanded');
+  if(sec){
+    sec.classList.toggle('expanded');
+    sec.setAttribute('aria-expanded', String(sec.classList.contains('expanded')));   // [v1.73.23]
+  }
 }
+// [v1.73.23] En la cotización, los renglones con role="button" (servicios y
+// comisión) también responden a Enter y Espacio desde el teclado.
+document.addEventListener('keydown', function(e){
+  if(e.key !== 'Enter' && e.key !== ' ') return;
+  const t = e.target;
+  if(!t || !t.getAttribute || t.tagName === 'BUTTON' || t.getAttribute('role') !== 'button') return;
+  if(!t.closest('#cot-overlay')) return;
+  e.preventDefault();
+  t.click();
+});
 
 function renderCommission(){
   if(typeof calculateTotalCommission !== 'function') return;
@@ -2785,10 +2829,12 @@ function cotSend(){
 
   // Feedback visual: el botón muestra "Enviando..." mientras persiste, para que
   // la espera no se sienta como que la app se trabó.
-  const _btnSend = document.querySelector('.cot-btn-send');
+  // [v1.73.23] El botón de ESTE envío (antes tomaba el primer .cot-btn-send del
+  // documento, que era el de imagen) y se guarda su HTML para no perder el ícono.
+  const _btnSend = document.querySelector('#cot-overlay button[onclick="cotSend()"]');
   let _btnTxtOrig = null;
   if(_btnSend){
-    _btnTxtOrig = _btnSend.textContent;
+    _btnTxtOrig = _btnSend.innerHTML;
     _btnSend.textContent = 'Enviando...';
     _btnSend.style.opacity = '0.7';
     _btnSend.style.pointerEvents = 'none';
@@ -2819,7 +2865,7 @@ function cotSend(){
     }catch(e){}
     // Restaurar el botón antes de cerrar el modal
     if(_btnSend && _btnTxtOrig !== null){
-      _btnSend.textContent = _btnTxtOrig;
+      _btnSend.innerHTML = _btnTxtOrig;
       _btnSend.style.opacity = '';
       _btnSend.style.pointerEvents = '';
     }
@@ -3718,7 +3764,8 @@ async function generateSpecsPDF(){
   let originalHTML = '';
   if(btn){
     originalHTML = btn.innerHTML;
-    btn.innerHTML = 'Generando PDF…';
+    // [v1.73.23] El botón de la cotización es solo ícono: ahí va un indicador que gira.
+    btn.innerHTML = btn.classList.contains('ct-ico') ? '<span class="ct-spin" role="img" aria-label="Generando PDF"></span>' : 'Generando PDF…';
     btn.disabled = true;
   }
   
@@ -14000,7 +14047,8 @@ function cotBuildCmpPills(){
       disponibles++;
       const sel=cotState.comparar.filter(function(c){return c.plan===p.name;})[0];
       const label=sel ? p.name+' · '+sel.plazo+'m' : p.name;
-      html+='<button class="cot-pill'+(sel?' on':'')+'" onclick="cotToggleCmp(\''+p.name.replace(/'/g,"\\'")+'\')">'+label+'</button>';
+      // [v1.73.23] Con el color de su plan (planCls), como los chips de la ficha.
+      html+='<button class="cot-pill '+planCls(p.name)+(sel?' on':'')+'" onclick="cotToggleCmp(\''+p.name.replace(/'/g,"\\'")+'\')">'+label+'</button>';
     });
   }
   wrap.innerHTML=html;
@@ -15633,7 +15681,7 @@ var USO_ZONAS = [
   ['.plan-chip', 'ficha_plan', 'Ficha', 'Elegir plan'],
   ['.plazo-btn', 'ficha_plazo', 'Ficha', 'Elegir plazo'],
   ['.storage-btn', 'ficha_cap', 'Ficha', 'Capacidad'],
-  ['[onclick^="swTab(\'plans\'"]', 'ficha_t_planes', 'Ficha', 'Pestaña Planes'],
+  // [v1.73.23] Sin "Pestaña Planes": plan, plazo y precio quedan fijos arriba de la ficha.
   ['[onclick^="swTab(\'specs\'"]', 'ficha_t_specs', 'Ficha', 'Pestaña Especificaciones'],
   ['[onclick^="swTab(\'sell\'"]', 'ficha_t_argumentos', 'Ficha', 'Pestaña Argumentos'],
   ['[onclick^="swTab(\'sim\'"]', 'ficha_t_similares', 'Ficha', 'Pestaña Similares'],

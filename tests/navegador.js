@@ -1,5 +1,5 @@
 // [v1.73.0] Pruebas en navegador (Playwright, Chromium preinstalado).
-// Uso: node tests/navegador.js <inicio|reco|hoja|ficha|puntos|precal|platino|uso>
+// Uso: node tests/navegador.js <inicio|reco|hoja|ficha|puntos|precal|platino|uso|rediseno>
 // Sirve el repo, entra con una sesión falsa, sin service worker ni red externa,
 // y deja capturas en /tmp/v173 para revisarlas a ojo.
 'use strict';
@@ -59,7 +59,8 @@ function desbordes(p, sel) {
     const malos = [];
     document.querySelectorAll(s).forEach((raiz) => {
       [raiz, ...raiz.querySelectorAll('*')].forEach((el) => {
-        if (el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).overflowX !== 'auto') malos.push((el.className || el.tagName) + ': ' + (el.textContent || '').trim().slice(0, 40));
+        const cs = getComputedStyle(el);   // [v1.73.23] un texto cortado a propósito con "…" no es desborde
+        if (el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 1 && cs.overflowX !== 'auto' && cs.textOverflow !== 'ellipsis') malos.push((el.className || el.tagName) + ': ' + (el.textContent || '').trim().slice(0, 40));
       });
     });
     return malos;
@@ -321,18 +322,21 @@ async function ficha(nav, base) {
     await p.evaluate(() => { show('s-reco'); recoRender(); });
     await p.locator('#reco-res .hv3-rcard').nth(i).click();
     await p.waitForTimeout(900);
+    // [v1.73.23] Tarjeta de precio compacta (.fx-precio): plan y plazo en data-*,
+    // % en el sello y el enganche máx (o el tope de rentas) en la primera columna.
     const f = await p.evaluate(() => {
-      const t = (s) => (document.querySelector(s) || {}).textContent || '';
-      const filas = [...document.querySelectorAll('.enganche-row')].map((r) => [(r.querySelector('.eng-lbl') || {}).textContent || '', (r.querySelector('.eng-val') || {}).textContent || '']);
-      return { plan: t('.price-result-plan'), promo: t('.price-promo'), badge: t('.price-desc-badge'), filas };
+      const c = document.querySelector('#price-result .fx-precio');
+      if (!c) return { plan: '', plazo: '', promo: '', pct: '', eng: '' };
+      const t = (s) => (c.querySelector(s) || {}).textContent || '';
+      const sello = c.querySelector('.hv3-sello');
+      return { plan: c.dataset.plan, plazo: c.dataset.plazo, promo: t('.fx-monto'), pct: sello ? sello.getAttribute('aria-label') : '', eng: t('.fx-col b') };
     });
     const promoFicha = f.promo.includes('Incluido') ? 0 : Number(f.promo.replace(/[^0-9.]/g, ''));
-    const fila = f.filas.find((r) => /3 rentas|50%/.test(r[0]));
-    const engFicha = fila ? Number(fila[1].replace(/[^0-9.]/g, '')) : null;
-    chk(x.nombre + ': la ficha abre en Plata a 36 meses', f.plan.includes('Plan Plata · 36 meses'), f.plan);
+    const engFicha = Number((f.eng.split(' a ').pop() || '').replace(/[^0-9.]/g, ''));
+    chk(x.nombre + ': la ficha abre en Plata a 36 meses', f.plan === 'Plata' && f.plazo === '36', f);
     chk(x.nombre + ': mismo precio que la tarjeta', Math.abs(promoFicha - x.promo) < 0.005, [promoFicha, x.promo]);
-    chk(x.nombre + ': mismo % que la tarjeta', f.badge.trim() === (x.promo === 0 ? 'SIN COSTO' : x.pct + '% desc.'), [f.badge, x.pct]);
-    chk(x.nombre + ': mismo enganche máx que la tarjeta', engFicha === x.eng, [fila, x.eng]);
+    chk(x.nombre + ': mismo % que la tarjeta', f.pct === (x.promo === 0 ? '' : x.pct + '% de descuento'), [f.pct, x.pct]);
+    chk(x.nombre + ': mismo enganche máx que la tarjeta', engFicha === x.eng, [f.eng, x.eng]);
   }
   chk('ficha: sin errores de página', p.errores.length === 0, p.errores);
   await ctx.close();
@@ -357,17 +361,17 @@ async function puntos(nav, base) {
   chk('recomendación: pastilla justo en los equipos con puntos', await cuadra('#reco-res .hv3-rcard', '.hv3-rfoto'));
   // Catálogo (cuadrícula y lista).
   await p.evaluate(() => { showCatalog('android'); setFilter('OPPO'); });
-  const grid = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll('#dev-wrap .d-card')].map((c) => [/showFicha\('([^']+)'\)/.exec(c.getAttribute('onclick'))[1], (c.querySelector('.d-img-wrap .pts-pill') || {}).textContent || ''])));
+  const grid = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll('#dev-wrap .d-card')].map((c) => [/showFicha\('([^']+)'\)/.exec(c.getAttribute('onclick'))[1], (c.querySelector('.cv-foto .pts-pill') || {}).textContent || ''])));
   chk('catálogo: Reno 16 330, Reno 16F 225, A6 45', /330/.test(grid.opreno16) && /225/.test(grid.opreno16f) && /45/.test(grid.opa6), grid);
   chk('catálogo: A5 sin pastilla y Find X9 Pro sigue oculto', grid.opa5 === '' && !('opfindx9pro' in grid), grid);
   await p.evaluate(() => toggleView());
-  const lista = await pts('#dev-wrap .d-row .d-row-badges .pts-pill');
+  const lista = await pts('#dev-wrap .d-row .cv-chips .pts-pill');
   chk('catálogo en lista también la lleva', lista.length === Object.values(grid).filter(Boolean).length, lista);
   await p.evaluate(() => toggleView());
   // Ficha + Tu comisión.
   await p.evaluate(() => { show('s-ficha'); showFicha('hx6e_256'); });
   await p.waitForTimeout(500);
-  const fb = await pts('#s-ficha .fh-badges .pts-pill');
+  const fb = await pts('#s-ficha .fx-foto .pts-pill');
   chk('ficha Honor X6E 256: 130 pts y sin "+$"', fb.length === 1 && fb[0] === '130 pts' && (await p.locator('#s-ficha .comm-badge-ficha').count()) === 0, fb);
   await p.evaluate(() => { showFicha('opreno16'); selectPlan('Plata'); openCotModal(); });
   await p.waitForTimeout(500);
@@ -479,8 +483,8 @@ async function platino(nav, base) {
   await p.evaluate(() => { setPlazo(24, document.querySelector('.plazo-btn')); selectPlan('Platino +'); }); await p.waitForTimeout(300);
   const f = await p.evaluate(() => ({
     plazos: [...document.querySelectorAll('.plazo-btn')].map((b) => [b.textContent.trim(), b.style.pointerEvents !== 'none', b.classList.contains('active')]),
-    plan: (document.querySelector('.price-result-plan') || {}).textContent || '',
-    promo: (document.querySelector('.price-promo') || {}).textContent || '', cur: curPlazo }));
+    plan: ((c) => c ? c.dataset.plan + ' · ' + c.dataset.plazo + ' meses' : '')(document.querySelector('#price-result .fx-precio')),
+    promo: (document.querySelector('#price-result .fx-monto') || {}).textContent || '', cur: curPlazo }));
   chk('Platino +: solo 36 meses y salta solo a 36', f.cur === 36 && f.plazos.map((x) => x[1]).join() === 'false,false,true' && f.plazos[2][2], f);
   chk('Platino +: iPhone 17 incluido a 36 meses', /Platino \+ · 36 meses/.test(f.plan) && /Incluido/i.test(f.promo), f);
   await p.evaluate(() => openCotModal()); await p.waitForTimeout(500);
@@ -605,9 +609,147 @@ async function uso(nav, base) {
   }
 }
 
+// [v1.73.23] Rediseño compacto: catálogo de 3 columnas y lista, ficha con Cotizar en
+// la primera pantalla y cotización con el resumen arriba. Misma lógica de siempre.
+async function rediseno(nav, base) {
+  for (const tema of ['light', 'dark']) {
+    const { ctx, p } = await abrir(nav, base, { tema });
+    // Catálogo en cuadrícula
+    await p.evaluate(() => { showCatalog('android'); setFilter('OPPO'); clearCmp(); });
+    await p.waitForTimeout(300);
+    const g = await p.evaluate(() => {
+      const cards = [...document.querySelectorAll('#dev-wrap .cv-card')];
+      const tops = cards.map((c) => Math.round(c.getBoundingClientRect().top));
+      return { n: cards.length, porFila: tops.filter((t) => t === tops[0]).length, vig: CAT.android.filter((d) => d.brand === 'OPPO' && isVigent(d.id)).length,
+        estatus: cards.every((c) => !!c.querySelector('.bs')), subs: cards.map((c) => c.querySelector('.cv-sub').textContent),
+        vista: [document.getElementById('view-grid').getAttribute('aria-pressed'), document.getElementById('view-list').getAttribute('aria-pressed')] };
+    });
+    chk(tema + ': catálogo en 3 columnas con todos los Oppo vigentes', g.n === g.vig && g.porFila === 3, g);
+    chk(tema + ': cada tarjeta dice su estatus en texto', g.estatus);
+    chk(tema + ': "Oppo A5" no repite la marca abajo (solo capacidad)', g.subs.every((x) => /^\d+ GB$/.test(x)), g.subs);
+    chk(tema + ': botón de vista marca cuadrícula', g.vista.join() === 'true,false', g.vista);
+    chk(tema + ': catálogo sin desbordes', (await desbordes(p, '#s-catalog')).length === 0, await desbordes(p, '#s-catalog'));
+    // Comparar: máximo 3, con 1 el botón no compara
+    const cmp = await p.evaluate(() => {
+      const ids = [...document.querySelectorAll('#dev-wrap .cv-card')].map((c) => /showFicha\('([^']+)'\)/.exec(c.getAttribute('onclick'))[1]);
+      document.querySelector('#dev-wrap .cv-cmp').click();
+      const uno = { vis: document.getElementById('cmp-bar').classList.contains('vis'), off: document.querySelector('#cmp-bar .cmp-go').disabled };
+      ['1', '2', '3'].forEach((i) => tCmp(ids[+i]));
+      return { uno, n: cmpSet.size, lbl: document.getElementById('cmp-lbl').textContent, off: document.querySelector('#cmp-bar .cmp-go').disabled,
+        marcados: document.querySelectorAll('#dev-wrap .cv-cmp[aria-pressed="true"]').length, ficha: document.querySelector('#dev-wrap .cv-card').classList.contains('sel') };
+    });
+    chk(tema + ': con 1 elegido aparece la barra y Comparar se ve apagado', cmp.uno.vis && cmp.uno.off, cmp.uno);
+    chk(tema + ': comparar sigue con tope de 3', cmp.n === 3 && cmp.lbl === '3 seleccionados de 3' && !cmp.off && cmp.marcados === 3, cmp);
+    if (tema === 'light') await captura(p, OUT + '/rediseno-catalogo-grid.png');
+    else await captura(p, OUT + '/rediseno-catalogo-grid-oscuro.png');
+    await p.evaluate(() => clearCmp());
+    // Lista
+    await p.locator('#view-list').click(); await p.waitForTimeout(250);
+    const l = await p.evaluate(() => ({ filas: document.querySelectorAll('#dev-wrap .cv-row').length, alto: Math.round(document.querySelector('#dev-wrap .cv-row').getBoundingClientRect().height),
+      vista: [document.getElementById('view-grid').getAttribute('aria-pressed'), document.getElementById('view-list').getAttribute('aria-pressed')], modo: gridMode }));
+    chk(tema + ': lista con una fila por equipo y de 68 px', l.filas === g.n && l.alto <= 72, l);
+    chk(tema + ': botón de vista marca lista', l.vista.join() === 'false,true' && l.modo === false, l);
+    chk(tema + ': lista sin desbordes', (await desbordes(p, '#s-catalog')).length === 0, await desbordes(p, '#s-catalog'));
+    await captura(p, OUT + '/rediseno-catalogo-lista' + (tema === 'dark' ? '-oscuro' : '') + '.png');
+    await p.locator('#view-grid').click(); await p.waitForTimeout(200);
+    // Ficha: Reno 16 en Plata a 36 meses
+    await p.evaluate(() => { showFicha('opreno16'); }); await p.waitForTimeout(500);
+    await p.evaluate(() => { selectPlan('Plata'); setPlazo(36, [...document.querySelectorAll('.plazo-btn')][2]); }); await p.waitForTimeout(200);
+    const f = await p.evaluate(() => {
+      const t = (s) => (document.querySelector(s) || {}).textContent || '';
+      const cot = document.querySelector('#s-ficha [onclick^="enviarCotizacion"]').getBoundingClientRect();
+      return { cotizarAbajo: Math.round(cot.bottom), alto: window.innerHeight, monto: t('.fx-monto'), cols: [...document.querySelectorAll('.fx-col b')].map((b) => b.textContent),
+        nota: t('.fx-nota'), sello: (document.querySelector('.fx-precio .hv3-sello') || { getAttribute: () => '' }).getAttribute('aria-label'),
+        tabs: [...document.querySelectorAll('#s-ficha .fx-tabs .tb')].map((b) => b.textContent + (b.getAttribute('aria-selected') === 'true' ? '*' : '')),
+        specs: document.querySelectorAll('#tp-specs .fx-spec').length, nSpecs: Object.keys(CAT.android.find((d) => d.id === 'opreno16').specs).length,
+        chips: [...document.querySelectorAll('#plan-chips .plan-chip')].map((c) => c.dataset.plan + (c.getAttribute('aria-pressed') === 'true' ? '*' : '')),
+        plazos: [...document.querySelectorAll('.plazo-btn')].map((b) => b.getAttribute('aria-pressed')).join() };
+    });
+    chk(tema + ': ficha con Cotizar visible sin scroll', f.cotizarAbajo <= f.alto, f.cotizarAbajo);
+    chk(tema + ': ficha Reno 16 Plata 36: $9,438.70, sello 50%', /9,438\.70/.test(f.monto) && f.sello === '50% de descuento', f);
+    chk(tema + ': enganche máx $4,719 y mensualidad $781 (igual que el inicio)', f.cols.join() === '$4,719,$781', f.cols);
+    chk(tema + ': sin enganche $0 hoy y $912 al mes', /\$0 hoy · \$912 al mes/.test(f.nota), f.nota);
+    chk(tema + ': pestañas sin Planes, Especificaciones primero', f.tabs.join() === 'Especificaciones*,Argumentos,Similares,Accesorios,YouTube', f.tabs);
+    chk(tema + ': todas las especificaciones en cuadritos', f.specs === f.nSpecs, f);
+    chk(tema + ': chip y plazo elegidos con aria-pressed', f.chips.includes('Plata*') && f.chips.filter((x) => x.endsWith('*')).length === 1 && f.plazos === 'false,false,true', f);
+    for (const t of ['specs', 'sell', 'sim', 'acc', 'tt']) {
+      await p.evaluate((t) => swTab(t, document.querySelector('.tb[onclick*="\'' + t + '\'"]')), t); await p.waitForTimeout(250);
+      const d = await desbordes(p, '#s-ficha');
+      chk(tema + ': ficha pestaña ' + t + ' sin desbordes', d.length === 0, d);
+    }
+    await p.evaluate(() => swTab('specs', document.querySelector('.tb[onclick*="\'specs\'"]')));
+    await captura(p, OUT + '/rediseno-ficha' + (tema === 'dark' ? '-oscuro' : '') + '.png');
+    // 70% o más: rentas en garantía (Oppo A6 Plata 36 = $1,998.80 de $9,999)
+    await p.evaluate(() => { showFicha('opa6'); }); await p.waitForTimeout(400);
+    await p.evaluate(() => { selectPlan('Plata'); setPlazo(36, [...document.querySelectorAll('.plazo-btn')][2]); }); await p.waitForTimeout(150);
+    const a6 = await p.evaluate(() => [...document.querySelectorAll('.fx-col')].map((c) => c.textContent).join(' | ') + ' | ' + document.querySelector('.fx-nota').textContent);
+    chk(tema + ': A6 (80%): enganche de 1 a 3 rentas y mensualidad $706', /Enganche en rentas\$650 a \$1,950/.test(a6) && /Mensualidad\$706/.test(a6) && /garantía/.test(a6), a6);
+    // Capacidades: botones dentro del encabezado
+    await p.evaluate(() => { showFicha('px10pro'); }); await p.waitForTimeout(400);
+    const cap = await p.evaluate(() => [...document.querySelectorAll('#storage-sel .storage-btn')].map((b) => b.textContent + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')));
+    chk(tema + ': Pixel 10 Pro: capacidades en el encabezado', cap.length === 2 && cap.filter((x) => x.endsWith('*')).length === 1, cap);
+    // Cotización
+    await p.evaluate(() => { showFicha('opreno16'); }); await p.waitForTimeout(400);
+    await p.evaluate(() => { selectPlan('Plata'); setPlazo(36, [...document.querySelectorAll('.plazo-btn')][2]); openCotModal(); }); await p.waitForTimeout(400);
+    const c = await p.evaluate(() => {
+      const r = document.getElementById('cot-resumen').getBoundingClientRect();
+      const tot = () => [...document.querySelectorAll('#cot-resumen .ct-total b')].map((b) => b.textContent).join();
+      const antes = tot();
+      cotSetTipo('POSPAGO'); cotSetEng(50);
+      return { resumenArriba: Math.round(r.top), alto: window.innerHeight, antes, despues: tot(), eng: document.getElementById('cot-eng-monto').textContent,
+        comision: [document.getElementById('comm-section').classList.contains('expanded'), document.getElementById('comm-section').getAttribute('aria-expanded'), document.getElementById('comm-amount').textContent],
+        servicios: [...document.querySelectorAll('#cot-overlay .ct-serv')].filter((x) => getComputedStyle(x).display !== 'none').length,
+        port: document.getElementById('cot-port-desc').textContent, plan: document.getElementById('cot-device-info').textContent,
+        tipo: document.getElementById('cot-tipo-pospago').getAttribute('aria-pressed'), acciones: document.querySelectorAll('#cot-overlay .ct-acciones button').length };
+    });
+    chk(tema + ': cotización con el resumen a la vista al abrir', c.resumenArriba < c.alto, c);
+    chk(tema + ': sin enganche: hoy $0 y $912 al mes; con 50%: $4,719 y $781', c.antes === '$0,$912' && c.despues === '$4,719,$781' && c.eng === '$4,719', c);
+    chk(tema + ': comisión cerrada como hoy, con su monto', c.comision[0] === false && c.comision[1] === 'false' && /^\$\d/.test(c.comision[2]), c.comision);
+    chk(tema + ': portabilidad, control y seguro en una fila', c.servicios === 3 && c.port === '20% x 6 meses', c);
+    chk(tema + ': tarjeta del equipo con plan, plazo y precio', /PLATA36 meses · \$9,438\.70/.test(c.plan), c.plan);
+    chk(tema + ': tipo marcado con aria-pressed y 3 envíos en una fila', c.tipo === 'true' && c.acciones === 3, c);
+    await p.evaluate(() => cotSetDeposito()); await p.waitForTimeout(100);
+    const dep = await p.evaluate(() => ({ visible: getComputedStyle(document.getElementById('cot-deposito-custom-wrap')).display !== 'none', txt: document.getElementById('cot-deposito-pill').innerText.trim() }));
+    chk(tema + ': depósito: Agregar abre el monto y cambia a Quitar', dep.visible && dep.txt === 'Quitar', dep);
+    await p.evaluate(() => { document.getElementById('cot-deposito-input').value = '500'; cotRender(); });
+    chk(tema + ': el depósito suma al pago inicial', (await p.locator('#cot-resumen .ct-total b').first().textContent()) === '$5,219');
+    await p.evaluate(() => cotSetDeposito());
+    await p.evaluate(() => toggleCommSection()); await p.waitForTimeout(100);
+    chk(tema + ': la comisión se abre al tocarla', await p.evaluate(() => document.getElementById('comm-section').getAttribute('aria-expanded') === 'true'));
+    await p.evaluate(() => toggleCommSection());
+    chk(tema + ': cotización sin desbordes', (await desbordes(p, '#cot-overlay')).length === 0, await desbordes(p, '#cot-overlay'));
+    await p.evaluate(() => { const b = document.querySelector('#cot-overlay .cot-body'); b.style.maxHeight = 'none'; document.querySelector('#cot-overlay .cot-modal').style.maxHeight = 'none'; });
+    await p.screenshot({ path: OUT + '/rediseno-cotizacion' + (tema === 'dark' ? '-oscuro' : '') + '.png', fullPage: true });
+    await p.evaluate(() => { const b = document.querySelector('#cot-overlay .cot-body'); b.style.maxHeight = ''; document.querySelector('#cot-overlay .cot-modal').style.maxHeight = ''; cotClose(); });
+    // Sugerencia de plan (Azul 1 → sube) y Titanio/Platino +
+    await p.evaluate(() => { selectPlan('Azul 1'); openCotModal(); }); await p.waitForTimeout(300);
+    const sug = await p.evaluate(() => ({ s: calcularMejorPlan(), html: document.getElementById('cot-sugerencia').textContent }));
+    chk(tema + ': la sugerencia de plan sale en su bloque cuando aplica', !sug.s || (sug.html.includes('Cambiar a ' + sug.s.plan) && sug.html.includes('Sale hoy')), sug.html.slice(0, 120));
+    await p.evaluate(() => cotClose());
+    await p.evaluate(() => { showFicha('ip17'); }); await p.waitForTimeout(500);
+    await p.evaluate(() => { selectPlan('Platino +'); openCotModal(); }); await p.waitForTimeout(300);
+    const pm = await p.evaluate(() => ({ visibles: [...document.querySelectorAll('#cot-overlay .ct-serv')].filter((x) => getComputedStyle(x).display !== 'none').length,
+      ancho: Math.round(document.getElementById('cot-control-switch').getBoundingClientRect().width), plan: document.getElementById('cot-device-info').textContent }));
+    chk(tema + ': Platino +: sin portabilidad, control y seguro llenan la fila', pm.visibles === 2 && pm.ancho > 150 && /PLATINO \+36 meses · Incluido/.test(pm.plan), pm);
+    await p.evaluate(() => cotClose());
+    chk(tema + ': sin errores de página', p.errores.length === 0, p.errores);
+    await ctx.close();
+  }
+  // Escritorio: el catálogo llena el ancho y la ficha queda en columna legible.
+  const { ctx, p } = await abrir(nav, base, { ancho: 1440, alto: 900 });
+  await p.evaluate(() => { showCatalog('android'); }); await p.waitForTimeout(300);
+  const esc = await p.evaluate(() => { const c = [...document.querySelectorAll('#dev-wrap .cv-card')]; const t = c.map((x) => Math.round(x.getBoundingClientRect().top)); return t.filter((y) => y === t[0]).length; });
+  chk('escritorio: catálogo con 6 o más por fila', esc >= 6, esc);
+  await p.evaluate(() => { showFicha('opreno16'); }); await p.waitForTimeout(400);
+  const ancho = await p.evaluate(() => Math.round(document.querySelector('#s-ficha .fx').getBoundingClientRect().width));
+  chk('escritorio: ficha de 720 px como máximo', ancho <= 720, ancho);
+  chk('escritorio: sin errores de página', p.errores.length === 0, p.errores);
+  await ctx.close();
+}
+
 (async () => {
   const modo = process.argv[2];
-  const modos = { inicio, reco, hoja, ficha, puntos, precal, platino, uso };
+  const modos = { inicio, reco, hoja, ficha, puntos, precal, platino, uso, rediseno };
   if (!modos[modo]) { console.error('modo desconocido: ' + modo); process.exit(2); }
   const srv = await servir(RAIZ);
   const base = 'http://127.0.0.1:' + srv.address().port + '/techguide/';
