@@ -700,7 +700,8 @@ async function rediseno(nav, base) {
         comision: [document.getElementById('comm-section').classList.contains('expanded'), document.getElementById('comm-section').getAttribute('aria-expanded'), document.getElementById('comm-amount').textContent],
         servicios: [...document.querySelectorAll('#cot-overlay .ct-serv')].filter((x) => getComputedStyle(x).display !== 'none').length,
         port: document.getElementById('cot-port-desc').textContent, plan: document.getElementById('cot-device-info').textContent,
-        tipo: document.getElementById('cot-tipo-pospago').getAttribute('aria-pressed'), acciones: document.querySelectorAll('#cot-overlay .ct-acciones button').length };
+        tipo: document.getElementById('cot-tipo-pospago').getAttribute('aria-pressed'), acciones: document.querySelectorAll('#cot-overlay .ct-acciones button').length,
+        principal: [...document.querySelectorAll('#cot-overlay .ct-acciones button')].sort((x, y) => y.getBoundingClientRect().width - x.getBoundingClientRect().width)[0].getAttribute('onclick') };
     });
     chk(tema + ': cotización con el resumen a la vista al abrir', c.resumenArriba < c.alto, c);
     chk(tema + ': sin enganche: hoy $0 y $912 al mes; con 50%: $4,719 y $781', c.antes === '$0,$912' && c.despues === '$4,719,$781' && c.eng === '$4,719', c);
@@ -708,6 +709,7 @@ async function rediseno(nav, base) {
     chk(tema + ': portabilidad, control y seguro en una fila', c.servicios === 3 && c.port === '20% x 6 meses', c);
     chk(tema + ': tarjeta del equipo con plan, plazo y precio', /PLATA36 meses · \$9,438\.70/.test(c.plan), c.plan);
     chk(tema + ': tipo marcado con aria-pressed y 3 envíos en una fila', c.tipo === 'true' && c.acciones === 3, c);
+    chk(tema + ': el botón grande es Enviar imagen [v1.73.24]', c.principal === 'cotSendImage()', c.principal);
     await p.evaluate(() => cotSetDeposito()); await p.waitForTimeout(100);
     const dep = await p.evaluate(() => ({ visible: getComputedStyle(document.getElementById('cot-deposito-custom-wrap')).display !== 'none', txt: document.getElementById('cot-deposito-pill').innerText.trim() }));
     chk(tema + ': depósito: Agregar abre el monto y cambia a Quitar', dep.visible && dep.txt === 'Quitar', dep);

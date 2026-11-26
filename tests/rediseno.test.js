@@ -103,4 +103,15 @@ test('cotización: el aviso de envío usa SU botón y no pierde el ícono', () =
   assert.match(f, /document\.querySelector\('#cot-overlay button\[onclick="cotSend\(\)"\]'\)/);
   assert.match(f, /_btnTxtOrig = _btnSend\.innerHTML;/);
   assert.match(f, /_btnSend\.innerHTML = _btnTxtOrig;/);
+  assert.match(f, /_btnSend\.classList\.contains\('ct-ico'\)\) _btnSend\.innerHTML = '<span class="ct-spin"/);
+});
+
+test('cotización [v1.73.24]: enviar imagen es el botón principal; WhatsApp texto y PDF son íconos', () => {
+  const a = HTML.indexOf('<div class="cot-actions ct-acciones">');
+  const acc = HTML.slice(a, HTML.indexOf('</div>', a));
+  assert.match(acc, /<button type="button" class="cot-btn ct-principal" onclick="cotSendImage\(\)">/);
+  assert.match(acc, /Enviar imagen/);
+  assert.match(acc, /class="cot-btn ct-ico" onclick="cotSend\(\)" aria-label="Enviar por WhatsApp \(texto\)"/);
+  assert.match(acc, /class="cot-btn ct-ico" onclick="generateSpecsPDF\(\)"/);
+  assert.ok(acc.indexOf('cotSendImage()') > acc.indexOf('cotSend()'), 'el principal va a la derecha, a la mano del pulgar');
 });
