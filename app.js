@@ -2835,7 +2835,9 @@ function cotSend(){
   let _btnTxtOrig = null;
   if(_btnSend){
     _btnTxtOrig = _btnSend.innerHTML;
-    _btnSend.textContent = 'Enviando...';
+    // [v1.73.24] El botón de WhatsApp en texto es solo ícono: ahí va un indicador que gira.
+    if(_btnSend.classList.contains('ct-ico')) _btnSend.innerHTML = '<span class="ct-spin" role="img" aria-label="Enviando"></span>';
+    else _btnSend.textContent = 'Enviando...';
     _btnSend.style.opacity = '0.7';
     _btnSend.style.pointerEvents = 'none';
   }
