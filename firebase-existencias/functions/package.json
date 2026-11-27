@@ -3,7 +3,7 @@
   "description": "Recibe el inventario diario por tienda (Copiloto) y lo guarda en Firestore: existencias/{org} y existencias/_meta",
   "private": true,
   "main": "index.js",
-  "engines": { "node": "20" },
+  "engines": { "node": "24" },
   "scripts": { "test": "node --test" },
   "dependencies": {
     "firebase-admin": "^12.7.0",

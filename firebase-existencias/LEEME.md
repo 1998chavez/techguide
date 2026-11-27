@@ -9,7 +9,8 @@ URL (después de publicarla):
 
 ## Una sola vez
 
-1. **Herramientas.** Node 20 y Firebase CLI: `npm install -g firebase-tools`, luego
+1. **Herramientas.** Node 20 o más nuevo en tu computadora (`node -v`) y Firebase CLI:
+   `npm install -g firebase-tools`, luego
    `firebase login` con la cuenta del proyecto **techguide-primemx**. El proyecto debe
    estar en plan **Blaze**: Cloud Functions y los secretos lo piden.
 2. **Generar el token** (en tu computadora):
@@ -22,7 +23,10 @@ URL (después de publicarla):
    `cd functions && npm install && cd ..`
    `firebase deploy --only functions:existencias`
    Solo publica este grupo (`existencias`); no toca las otras funciones del proyecto.
-   Al terminar, la terminal muestra la URL de arriba como "Function URL".
+   La función corre en Node 24 en Google (Node 20 ya no se puede publicar desde el 30-oct-2026).
+   Al terminar, la terminal muestra una "Function URL". Puede ser la de arriba o una que
+   termina en `.a.run.app`; las dos llevan a la misma función.
+   Prueba rápida: abre la URL en el navegador. Si ves `{"ok":false,"error":"Usa POST"}`, ya está viva.
 5. **Reglas de Firestore.** En la consola de Firebase → Firestore → Reglas, agrega este
    bloque dentro de `match /databases/{database}/documents { … }` y publica.
    No borres las reglas que ya tienes.
@@ -36,6 +40,8 @@ URL (después de publicarla):
 
    La app solo lee. Nadie escribe desde el teléfono: la función escribe con permisos de
    servidor, que no pasan por estas reglas.
+   Ojo: en Firestore basta que una regla diga que sí. Si tus reglas tienen un
+   `match /{document=**}` que permite escribir, ese le gana a este bloque.
 6. **Copiloto.** En su `.env`:
 
    ```
