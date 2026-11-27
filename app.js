@@ -1288,6 +1288,7 @@ function showCatalog(os){
   document.getElementById('cat-title').textContent=os==='ios'?'iPhone & iOS':'Android';
   document.getElementById('search-in').value='';
   _pintarVista();
+  invAlAbrirCatalogo();   // [v1.73.26] inventario de la tienda (si hay) antes de pintar
   buildFilters(os);renderDevs();show('s-catalog');
 }
 function buildFilters(os){
@@ -1386,8 +1387,12 @@ function renderDevs(){
   if(curBrand!=='Todos') devs=devs.filter(d=>d.brand===curBrand);
   if(q) devs=devs.filter(d=>d.name.toLowerCase().includes(q)||d.brand.toLowerCase().includes(q));
   devs=devs.filter(d=>isVigent(d.id));
+  // [v1.73.26] Con inventario de la tienda, por default solo lo que hay en ella.
+  const _inv=typeof invFiltrando==='function' && invFiltrando();
+  if(_inv) devs=devs.filter(d=>invCant(d.id)>0);
   const wrap=document.getElementById('dev-wrap');
-  if(!devs.length){wrap.innerHTML='<div class="no-r">Sin resultados</div>';updateCmpBar();return;}
+  if(!devs.length){wrap.innerHTML='<div class="no-r">'+(_inv?'Sin equipos'+(curBrand!=='Todos'?' de '+curBrand:'')+' en el inventario de la tienda':'Sin resultados')+'</div>';updateCmpBar();return;}
+  const _pz=function(id){ const n=(typeof invActual==='function' && invActual())?invCant(id):0; return n?'<span class="cv-pzas">'+invPzas(n)+'</span>':''; };
 
   // [v1.73.23] Catálogo compacto. Cuadrícula de 3 columnas: foto con Bundle,
   // círculo de comparar y puntos encima; nombre, capacidad y estatus en texto
@@ -1404,6 +1409,7 @@ function renderDevs(){
       if(d.bundle) h+='<span class="b-bun">Bundle</span>';
       h+='<button type="button" class="cv-cmp'+(sel?' sel':'')+'" aria-pressed="'+sel+'" aria-label="Comparar '+d.name+' '+d.storage+'" onclick="event.stopPropagation();tCmp(\''+d.id+'\')"><span aria-hidden="true">'+(sel?CV_CHECK:'')+'</span></button>';
       h+=ptsPastilla(d.id);   // [v1.73.7] puntos de marca
+      h+=_pz(d.id);           // [v1.73.26] piezas en la tienda
       h+='</div>';
       h+='<div class="cv-info">';
       h+='<div class="cv-nombre">'+d.name+'</div>';
@@ -1420,7 +1426,7 @@ function renderDevs(){
       h+='<div class="cv-row-foto">'+imgI(d.id,'')+'</div>';
       h+='<div class="cv-row-info">';
       h+='<div class="cv-row-nombre">'+d.name+'</div>';
-      h+='<div class="cv-chips"><span class="cv-gb">'+catSub(d,curOS,curBrand!=='Todos')+'</span>'+bs(d.status)+ptsPastilla(d.id);
+      h+='<div class="cv-chips"><span class="cv-gb">'+catSub(d,curOS,curBrand!=='Todos')+'</span>'+_pz(d.id)+bs(d.status)+ptsPastilla(d.id);
       if(d.bundle) h+='<span class="b-bun">Bundle</span>';
       h+='</div></div>';
       h+='<svg class="cv-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></div>';
@@ -11017,6 +11023,8 @@ function updateAdminHomeCard(){
   if(typeof updateAdopcionCard==='function') updateAdopcionCard();
   // [v1.73.18] Precalificación: DC499W y plantillas de León Centro y Plaza Nogal León.
   if(typeof updatePrecalCard==='function') updatePrecalCard();
+  // [v1.73.26] Inventario por tienda: se lee una vez por sesión, ya con la sesión activa.
+  if(typeof invCargar==='function') setTimeout(function(){ try{ invCargar(); }catch(e){} }, 2500);
   // [v1.73.21] Panel Desarrollador (solo DC499W) y envío diario de clics por herramienta.
   if(typeof updateUsoClicsCard==='function') updateUsoClicsCard();
   if(typeof usoEnviar==='function') usoEnviar();
@@ -15680,6 +15688,8 @@ var USO_ZONAS = [
   ['#view-btn', 'cat_vista', 'Catálogo', 'Cambiar vista'],
   ['.d-card, .d-row', 'cat_eq', 'Catálogo', 'Abrir equipo'],
   ['[onclick^="goCompare"]', 'cat_comparar', 'Catálogo', 'Ver comparación'],
+  ['#inv-btn', 'cat_inv_todos', 'Catálogo', 'Inventario · Todos los modelos'],
+  ['#inv-tienda', 'cat_inv_tienda', 'Catálogo', 'Inventario · Cambiar tienda'],
   ['.plan-chip', 'ficha_plan', 'Ficha', 'Elegir plan'],
   ['.plazo-btn', 'ficha_plazo', 'Ficha', 'Elegir plazo'],
   ['.storage-btn', 'ficha_cap', 'Ficha', 'Capacidad'],
@@ -15832,6 +15842,7 @@ var usoLeerDocs = async function(desde, hasta){
 function usoAbrir(){
   if(!_usoPuedeVer()) return;
   show('s-uso');
+  if(typeof invDevCargar === 'function') invDevCargar();   // [v1.73.26] inventario sin empatar
   usoCargar();
 }
 async function usoCargar(){
@@ -15852,6 +15863,7 @@ function usoPintar(){
   var esc = function(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
   var nom = function(k){ return String(k).replace(/_/g, ' ').replace(/^PRM TDA /, ''); };   // nombre corto de tienda
   var h = '<div class="hv3-reco-top"><button type="button" class="hv3-atras" onclick="show(\'s-home\')" aria-label="Regresar">' + PC_ICO_ATRAS + '</button><h1>Uso de la app</h1></div>';
+  if(typeof invDevHTML === 'function') h += invDevHTML();   // [v1.73.26]
   h += '<div class="hv3-seg uso-seg" role="group" aria-label="Periodo">';
   [['7d', '7 días'], ['mes', 'Este mes'], ['mespasado', 'Mes pasado']].forEach(function(o){
     h += '<button type="button" aria-pressed="' + (usoPanel.periodo === o[0]) + '" onclick="usoSetPeriodo(\'' + o[0] + '\')">' + o[1] + '</button>';
@@ -15894,4 +15906,228 @@ function usoPintar(){
   });
   h += '<p class="uso-nota">Datos hasta el día anterior · sin datos de personas</p>';
   el.innerHTML = h;
+}
+
+// ═══ [v1.73.26] INVENTARIO POR TIENDA (Bajío) ══════════════════════════════════
+// Copiloto lee cada día el correo de existencias y lo manda a la Cloud Function
+// recibirExistencias, que escribe existencias/{org} (una tienda) y existencias/_meta.
+// En el catálogo, quien tiene inventario de su tienda ve primero lo que hay en ella;
+// el botón "Todos los modelos" muestra el catálogo completo. Cada equipo con piezas
+// lleva su etiqueta ("3 pzas"). Se lee una vez por sesión: _meta y la tienda elegida.
+// <inv-puro>
+// Excepciones para los modelos del correo que no empatan solos con el catálogo.
+// La llave es el modelo como viene en el correo (el 4G/5G, espacios y acentos no
+// importan); el valor, el id del catálogo (o una lista de ids). null = no está en
+// el catálogo a propósito: deja de salir como "sin empatar" en Desarrollador.
+var INV_ALIAS = {
+};
+var INV_MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+function invSinAcentos(s){ return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+// "PRM TDA León Centro" → "LEON CENTRO": mayúsculas, sin acentos ni "PRM TDA".
+function invClaveTienda(s){
+  return invSinAcentos(s).toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim().replace(/^PRM TDA(\s+|$)/, '').replace(/\s+/g, ' ');
+}
+// Marca + modelo + GB, sin red (4G/5G), sin espacios ni signos. "GALAXY" se quita
+// porque el catálogo a veces lo trae ("Samsung Galaxy A27") y a veces no ("Samsung A17").
+function invClaveModelo(s){
+  var x = ' ' + invSinAcentos(s).toUpperCase() + ' ';
+  x = x.replace(/(\d+)\s*GB\b/g, '$1').replace(/\b[45]G\b/g, ' ').replace(/\bGALAXY\b/g, ' ');
+  return x.replace(/[^A-Z0-9]/g, '');
+}
+function invClaveEquipo(d){
+  var marca = invSinAcentos(d && d.brand).toUpperCase().trim();
+  var nombre = invSinAcentos(d && d.name).toUpperCase().trim();
+  if(marca && nombre.indexOf(marca + ' ') === 0) nombre = nombre.slice(marca.length + 1);
+  return invClaveModelo(marca + ' ' + nombre + ' ' + ((d && d.storage) || ''));
+}
+// Red del modelo (4G/5G), solo para desempatar: el catálogo tiene dos equipos que
+// difieren solo en eso (Oppo A5 Pro 4G y 5G).
+function invRed(s){ var m = invSinAcentos(s).toUpperCase().match(/\b([45]G)\b/); return m ? m[1] : ''; }
+// clave → [{id, red}] del catálogo (normalmente uno).
+function invIndice(cat){
+  var idx = {};
+  (cat || []).forEach(function(d){ var k = invClaveEquipo(d); if(!k) return; (idx[k] = idx[k] || []).push({ id: d.id, red: invRed(d.name) }); });
+  return idx;
+}
+// Equipos de una tienda → piezas por id del catálogo y lo que no empató.
+function invEmparejar(equipos, idx, alias){
+  var al = {};
+  Object.keys(alias || {}).forEach(function(m){ al[invClaveModelo(m)] = alias[m]; });
+  var porId = {}, sin = [];
+  (equipos || []).forEach(function(e){
+    var cant = Number(e && e.cant) || 0, k = invClaveModelo(e && e.modelo), ids;
+    if(Object.prototype.hasOwnProperty.call(al, k)){
+      if(al[k] == null) return;                       // fuera del catálogo a propósito
+      ids = [].concat(al[k]);
+    } else {
+      var c = idx[k] || [], red = invRed(e && e.modelo);
+      // Dos equipos con la misma clave: decide la red que trae el correo.
+      if(c.length > 1 && red){ var r = c.filter(function(x){ return x.red === red; }); if(r.length) c = r; }
+      ids = c.map(function(x){ return x.id; });
+    }
+    if(!ids || !ids.length){ sin.push({ modelo: String(e && e.modelo || ''), cant: cant }); return; }
+    ids.forEach(function(id){ porId[id] = (porId[id] || 0) + cant; });
+  });
+  return { porId: porId, sin: sin };
+}
+// Tiendas del inventario que ve cada quien. lista = _meta.listaTiendas.
+// Asesor y gerente: la suya. Regional: las suyas (tiendasAsignadas) y la propia.
+// Director: todas si su región es la del inventario. Director nacional y DC499W: todas.
+function invTiendasVisibles(lista, u){
+  lista = Array.isArray(lista) ? lista : [];
+  if(u.global) return lista.slice();
+  if(u.rol === 'director') return (u.regiones || []).indexOf(u.regionInv) >= 0 ? lista.slice() : [];
+  var claves = [u.tienda].concat(u.rol === 'regional' ? (u.tiendasAsignadas || []) : []).map(invClaveTienda).filter(Boolean);
+  return lista.filter(function(t){ return claves.indexOf(t.clave || invClaveTienda(t.tienda)) >= 0; });
+}
+function invFechaCorta(iso){
+  var p = String(iso || '').slice(0, 10).split('-');
+  if(p.length !== 3 || !INV_MESES[parseInt(p[1], 10) - 1]) return '';
+  return parseInt(p[2], 10) + ' ' + INV_MESES[parseInt(p[1], 10) - 1];
+}
+function invPzas(n){ return n + (n === 1 ? ' pza' : ' pzas'); }
+// Desarrollador: modelos sin empatar de todas las tiendas, con piezas y en cuántas tiendas.
+function invSinEmpatar(docs, idx, alias){
+  var m = {};
+  (docs || []).forEach(function(d){
+    invEmparejar(d.equipos, idx, alias).sin.forEach(function(s){
+      var r = m[s.modelo] || (m[s.modelo] = { modelo: s.modelo, pzas: 0, tiendas: 0 });
+      r.pzas += s.cant; r.tiendas++;
+    });
+  });
+  return Object.keys(m).map(function(k){ return m[k]; }).sort(function(a, b){ return (b.pzas - a.pzas) || (a.modelo < b.modelo ? -1 : 1); });
+}
+// </inv-puro>
+
+// Estado de la sesión. meta: undefined = sin leer; null = no hay inventario.
+var invEstado = { de: '', meta: undefined, cargando: null, tiendas: [], org: '', docs: {}, todos: false };
+// Lecturas de Firestore (se sustituyen en pruebas).
+var invLeer = async function(id){
+  await loadFirebase();
+  var s = await firestoreFns.getDoc(firestoreFns.doc(firestoreDB, 'existencias', id));
+  return s.exists() ? (s.data() || null) : null;
+};
+var invLeerTodos = async function(){
+  await loadFirebase();
+  var out = [];
+  (await firestoreFns.getDocs(firestoreFns.collection(firestoreDB, 'existencias'))).forEach(function(s){ if(s.id !== '_meta') out.push(s.data() || {}); });
+  return out;
+};
+var _invIdx = null;
+function invIdx(){ return _invIdx || (_invIdx = invIndice(CAT.ios.concat(CAT.android))); }
+function invCargar(){
+  var yo = _meAttuid();
+  if(invEstado.de !== yo) invEstado = { de: yo, meta: undefined, cargando: null, tiendas: [], org: '', docs: {}, todos: false };
+  if(invEstado.cargando) return invEstado.cargando;
+  if(!yo) return Promise.resolve(null);
+  invEstado.cargando = (async function(){
+    try{
+      var meta = await invLeer('_meta');
+      invEstado.meta = meta || null;
+      if(!meta || !Array.isArray(meta.listaTiendas)){ invEstado.tiendas = []; return null; }
+      var u = { rol: _meRol(), tienda: (asesorData && (asesorData.tienda || asesorData.sucursal)) || '', tiendasAsignadas: _meTiendas(),
+        regiones: _misRegiones(), global: _meEsGlobal(), regionInv: regionCanon(meta.region || '') };
+      invEstado.tiendas = invTiendasVisibles(meta.listaTiendas, u);
+      var mia = invClaveTienda(u.tienda);
+      var propia = invEstado.tiendas.filter(function(t){ return t.clave === mia; })[0];
+      invEstado.org = (propia || invEstado.tiendas[0] || {}).org || '';
+      if(invEstado.org) await invDoc(invEstado.org);
+      return meta;
+    }catch(e){
+      console.warn('[inventario]', e && e.message);
+      invEstado.meta = null; invEstado.tiendas = []; invEstado.org = '';
+      return null;
+    }
+  })();
+  return invEstado.cargando;
+}
+// Una lectura por tienda en la sesión.
+async function invDoc(org){
+  if(Object.prototype.hasOwnProperty.call(invEstado.docs, org)) return invEstado.docs[org];
+  var d = null;
+  try{ d = await invLeer(org); }catch(e){ d = null; }
+  invEstado.docs[org] = d ? Object.assign({}, d, { porId: invEmparejar(d.equipos, invIdx(), INV_ALIAS).porId }) : null;
+  return invEstado.docs[org];
+}
+function invActual(){ return invEstado.org ? (invEstado.docs[invEstado.org] || null) : null; }
+function invCant(id){ var d = invActual(); return (d && d.porId && d.porId[id]) || 0; }
+function invFiltrando(){ return !!invActual() && !invEstado.todos; }
+// Botón, selector de tienda y fecha arriba del catálogo.
+function invPintarControles(){
+  var btn = document.getElementById('inv-btn'), info = document.getElementById('inv-info');
+  var sel = document.getElementById('inv-tienda'), selWrap = document.getElementById('inv-sel-wrap'), fecha = document.getElementById('inv-fecha');
+  if(!btn || !info) return;
+  var d = invActual(), hay = invEstado.tiendas.length > 0;
+  btn.hidden = !d;
+  btn.setAttribute('aria-pressed', String(!!invEstado.todos));
+  // Con el botón al lado, el buscador se angosta: texto corto para que no se corte.
+  var bus = document.getElementById('search-in');
+  if(bus) bus.placeholder = d ? 'Buscar equipo...' : 'Buscar equipo o marca...';
+  info.hidden = !hay;
+  // Selector para quien ve más de una tienda (regional, director, nacional).
+  var conSelector = invEstado.tiendas.length > 1 || ['regional', 'director', 'director_nacional'].indexOf(_meRol()) >= 0;
+  if(selWrap) selWrap.hidden = !(hay && conSelector);
+  if(sel && hay && conSelector){
+    var esc = function(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); };
+    sel.innerHTML = invEstado.tiendas.map(function(t){
+      return '<option value="' + esc(t.org) + '"' + (t.org === invEstado.org ? ' selected' : '') + '>' + esc(invClaveTienda(t.tienda)) + '</option>';
+    }).join('');
+  }
+  if(fecha) fecha.textContent = d ? 'Inventario al ' + invFechaCorta(d.fecha) : (hay ? 'Sin inventario de esta tienda' : '');
+}
+function invAlternar(){
+  invEstado.todos = !invEstado.todos;
+  invPintarControles();
+  renderDevs();
+}
+async function invElegir(org){
+  invEstado.org = org;
+  invPintarControles();
+  await invDoc(org);
+  invPintarControles();
+  renderDevs();
+}
+// Al abrir el catálogo: por default, lo que hay en la tienda.
+function invAlAbrirCatalogo(){
+  invEstado.todos = false;
+  invPintarControles();
+  if(invEstado.meta === undefined || invEstado.de !== _meAttuid()){
+    invCargar().then(function(){
+      var cat = document.getElementById('s-catalog');
+      invPintarControles();
+      if(cat && cat.classList.contains('active')) renderDevs();
+    });
+  }
+}
+
+// Desarrollador (solo DC499W): resumen del último inventario y modelos sin empatar.
+var invDev = { meta: undefined, docs: null, error: '' };
+async function invDevCargar(){
+  invDev = { meta: undefined, docs: null, error: '' };
+  try{
+    invDev.meta = await invLeer('_meta');
+    invDev.docs = await invLeerTodos();
+  }catch(e){ invDev.meta = null; invDev.docs = []; invDev.error = 'No se pudo leer el inventario: ' + ((e && e.message) || ''); }
+  var s = document.getElementById('s-uso');
+  if(s && s.classList.contains('active') && typeof usoPintar === 'function') usoPintar();
+}
+function invDevHTML(){
+  var esc = function(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var h = '<section class="inv-dev"><div class="pc-cab"><h2>Inventario de tiendas</h2>';
+  if(invDev.meta === undefined || invDev.docs === null) return h + '</div><p class="inv-dev-nota">Cargando…</p></section>';
+  if(invDev.error) return h + '</div><p class="inv-dev-nota">' + esc(invDev.error) + '</p></section>';
+  if(!invDev.meta) return h + '</div><p class="inv-dev-nota">Sin inventario recibido todavía.</p></section>';
+  var m = invDev.meta, rec = String(m.recibido || '');
+  h += '<span class="pc-sub">Recibido ' + esc(invFechaCorta(rec || m.fecha)) + (rec.length >= 16 ? ' · ' + esc(rec.slice(11, 16)) : '') + '</span></div>';
+  var sin = invSinEmpatar(invDev.docs, invIdx(), INV_ALIAS);
+  h += '<div class="inv-dev-num"><div><span>Tiendas</span><b>' + (Number(m.tiendas) || 0) + '</b></div>'
+    + '<div><span>Modelos</span><b>' + (Array.isArray(m.modelos) ? m.modelos.length : 0) + '</b></div>'
+    + '<div class="' + (sin.length ? 'neg' : '') + '"><span>Sin empatar</span><b>' + sin.length + '</b></div></div>';
+  if(sin.length){
+    h += '<div class="inv-dev-lista">' + sin.map(function(s){
+      return '<div class="inv-dev-fila"><code>' + esc(s.modelo) + '</code><span>' + invPzas(s.pzas) + ' · ' + s.tiendas + (s.tiendas === 1 ? ' tienda' : ' tiendas') + '</span></div>';
+    }).join('') + '</div>';
+    h += '<p class="inv-dev-nota">No aparecen en el inventario del catálogo hasta agregarlos a INV_ALIAS.</p>';
+  }
+  return h + '</section>';
 }

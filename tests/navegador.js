@@ -1,5 +1,5 @@
 // [v1.73.0] Pruebas en navegador (Playwright, Chromium preinstalado).
-// Uso: node tests/navegador.js <inicio|reco|hoja|ficha|puntos|precal|platino|uso|rediseno>
+// Uso: node tests/navegador.js <inicio|reco|hoja|ficha|puntos|precal|platino|uso|rediseno|inventario>
 // Sirve el repo, entra con una sesión falsa, sin service worker ni red externa,
 // y deja capturas en /tmp/v173 para revisarlas a ojo.
 'use strict';
@@ -362,7 +362,9 @@ async function puntos(nav, base) {
   // Catálogo (cuadrícula y lista).
   await p.evaluate(() => { showCatalog('android'); setFilter('OPPO'); });
   const grid = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll('#dev-wrap .d-card')].map((c) => [/showFicha\('([^']+)'\)/.exec(c.getAttribute('onclick'))[1], (c.querySelector('.cv-foto .pts-pill') || {}).textContent || ''])));
-  chk('catálogo: Reno 16 330, Reno 16F 225, A6 45', /330/.test(grid.opreno16) && /225/.test(grid.opreno16f) && /45/.test(grid.opa6), grid);
+  // El Reno 16F solo cuenta mientras esté vigente (su lista vence y se oculta del catálogo).
+  const r16fVig = await p.evaluate(() => isVigent('opreno16f'));
+  chk('catálogo: Reno 16 330, Reno 16F 225 (si está vigente), A6 45', /330/.test(grid.opreno16) && (!r16fVig || /225/.test(grid.opreno16f)) && (r16fVig || !('opreno16f' in grid)) && /45/.test(grid.opa6), grid);
   chk('catálogo: A5 sin pastilla y Find X9 Pro sigue oculto', grid.opa5 === '' && !('opfindx9pro' in grid), grid);
   await p.evaluate(() => toggleView());
   const lista = await pts('#dev-wrap .d-row .cv-chips .pts-pill');
@@ -749,9 +751,128 @@ async function rediseno(nav, base) {
   await ctx.close();
 }
 
+// [v1.73.26] Inventario por tienda: por default lo que hay en la tienda; "Todos los modelos"
+// muestra el catálogo completo; piezas por equipo; una lectura por sesión; regional con selector.
+const INV_FX = {
+  _meta: { region: 'BAJIO', fecha: '2026-11-26', recibido: '2026-11-26T11:05:00-06:00', tiendas: 3,
+    modelos: ['APPLE IPHONE 17 256GB 5G', 'HONOR X7B 256GB 4G', 'OPPO A5 256GB 4G', 'OPPO A58 128GB 4G', 'OPPO A6 256GB 4G', 'OPPO A6K 256GB 4G', 'OPPO A6T 128GB 4G', 'OPPO FIND X10 512GB 5G', 'OPPO RENO16 256GB 5G', 'OPPO RENO16 F 256GB 5G', 'SAMSUNG GALAXY A16 128GB 4G', 'XIAOMI REDMI 17 128GB 4G'],
+    listaTiendas: [
+      { org: 'ZX3', tienda: 'PRM TDA LAGOS', clave: 'LAGOS', fecha: '2026-11-25' },
+      { org: 'ZX1', tienda: 'PRM TDA LEON ALTACIA', clave: 'LEON ALTACIA', fecha: '2026-11-26' },
+      { org: 'ZX2', tienda: 'PRM TDA LEON CENTRO', clave: 'LEON CENTRO', fecha: '2026-11-26' }] },
+  ZX2: { org: 'ZX2', tienda: 'PRM TDA LEON CENTRO', clave: 'LEON CENTRO', region: 'BAJIO', fecha: '2026-11-26', equipos: [
+    { modelo: 'OPPO A5 256GB 4G', cant: 3 }, { modelo: 'OPPO A6 256GB 4G', cant: 5 }, { modelo: 'OPPO A6T 128GB 4G', cant: 2 },
+    { modelo: 'OPPO RENO16 F 256GB 5G', cant: 1 }, { modelo: 'OPPO RENO16 256GB 5G', cant: 4 }, { modelo: 'OPPO FIND X10 512GB 5G', cant: 1 },
+    { modelo: 'OPPO A58 128GB 4G', cant: 0 }, { modelo: 'HONOR X7B 256GB 4G', cant: 7 }, { modelo: 'APPLE IPHONE 17 256GB 5G', cant: 2 }] },
+  ZX1: { org: 'ZX1', tienda: 'PRM TDA LEON ALTACIA', clave: 'LEON ALTACIA', region: 'BAJIO', fecha: '2026-11-26', equipos: [
+    { modelo: 'OPPO A5 256GB 4G', cant: 2 }, { modelo: 'OPPO A6K 256GB 4G', cant: 3 }, { modelo: 'SAMSUNG GALAXY A16 128GB 4G', cant: 2 }] },
+  ZX3: { org: 'ZX3', tienda: 'PRM TDA LAGOS', clave: 'LAGOS', region: 'BAJIO', fecha: '2026-11-25', equipos: [{ modelo: 'XIAOMI REDMI 17 128GB 4G', cant: 4 }] },
+};
+async function invPreparar(p, fx) {
+  await p.evaluate((fx) => {
+    window.__lecturas = [];
+    invLeer = async (id) => { window.__lecturas.push(id); return fx[id] ? JSON.parse(JSON.stringify(fx[id])) : null; };
+    invLeerTodos = async () => { window.__lecturas.push('*'); return Object.keys(fx).filter((k) => k !== '_meta').map((k) => JSON.parse(JSON.stringify(fx[k]))); };
+    invEstado = { de: '', meta: undefined, cargando: null, tiendas: [], org: '', docs: {}, todos: false };
+  }, fx);
+  await p.waitForTimeout(1200);   // deja pasar la precarga de la sesión (2.5 s después de entrar)
+}
+const invVista = (p) => p.evaluate(() => {
+  const ids = [...document.querySelectorAll('#dev-wrap .d-card, #dev-wrap .d-row')].map((c) => /showFicha\('([^']+)'\)/.exec(c.getAttribute('onclick'))[1]);
+  const pz = Object.fromEntries([...document.querySelectorAll('#dev-wrap .d-card, #dev-wrap .d-row')].map((c) => [/showFicha\('([^']+)'\)/.exec(c.getAttribute('onclick'))[1], (c.querySelector('.cv-pzas') || {}).textContent || '']));
+  const btn = document.getElementById('inv-btn');
+  return { ids, pz, boton: !btn.hidden && getComputedStyle(btn).display !== 'none', presionado: btn.getAttribute('aria-pressed'),
+    fecha: document.getElementById('inv-fecha').textContent, info: !document.getElementById('inv-info').hidden,
+    selector: !document.getElementById('inv-sel-wrap').hidden, opciones: [...document.querySelectorAll('#inv-tienda option')].map((o) => o.textContent),
+    lecturas: window.__lecturas.slice() };
+});
+async function inventario(nav, base) {
+  for (const tema of ['light', 'dark']) {
+    const asesor = Object.assign({}, SES, { name: 'ASESOR PRUEBA', attuid: 'AP123X', rol: 'asesor', tiendasAsignadas: [], tienda: 'PRM TDA LEÓN CENTRO', sucursal: 'PRM TDA LEÓN CENTRO' });
+    let { ctx, p } = await abrir(nav, base, { ses: asesor, tema });
+    await invPreparar(p, INV_FX);
+    await p.evaluate(() => { showCatalog('android'); }); await p.waitForTimeout(300);
+    await p.evaluate(() => setFilter('OPPO')); await p.waitForTimeout(200);
+    let v = await invVista(p);
+    const esperado = await p.evaluate(() => CAT.android.filter((d) => d.brand === 'OPPO' && isVigent(d.id) && invCant(d.id) > 0).map((d) => d.id));
+    chk(tema + ': al abrir, solo lo que hay en su tienda', v.ids.join() === esperado.join() && esperado.length >= 4 && !v.ids.includes('opa58'), { v: v.ids, esperado });
+    chk(tema + ': cada equipo con sus piezas', v.ids.every((id) => v.pz[id] === (id === 'opa6' ? '5 pzas' : id === 'opa5' ? '3 pzas' : id === 'opfindx10' ? '1 pza' : v.pz[id])) && v.pz.opreno16 === '4 pzas', v.pz);
+    chk(tema + ': botón "Todos los modelos" sin presionar e "Inventario al 26 nov"', v.boton && v.presionado === 'false' && v.fecha === 'Inventario al 26 nov' && !v.selector, v);
+    chk(tema + ': asesor sin selector de tienda', !v.selector);
+    if (tema === 'light') await captura(p, OUT + '/inventario-tienda.png');
+    await p.locator('#inv-btn').click(); await p.waitForTimeout(200);
+    v = await invVista(p);
+    const todos = await p.evaluate(() => CAT.android.filter((d) => d.brand === 'OPPO' && isVigent(d.id)).map((d) => d.id));
+    chk(tema + ': "Todos los modelos" muestra el catálogo completo', v.ids.join() === todos.join() && v.presionado === 'true', { v: v.ids.length, todos: todos.length });
+    chk(tema + ': con todos, las piezas siguen solo en los que hay', v.ids.filter((id) => v.pz[id]).join() === esperado.join(), v.pz);
+    if (tema === 'light') await captura(p, OUT + '/inventario-todos.png');
+    chk(tema + ': catálogo sin desbordes', (await desbordes(p, '#s-catalog')).length === 0, await desbordes(p, '#s-catalog'));
+    await p.evaluate(() => toggleView()); await p.waitForTimeout(150);
+    const lista = await p.evaluate(() => [...document.querySelectorAll('#dev-wrap .d-row .cv-chips .cv-pzas')].map((e) => e.textContent));
+    chk(tema + ': en lista también van las piezas', lista.length === esperado.length, lista);
+    chk(tema + ': lista sin desbordes', (await desbordes(p, '#s-catalog')).length === 0, await desbordes(p, '#s-catalog'));
+    await p.evaluate(() => toggleView());
+    // Volver a abrir: otra vez lo de la tienda, sin leer de nuevo.
+    await p.evaluate(() => { show('s-home'); showCatalog('ios'); }); await p.waitForTimeout(200);
+    v = await invVista(p);
+    chk(tema + ': al volver a entrar, otra vez lo de la tienda (iPhone 17: 2 pzas)', v.presionado === 'false' && v.ids.join() === 'ip17' && v.pz.ip17 === '2 pzas', v);
+    chk(tema + ': una lectura de _meta y una de su tienda en toda la sesión', v.lecturas.join() === '_meta,ZX2', v.lecturas);
+    chk(tema + ': sin errores de página (asesor)', p.errores.length === 0, p.errores);
+    await ctx.close();
+  }
+  // Regional: selector con sus tiendas; cada tienda se lee una vez.
+  {
+    const reg = Object.assign({}, SES, { name: 'REGIONAL PRUEBA', attuid: 'RG001X', rol: 'regional', tienda: '', sucursal: '', tiendasAsignadas: ['PRM TDA LEON ALTACIA', 'PRM TDA LAGOS'] });
+    const { ctx, p } = await abrir(nav, base, { ses: reg });
+    await invPreparar(p, INV_FX);
+    await p.evaluate(() => { showCatalog('android'); }); await p.waitForTimeout(300);
+    let v = await invVista(p);
+    chk('regional: selector con sus 2 tiendas', v.selector && v.opciones.join() === 'LAGOS,LEON ALTACIA', v.opciones);
+    await p.locator('#inv-tienda').selectOption('ZX1'); await p.waitForTimeout(200);
+    v = await invVista(p);
+    chk('regional: Altacia muestra su inventario (A5 2 pzas, A6k 3 pzas)', v.pz.opa5 === '2 pzas' && v.pz.opa6k === '3 pzas' && v.ids.length === 2, v.pz);
+    await p.locator('#inv-tienda').selectOption('ZX3'); await p.waitForTimeout(200);
+    v = await invVista(p);
+    chk('regional: Lagos con su propia fecha (25 nov)', v.fecha === 'Inventario al 25 nov' && v.ids.join() === 'xr17', v);
+    await p.locator('#inv-tienda').selectOption('ZX1'); await p.waitForTimeout(150);
+    v = await invVista(p);
+    chk('regional: cada tienda se lee una sola vez', v.lecturas.join() === '_meta,ZX3,ZX1', v.lecturas);
+    await p.evaluate(() => toggleView()); await p.waitForTimeout(150);
+    await captura(p, OUT + '/inventario-regional.png');
+    chk('regional: sin desbordes', (await desbordes(p, '#s-catalog')).length === 0, await desbordes(p, '#s-catalog'));
+    chk('regional: sin errores de página', p.errores.length === 0, p.errores);
+    await ctx.close();
+  }
+  // Tienda sin inventario y sin _meta: catálogo como siempre.
+  for (const [nombre, ses, fx] of [['tienda fuera de Bajío', { attuid: 'MT001X', rol: 'asesor', tienda: 'PRM TDA MONTERREY', sucursal: 'PRM TDA MONTERREY', tiendasAsignadas: [] }, INV_FX],
+    ['sin inventario recibido', { attuid: 'AP123X', rol: 'asesor', tienda: 'PRM TDA LEON CENTRO', sucursal: 'PRM TDA LEON CENTRO', tiendasAsignadas: [] }, {}]]) {
+    const { ctx, p } = await abrir(nav, base, { ses: Object.assign({}, SES, ses) });
+    await invPreparar(p, fx);
+    await p.evaluate(() => { showCatalog('android'); setFilter('OPPO'); }); await p.waitForTimeout(300);
+    const v = await invVista(p);
+    const todos = await p.evaluate(() => CAT.android.filter((d) => d.brand === 'OPPO' && isVigent(d.id)).length);
+    chk(nombre + ': sin botón, sin piezas y el catálogo completo', !v.boton && !v.info && v.ids.length === todos && Object.values(v.pz).every((x) => !x), v);
+    chk(nombre + ': solo se leyó _meta', v.lecturas.join() === '_meta', v.lecturas);
+    await ctx.close();
+  }
+  // Desarrollador (DC499W): modelos sin empatar.
+  for (const tema of ['light', 'dark']) {
+    const { ctx, p } = await abrir(nav, base, { tema });
+    await invPreparar(p, INV_FX);
+    await p.evaluate(() => { usoLeerDocs = async () => []; usoPanel.docs = null; usoAbrir(); }); await p.waitForTimeout(500);
+    const d = await p.evaluate(() => ({ txt: (document.querySelector('#uso-wrap .inv-dev') || {}).textContent || '', filas: [...document.querySelectorAll('#uso-wrap .inv-dev-fila')].map((f) => f.textContent) }));
+    chk(tema + ': Desarrollador lista los sin empatar con piezas y tiendas', d.filas.join('|') === 'HONOR X7B 256GB 4G7 pzas · 1 tienda|SAMSUNG GALAXY A16 128GB 4G2 pzas · 1 tienda', d.filas);
+    chk(tema + ': Desarrollador con recibido, tiendas y modelos', /Recibido 26 nov · 11:05/.test(d.txt) && /Tiendas3/.test(d.txt) && /Modelos12/.test(d.txt) && /Sin empatar2/.test(d.txt), d.txt.slice(0, 160));
+    chk(tema + ': Desarrollador sin desbordes', (await desbordes(p, '#uso-wrap')).length === 0, await desbordes(p, '#uso-wrap'));
+    await captura(p, OUT + '/inventario-dev-' + tema + '.png');
+    chk(tema + ': sin errores de página (Desarrollador)', p.errores.length === 0, p.errores);
+    await ctx.close();
+  }
+}
+
 (async () => {
   const modo = process.argv[2];
-  const modos = { inicio, reco, hoja, ficha, puntos, precal, platino, uso, rediseno };
+  const modos = { inicio, reco, hoja, ficha, puntos, precal, platino, uso, rediseno, inventario };
   if (!modos[modo]) { console.error('modo desconocido: ' + modo); process.exit(2); }
   const srv = await servir(RAIZ);
   const base = 'http://127.0.0.1:' + srv.address().port + '/techguide/';
