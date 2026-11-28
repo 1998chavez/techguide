@@ -1392,7 +1392,10 @@ function renderDevs(){
   if(_inv) devs=devs.filter(d=>invCant(d.id)>0);
   const wrap=document.getElementById('dev-wrap');
   if(!devs.length){wrap.innerHTML='<div class="no-r">'+(_inv?'Sin equipos'+(curBrand!=='Todos'?' de '+curBrand:'')+' en el inventario de la tienda':'Sin resultados')+'</div>';updateCmpBar();return;}
-  const _pz=function(id){ const n=(typeof invActual==='function' && invActual())?invCant(id):0; return n?'<span class="cv-pzas">'+invPzas(n)+'</span>':''; };
+  // [v1.73.27] Con el filtro de la tienda, cada color con su nombre y sus piezas; si el
+  // equipo trae colores, sin la pastilla del total (sería repetir la suma).
+  const _cols=function(id){ return _inv?invColoresHTML(invColores(id),'cv-cols',true):''; };
+  const _pz=function(id){ const n=(typeof invActual==='function' && invActual())?invCant(id):0; return n&&!(_inv&&invColores(id).length)?'<span class="cv-pzas">'+invPzas(n)+'</span>':''; };
 
   // [v1.73.23] Catálogo compacto. Cuadrícula de 3 columnas: foto con Bundle,
   // círculo de comparar y puntos encima; nombre, capacidad y estatus en texto
@@ -1416,6 +1419,7 @@ function renderDevs(){
       h+='<div class="cv-sub">'+catSub(d,curOS,true)+'</div>';
       if(UPCOMING_ONLY.indexOf(d.id)>=0) h+='<span class="b-up cv-prox">Próximamente</span>';
       h+=bs(d.status);
+      h+=_cols(d.id);         // [v1.73.27] colores en la tienda
       h+='</div></div>';
     });
     h+='</div>';
@@ -1428,7 +1432,7 @@ function renderDevs(){
       h+='<div class="cv-row-nombre">'+d.name+'</div>';
       h+='<div class="cv-chips"><span class="cv-gb">'+catSub(d,curOS,curBrand!=='Todos')+'</span>'+_pz(d.id)+bs(d.status)+ptsPastilla(d.id);
       if(d.bundle) h+='<span class="b-bun">Bundle</span>';
-      h+='</div></div>';
+      h+='</div>'+_cols(d.id)+'</div>';
       h+='<svg class="cv-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></div>';
     });
     h+='</div>';
@@ -1520,7 +1524,10 @@ function showFicha(id){
   // Sin fecha: "Sin vencimiento" a secas (antes decía "Vigente hasta Sin vencimiento").
   const _vtxt=(VIGENCY[id] && VIGENCY[id]!=='indefinido') ? 'Vigente hasta '+_vl+_vwarn : _vl;
   h+='<div class="fx-vig"><span class="fx-vig-dot" style="background:'+_vc+'"></span>'+_vtxt+'</div>';
-  h+='</div></section>';
+  h+='</div>';
+  // [v1.73.27] Colores del equipo en la tienda, discretos al pie del encabezado
+  if(typeof invFichaHTML==='function') h+=invFichaHTML(id);
+  h+='</section>';
 
   // Plan, plazo, precio y Cotizar
   h+='<section class="fx-planes">';
@@ -15950,10 +15957,47 @@ function invIndice(cat){
   return idx;
 }
 // Equipos de una tienda → piezas por id del catálogo y lo que no empató.
+// [v1.73.27] Colores que trae el inventario: tono válido "#RRGGBB" o null (punto gris).
+var INV_TONO_GRIS = '#C7C7CC';
+function invTono(t){ var s = String(t == null ? '' : t).trim(); return /^#[0-9A-Fa-f]{6}$/.test(s) ? s.toUpperCase() : null; }
+// Luminancia relativa (0 negro, 1 blanco) para darle borde al blanco y, en oscuro, al negro.
+function invLum(hex){
+  var h = invTono(hex) || INV_TONO_GRIS;
+  var c = [1, 3, 5].map(function(i){ var v = parseInt(h.substr(i, 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+}
+// Nombre corto del color, sin prefijo: "Midnight Black" → "Black", "Black Titanium" →
+// "Black", "Negro Medianoche" → "Negro". Busca la palabra de color (inglés o español);
+// el material (Titanium/Titanio) solo si no hay otra. Sin palabra conocida, el nombre completo.
+var INV_COLOR_BASE = ['BLACK','WHITE','BLUE','GREEN','PINK','PURPLE','GRAY','GREY','SILVER','GOLD','RED','ORANGE','YELLOW','VIOLET',
+  'LAVENDER','BEIGE','BROWN','CREAM','MINT','TEAL','NAVY','CORAL','BRONZE','NEGRO','BLANCO','AZUL','VERDE','ROSA','MORADO','GRIS',
+  'PLATA','PLATEADO','DORADO','ORO','ROJO','NARANJA','AMARILLO','VIOLETA','LILA','LAVANDA','CAFE','CREMA','MENTA','BRONCE'];
+var INV_COLOR_MATERIAL = ['TITANIUM','TITANIO','GRAPHITE','GRAFITO'];
+function invColorCorto(nombre){
+  var w = String(nombre == null ? '' : nombre).trim().split(/\s+/);
+  var k = function(x){ return invSinAcentos(x).toUpperCase().replace(/[^A-Z]/g, ''); };
+  for(var i = w.length - 1; i >= 0; i--) if(INV_COLOR_BASE.indexOf(k(w[i])) >= 0) return w[i];
+  for(var j = w.length - 1; j >= 0; j--) if(INV_COLOR_MATERIAL.indexOf(k(w[j])) >= 0) return w[j];
+  return w.join(' ');
+}
+// Fila de colores: punto con su tono + nombre + piezas. cols = [{color, tono, cant}].
+// corto: nombre sin prefijo; si dos colores del equipo quedan igual ("Sky Blue" y "Deep
+// Blue"), esos dos van con su nombre completo para no confundirlos.
+function invColoresHTML(cols, clase, corto){
+  if(!cols || !cols.length) return '';
+  var esc = function(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+  var nom = cols.map(function(c){ return corto ? invColorCorto(c.color) : String(c.color); });
+  var rep = {}; nom.forEach(function(n){ var u = n.toUpperCase(); rep[u] = (rep[u] || 0) + 1; });
+  return '<div class="inv-cols' + (clase ? ' ' + clase : '') + '">' + cols.map(function(c, i){
+    var t = invTono(c.tono) || INV_TONO_GRIS, l = invLum(t), n = rep[nom[i].toUpperCase()] > 1 ? String(c.color) : nom[i];
+    return '<span class="inv-col"><i class="inv-dot' + (l > 0.5 ? ' claro' : l < 0.03 ? ' oscuro' : '') + '" style="background:' + t + '" aria-hidden="true"></i>'
+      + '<span class="inv-col-n">' + esc(n) + '</span><b>' + (Number(c.cant) || 0) + '</b></span>';
+  }).join('') + '</div>';
+}
 function invEmparejar(equipos, idx, alias){
   var al = {};
   Object.keys(alias || {}).forEach(function(m){ al[invClaveModelo(m)] = alias[m]; });
-  var porId = {}, sin = [];
+  var porId = {}, sin = [], acum = {};
   (equipos || []).forEach(function(e){
     var cant = Number(e && e.cant) || 0, k = invClaveModelo(e && e.modelo), ids;
     if(Object.prototype.hasOwnProperty.call(al, k)){
@@ -15966,9 +16010,29 @@ function invEmparejar(equipos, idx, alias){
       ids = c.map(function(x){ return x.id; });
     }
     if(!ids || !ids.length){ sin.push({ modelo: String(e && e.modelo || ''), cant: cant }); return; }
-    ids.forEach(function(id){ porId[id] = (porId[id] || 0) + cant; });
+    ids.forEach(function(id){
+      porId[id] = (porId[id] || 0) + cant;
+      // [v1.73.27] Colores por equipo del catálogo, juntos por nombre (4G y 5G, alias…).
+      if(!Array.isArray(e.colores)) return;
+      var m = acum[id] || (acum[id] = {});
+      e.colores.forEach(function(c){
+        var n = Number(c && c.cant) || 0, nombre = String(c && c.color || '').trim();
+        if(n <= 0 || !nombre) return;
+        var x = m[nombre.toUpperCase()] || (m[nombre.toUpperCase()] = { color: nombre, tono: null, cant: 0 });
+        x.cant += n;
+        if(!x.tono) x.tono = invTono(c.tono);
+      });
+    });
   });
-  return { porId: porId, sin: sin };
+  // Solo si los colores suman las piezas del equipo; si no (uno de sus modelos vino sin
+  // colores), ese equipo se ve sin colores. De más piezas a menos.
+  var colores = {};
+  Object.keys(acum).forEach(function(id){
+    var l = Object.keys(acum[id]).map(function(k){ return acum[id][k]; });
+    if(l.reduce(function(s, c){ return s + c.cant; }, 0) !== porId[id]) return;
+    colores[id] = l.sort(function(a, b){ return (b.cant - a.cant) || (a.color < b.color ? -1 : a.color > b.color ? 1 : 0); });
+  });
+  return { porId: porId, sin: sin, colores: colores };
 }
 // Tiendas del inventario que ve cada quien. lista = _meta.listaTiendas.
 // Asesor y gerente: la suya. Regional: las suyas (tiendasAsignadas) y la propia.
@@ -16046,11 +16110,23 @@ async function invDoc(org){
   if(Object.prototype.hasOwnProperty.call(invEstado.docs, org)) return invEstado.docs[org];
   var d = null;
   try{ d = await invLeer(org); }catch(e){ d = null; }
-  invEstado.docs[org] = d ? Object.assign({}, d, { porId: invEmparejar(d.equipos, invIdx(), INV_ALIAS).porId }) : null;
+  var emp = d ? invEmparejar(d.equipos, invIdx(), INV_ALIAS) : null;
+  invEstado.docs[org] = d ? Object.assign({}, d, { porId: emp.porId, colores: emp.colores }) : null;
   return invEstado.docs[org];
 }
 function invActual(){ return invEstado.org ? (invEstado.docs[invEstado.org] || null) : null; }
 function invCant(id){ var d = invActual(); return (d && d.porId && d.porId[id]) || 0; }
+// [v1.73.27] Colores del equipo en la tienda elegida ([] si el inventario no los trae).
+function invColores(id){ var d = invActual(); return (d && d.colores && d.colores[id]) || []; }
+// Ficha: al pie del encabezado, en un renglón discreto, la tienda y cada color sin prefijo
+// con sus piezas (sin total: es la suma). Solo si hay piezas y colores.
+function invFichaHTML(id){
+  var d = invActual(), n = invCant(id), cols = invColores(id);
+  if(!d || !n || !cols.length) return '';
+  var esc = function(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  return '<div class="fx-inv" role="group" aria-label="Colores en la tienda"><span class="fx-inv-t">' + esc(invClaveTienda(d.tienda)) + '</span>'
+    + invColoresHTML(cols, 'fx-inv-cols', true) + '</div>';
+}
 function invFiltrando(){ return !!invActual() && !invEstado.todos; }
 // Botón, selector de tienda y fecha arriba del catálogo.
 function invPintarControles(){
