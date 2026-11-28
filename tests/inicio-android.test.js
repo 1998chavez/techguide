@@ -97,7 +97,7 @@ test('menos de 70 % pide 50 % del precio; 70 % o más pide 3 rentas', () => {
   assert.equal(x.b.pct, 70);
 });
 
-test('vencido ayer no entra; el último día sí y lo dice', () => {
+test('vencido ayer no entra; el último día sí, solo con su vigencia', () => {
   const ctx = cargar({ extra: (c) => {
     soloEstos(c);
     equipo(c, { id: 'fxayer', name: 'Fixture Ayer', contado: 5000, precios: gratis, vig: AYER });
@@ -106,7 +106,7 @@ test('vencido ayer no entra; el último día sí y lo dice', () => {
   const ids = ctx.recoCalcular(5000, 'Plata', 'Oro', 36).lista.map((x) => x.id);
   assert.deepEqual(plano(ids), ['fxhoy']);
   const [, m, d] = HOY.split('-').map(Number);
-  assert.deepEqual(plano(ctx.vigLargo('fxhoy')), { txt: `Vigente al ${d} de ${MESES[m - 1]} · último día`, ultimo: true });
+  assert.deepEqual(plano(ctx.vigLargo('fxhoy')), { txt: `Vigente al ${d} de ${MESES[m - 1]}`, ultimo: true }, '[v1.73.28] solo la vigencia');
 });
 
 test('un modelo por tarjeta: capacidades y "+ regalo" cuentan como uno', () => {

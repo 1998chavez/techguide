@@ -670,7 +670,7 @@ async function rediseno(nav, base) {
     chk(tema + ': ficha con Cotizar visible sin scroll', f.cotizarAbajo <= f.alto, f.cotizarAbajo);
     chk(tema + ': ficha Reno 16 Plata 36: $9,438.70, sello 50%', /9,438\.70/.test(f.monto) && f.sello === '50% de descuento', f);
     chk(tema + ': enganche máx $4,719 y mensualidad $781 (igual que el inicio)', f.cols.join() === '$4,719,$781', f.cols);
-    chk(tema + ': sin enganche $0 hoy y $912 al mes', /\$0 hoy · \$912 al mes/.test(f.nota), f.nota);
+    chk(tema + ': [v1.73.28] sin el cuadro gris de "sin enganche"', f.nota === '', f.nota);
     chk(tema + ': pestañas sin Planes, Especificaciones primero', f.tabs.join() === 'Especificaciones*,Argumentos,Similares,Accesorios,YouTube', f.tabs);
     chk(tema + ': todas las especificaciones en cuadritos', f.specs === f.nSpecs, f);
     chk(tema + ': chip y plazo elegidos con aria-pressed', f.chips.includes('Plata*') && f.chips.filter((x) => x.endsWith('*')).length === 1 && f.plazos === 'false,false,true', f);
@@ -794,9 +794,19 @@ const invVista = (p) => p.evaluate(() => {
   const btn = document.getElementById('inv-btn');
   return { ids, pz, boton: !btn.hidden && getComputedStyle(btn).display !== 'none', presionado: btn.getAttribute('aria-pressed'),
     fecha: document.getElementById('inv-fecha').textContent, info: !document.getElementById('inv-info').hidden,
-    selector: !document.getElementById('inv-sel-wrap').hidden, opciones: [...document.querySelectorAll('#inv-tienda option')].map((o) => o.textContent),
+    selector: !document.getElementById('inv-tienda').hidden, tienda: document.getElementById('inv-tienda-n').textContent,
     lecturas: window.__lecturas.slice() };
 });
+// [v1.73.28] Hoja de tiendas: la abre, opcionalmente busca y escoge por nombre.
+async function invHoja(p, { buscar = '', escoger = '' } = {}) {
+  await p.locator('#inv-tienda').click(); await p.waitForTimeout(250);
+  if (buscar) { await p.locator('#inv-busca').fill(buscar); await p.waitForTimeout(120); }
+  const h = await p.evaluate(() => ({ abierta: document.getElementById('inv-sheet').classList.contains('open'),
+    busca: !document.getElementById('inv-busca-wrap').hidden, opciones: [...document.querySelectorAll('#inv-lista .inv-opc')].map((o) => o.textContent + (o.classList.contains('sel') ? '*' : '')),
+    vacio: (document.querySelector('#inv-lista .inv-vacio') || {}).textContent || '' }));
+  if (escoger) { await p.locator('#inv-lista .inv-opc', { hasText: escoger }).first().click(); await p.waitForTimeout(250); }
+  return h;
+}
 async function inventario(nav, base) {
   for (const tema of ['light', 'dark']) {
     const asesor = Object.assign({}, SES, { name: 'ASESOR PRUEBA', attuid: 'AP123X', rol: 'asesor', tiendasAsignadas: [], tienda: 'PRM TDA LEÓN CENTRO', sucursal: 'PRM TDA LEÓN CENTRO' });
@@ -874,20 +884,57 @@ async function inventario(nav, base) {
     await invPreparar(p, INV_FX);
     await p.evaluate(() => { showCatalog('android'); }); await p.waitForTimeout(300);
     let v = await invVista(p);
-    chk('regional: selector con sus 2 tiendas', v.selector && v.opciones.join() === 'LAGOS,LEON ALTACIA', v.opciones);
-    await p.locator('#inv-tienda').selectOption('ZX1'); await p.waitForTimeout(200);
+    chk('regional: tienda elegida en la pastilla (la primera: LAGOS)', v.selector && v.tienda === 'LAGOS', v);
+    let hoja = await invHoja(p, { escoger: 'LEON ALTACIA' });
+    chk('regional: hoja con sus 2 tiendas, sin buscador (son pocas)', hoja.abierta && !hoja.busca && hoja.opciones.join() === 'LAGOS*,LEON ALTACIA', hoja);
     v = await invVista(p);
-    chk('regional: Altacia muestra su inventario (A5 2 pzas, A6k 3 pzas)', v.pz.opa5 === '2 pzas' && v.pz.opa6k === '3 pzas' && v.ids.length === 2, v.pz);
-    await p.locator('#inv-tienda').selectOption('ZX3'); await p.waitForTimeout(200);
+    chk('regional: Altacia muestra su inventario (A5 2 pzas, A6k 3 pzas) y se cierra la hoja', v.pz.opa5 === '2 pzas' && v.pz.opa6k === '3 pzas' && v.ids.length === 2 && v.tienda === 'LEON ALTACIA'
+      && await p.evaluate(() => !document.getElementById('inv-sheet').classList.contains('open')), v);
+    await invHoja(p, { escoger: 'LAGOS' });
     v = await invVista(p);
     chk('regional: Lagos con su propia fecha (25 nov)', v.fecha === 'Inventario al 25 nov' && v.ids.join() === 'xr17', v);
-    await p.locator('#inv-tienda').selectOption('ZX1'); await p.waitForTimeout(150);
+    await invHoja(p, { escoger: 'LEON ALTACIA' });
     v = await invVista(p);
     chk('regional: cada tienda se lee una sola vez', v.lecturas.join() === '_meta,ZX3,ZX1', v.lecturas);
     await p.evaluate(() => toggleView()); await p.waitForTimeout(150);
     await captura(p, OUT + '/inventario-regional.png');
     chk('regional: sin desbordes', (await desbordes(p, '#s-catalog')).length === 0, await desbordes(p, '#s-catalog'));
     chk('regional: sin errores de página', p.errores.length === 0, p.errores);
+    await ctx.close();
+  }
+  // [v1.73.28] Muchas tiendas (director/Diego): buscador, nombres sin "PRM", sin acentos.
+  for (const tema of ['light', 'dark']) {
+    const nombres = ['PRM TDA LEON ALTACIA', 'PRM PLAZA FRAGARIA', 'PRM TDA PLAZA NOGAL LEÓN', 'PRM TDA LAGOS', 'PRM TDA SILAO', 'PRM TDA IRAPUATO CENTRO', 'PRM TDA CELAYA GALERIAS', 'PRM TDA SALAMANCA'];
+    const fx = JSON.parse(JSON.stringify(INV_FX));
+    fx._meta.listaTiendas = nombres.map((t, i) => ({ org: 'ZY' + i, tienda: t, clave: t.replace(/^PRM TDA /, '').normalize('NFD').replace(/[\u0300-\u036f]/g, ''), fecha: '2026-11-26' }));
+    nombres.forEach((t, i) => { fx['ZY' + i] = Object.assign({}, INV_FX.ZX2, { org: 'ZY' + i, tienda: t }); });
+    const { ctx, p } = await abrir(nav, base, { tema });
+    await invPreparar(p, fx);
+    await p.evaluate(() => { showCatalog('android'); }); await p.waitForTimeout(300);
+    let v = await invVista(p);
+    chk(tema + ': muchas tiendas: la pastilla muestra la tienda sin "PRM"', v.selector && v.tienda === 'CELAYA GALERIAS', v.tienda);
+    if (tema === 'light') await captura(p, OUT + '/inventario-selector.png');
+    let h = await invHoja(p);
+    chk(tema + ': hoja con buscador y las 8 tiendas por nombre', h.busca && h.opciones.join() === 'CELAYA GALERIAS*,IRAPUATO CENTRO,LAGOS,LEON ALTACIA,PLAZA FRAGARIA,PLAZA NOGAL LEON,SALAMANCA,SILAO', h.opciones);
+    chk(tema + ': hoja sin desbordes', (await desbordes(p, '#inv-sheet')).length === 0, await desbordes(p, '#inv-sheet'));
+    await p.screenshot({ path: OUT + '/inventario-hoja-' + tema + '.png' });
+    await p.locator('#inv-busca').fill('nogal león'); await p.waitForTimeout(120);
+    h = await p.evaluate(() => [...document.querySelectorAll('#inv-lista .inv-opc')].map((o) => o.textContent));
+    chk(tema + ': buscar "nogal león" (con acento) encuentra PLAZA NOGAL LEON', h.join() === 'PLAZA NOGAL LEON', h);
+    await p.locator('#inv-busca').fill('zzz'); await p.waitForTimeout(120);
+    chk(tema + ': sin coincidencias: "Sin resultados"', await p.evaluate(() => document.querySelector('#inv-lista .inv-vacio').textContent === 'Sin resultados'));
+    await p.locator('#inv-busca').fill('fragaria'); await p.waitForTimeout(120);
+    await p.locator('#inv-lista .inv-opc', { hasText: 'PLAZA FRAGARIA' }).click(); await p.waitForTimeout(300);
+    v = await invVista(p);
+    chk(tema + ': escoger desde la búsqueda cambia la tienda y cierra la hoja', v.tienda === 'PLAZA FRAGARIA' && v.lecturas.includes('ZY1')
+      && await p.evaluate(() => !document.getElementById('inv-sheet').classList.contains('open')), v);
+    h = await invHoja(p);
+    chk(tema + ': al volver a abrir, el buscador vacío y la elegida marcada', h.opciones.length === 8 && h.opciones.includes('PLAZA FRAGARIA*'), h.opciones);
+    await p.mouse.click(195, 40); await p.waitForTimeout(200);
+    chk(tema + ': tocar fuera cierra la hoja', await p.evaluate(() => !document.getElementById('inv-sheet').classList.contains('open')));
+    await p.evaluate(() => showFicha('opa6')); await p.waitForTimeout(400);
+    chk(tema + ': ficha con la tienda sin "PRM"', await p.evaluate(() => document.querySelector('#s-ficha .fx-inv-t').textContent === 'PLAZA FRAGARIA'));
+    chk(tema + ': sin errores de página (muchas tiendas)', p.errores.length === 0, p.errores);
     await ctx.close();
   }
   // Tienda sin inventario y sin _meta: catálogo como siempre.

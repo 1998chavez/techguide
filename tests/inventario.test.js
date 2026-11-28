@@ -179,3 +179,22 @@ test('nombre corto; si dos quedan igual, esos van completos', () => {
   assert.equal(nombres(c.invColoresHTML(cols, 'cv-cols', true)), 'Sky Blue|Deep Blue|Black');
   assert.equal(nombres(c.invColoresHTML(cols, 'fx-inv-cols')), 'Sky Blue|Deep Blue|Midnight Black');
 });
+
+// [v1.73.28] Selector de tienda con buscador
+test('nombre de tienda para mostrar: sin "PRM TDA" ni "PRM" suelto; emparejar no cambia', () => {
+  assert.equal(c.invNombreTienda('PRM PLAZA FRAGARIA'), 'PLAZA FRAGARIA');
+  assert.equal(c.invNombreTienda('PRM TDA PLAZA NOGAL LEÓN'), 'PLAZA NOGAL LEON');
+  assert.equal(c.invNombreTienda('PRMX CENTRO'), 'PRMX CENTRO');
+  assert.equal(c.invNombreTienda('PRM'), 'PRM');
+  assert.equal(c.invClaveTienda('PRM PLAZA FRAGARIA'), 'PRM PLAZA FRAGARIA', 'la clave para emparejar sigue igual');
+});
+
+test('buscador de tiendas: todas las palabras, sin acentos, ordenadas por nombre', () => {
+  const l = [{ org: 'A', tienda: 'PRM TDA SILAO' }, { org: 'B', tienda: 'PRM PLAZA FRAGARIA' }, { org: 'C', tienda: 'PRM TDA PLAZA NOGAL LEÓN' }, { org: 'D', tienda: 'PRM TDA LEON CENTRO' }];
+  const n = (q) => c.invFiltrarTiendas(l, q).map((t) => t.nombre).join('|');
+  assert.equal(n(''), 'LEON CENTRO|PLAZA FRAGARIA|PLAZA NOGAL LEON|SILAO');
+  assert.equal(n('plaza'), 'PLAZA FRAGARIA|PLAZA NOGAL LEON');
+  assert.equal(n('león plaza'), 'PLAZA NOGAL LEON');
+  assert.equal(n('xyz'), '');
+  assert.deepEqual(plano(c.invFiltrarTiendas(l, 'silao')), [{ org: 'A', nombre: 'SILAO' }]);
+});
