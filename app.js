@@ -694,7 +694,7 @@ function vigLargo(id){
   var p = String(v).split('-');
   var txt = 'Vigente al ' + parseInt(p[2], 10) + ' de ' + MESES_LARGOS[parseInt(p[1], 10) - 1];
   var ultimo = daysLeft(id) === 0;
-  return {txt: ultimo ? txt + ' · último día' : txt, ultimo: ultimo};
+  return {txt: txt, ultimo: ultimo};   // [v1.73.28] solo la vigencia, sin "· último día"
 }
 function fmtMoneda(n){
   var s = Number(n || 0).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -1285,7 +1285,7 @@ function elegirPlataforma(os){
 
 function showCatalog(os){
   curOS=os;curBrand='Todos';
-  document.getElementById('cat-title').textContent=os==='ios'?'iPhone & iOS':'Android';
+  document.getElementById('cat-title').textContent=os==='ios'?'iPhone':'Android';
   document.getElementById('search-in').value='';
   _pintarVista();
   invAlAbrirCatalogo();   // [v1.73.26] inventario de la tienda (si hay) antes de pintar
@@ -1487,8 +1487,6 @@ function showFicha(id){
   // Especificaciones primero en cuadritos de 2 columnas. Mismos ids y funciones.
   const _vc=getVigColor(VIGENCY[id]||null);
   const _vl=formatVigDate(VIGENCY[id]||null);
-  const _vd=daysLeft(id);
-  const _vwarn=_vd<=7&&_vd>=0?' — ¡Vence pronto!':'';
   // Storage selector if device has variants
   // Find variants only for the CURRENT device id (not stale global var)
   let _variants=STORAGE_VARIANTS[id]||null;
@@ -1522,7 +1520,7 @@ function showFicha(id){
     h+='</div>';
   }
   // Sin fecha: "Sin vencimiento" a secas (antes decía "Vigente hasta Sin vencimiento").
-  const _vtxt=(VIGENCY[id] && VIGENCY[id]!=='indefinido') ? 'Vigente hasta '+_vl+_vwarn : _vl;
+  const _vtxt=(VIGENCY[id] && VIGENCY[id]!=='indefinido') ? 'Vigente hasta '+_vl : _vl;
   h+='<div class="fx-vig"><span class="fx-vig-dot" style="background:'+_vc+'"></span>'+_vtxt+'</div>';
   h+='</div>';
   // [v1.73.27] Colores del equipo en la tienda, discretos al pie del encabezado
@@ -1589,18 +1587,12 @@ function showFicha(id){
 
   // YouTube tab
   h+='<div id="tp-tt" class="tp">';
-  h+='<div class="tt-section"><div class="tt-card">';
-  h+='<div class="tt-logo" style="background:#FF0000;border-radius:14px;display:flex;align-items:center;justify-content:center">';
-  h+='<svg viewBox="0 0 90 63" xmlns="http://www.w3.org/2000/svg" width="42" height="30">';
-  h+='<path d="M88.1 9.9C87 5.8 83.8 2.6 79.7 1.5 72.7 0 45 0 45 0S17.3 0 10.3 1.5C6.2 2.6 3 5.8 1.9 9.9 0 16.9 0 31.5 0 31.5s0 14.6 1.9 21.6C3 57.2 6.2 60.4 10.3 61.5 17.3 63 45 63 45 63s27.7 0 34.7-1.5c4.1-1.1 7.3-4.3 8.4-8.4C90 46.1 90 31.5 90 31.5s0-14.6-1.9-21.6zM36 45V18l24 13.5L36 45z" fill="white"/>';
-  h+='</svg></div>';
-  h+='<div class="tt-title">'+d.name+' en YouTube</div>';
-  h+='<div class="tt-sub">Reviews, unboxings y demos reales.<br>Abre directo en YouTube.</div>';
+  // [v1.73.28] Solo el botón: el título y las notas repetían lo que dice el botón.
+  h+='<div class="tt-section tt-solo">';
   h+='<button class="tt-btn" onclick="window.open(curYtUrl,\'_blank\')">';
   h+='<svg width="16" height="16" viewBox="0 0 90 63"><path d="M88.1 9.9C87 5.8 83.8 2.6 79.7 1.5 72.7 0 45 0 45 0S17.3 0 10.3 1.5C6.2 2.6 3 5.8 1.9 9.9 0 16.9 0 31.5 0 31.5s0 14.6 1.9 21.6C3 57.2 6.2 60.4 10.3 61.5 17.3 63 45 63 45 63s27.7 0 34.7-1.5c4.1-1.1 7.3-4.3 8.4-8.4C90 46.1 90 31.5 90 31.5s0-14.6-1.9-21.6zM36 45V18l24 13.5L36 45z" fill="white"/></svg>';
   h+=' Ver en YouTube</button>';
-  h+='<div class="tt-note">Se abre en la app de YouTube o en el navegador</div>';
-  h+='</div></div></div>';
+  h+='</div>';
   h+='<div class="fx-fin"></div>';
   h+='</div>';
 
@@ -1925,7 +1917,6 @@ function renderPriceResult(){
   h+='<div class="fx-col"><span>Mensualidad</span><b>$'+fmx0(o.mensualidad)+'</b></div>';
   h+='</div>';
   if(o.alto) h+='<div class="fx-nota"><span>De 1 a 3 rentas del plan como garantía</span></div>';
-  else h+='<div class="fx-nota"><span>Sin enganche (historial excelente)</span><b>$0 hoy · $'+fmx0(o.mensualSinEng)+' al mes</b></div>';
   h+='<div class="hv3-seguro fx-seguro">'+ICO_ESCUDO+'Protégelo por sólo $'+getSeguroPrice(contado)+' al mes</div>';
   h+='</div>';
 
@@ -1948,8 +1939,6 @@ function _fxAria(){
 
 // Stats
 const all=[...CAT.ios,...CAT.android];
-document.getElementById('ios-cnt').textContent=`${CAT.ios.length} equipos`;
-document.getElementById('and-cnt').textContent=`${CAT.android.length} equipos`;
 document.getElementById('st-tot').textContent=all.length;
 initMomento();
 initCredito();    // [v1.73.14]
@@ -2651,7 +2640,6 @@ function renderCommission(){
     h += '</div>';
   }
   h += '<div class="comm-disclaimer">Estimado · sujeto a 80% de cuota de tienda y mínimo 2 ventas a la semana</div>';
-  h += '<div class="comm-section-private-note">Esta información no aparece en la cotización del cliente</div>';
   
   document.getElementById('comm-body-inner').innerHTML = h;
 }
@@ -9048,7 +9036,7 @@ function _mostrarAvancePreview(){
   if(_avzUrl) URL.revokeObjectURL(_avzUrl);
   _avzUrl=URL.createObjectURL(_avzBlob);
   ov.innerHTML='<div class="cot-modal" style="max-height:96vh"><div class="cot-handle"></div>'
-    +'<div class="cot-header"><div class="cot-title">Avance listo</div><div class="cot-sub">Toca compartir para enviarlo a tu equipo</div></div>'
+    +'<div class="cot-header"><div class="cot-title">Avance listo</div></div>'
     +'<div class="cot-body" style="padding:14px;background:var(--surface2)"><div style="display:flex;justify-content:center;padding:8px">'
     +'<img src="'+_avzUrl+'" alt="" style="max-width:100%;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.15)"></div></div>'
     +'<div class="cot-actions"><button class="cot-btn cot-btn-cancel" onclick="cerrarAvancePreview()">Cerrar</button>'
@@ -15934,6 +15922,16 @@ function invSinAcentos(s){ return String(s == null ? '' : s).normalize('NFD').re
 function invClaveTienda(s){
   return invSinAcentos(s).toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim().replace(/^PRM TDA(\s+|$)/, '').replace(/\s+/g, ' ');
 }
+// [v1.73.28] Nombre para mostrar: también sin "PRM" suelto ("PRM PLAZA FRAGARIA" → "PLAZA
+// FRAGARIA"). Solo para mostrar: para emparejar se sigue usando invClaveTienda.
+function invNombreTienda(s){ return invClaveTienda(s).replace(/^PRM(\s+|$)/, '') || invClaveTienda(s); }
+// Tiendas de la hoja: por nombre, y con buscador (todas las palabras, sin acentos).
+function invFiltrarTiendas(lista, q){
+  var ws = invSinAcentos(q).toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
+  return (lista || []).map(function(t){ return { org: t.org, nombre: invNombreTienda(t.tienda) }; })
+    .filter(function(t){ return ws.every(function(w){ return t.nombre.indexOf(w) >= 0; }); })
+    .sort(function(a, b){ return a.nombre < b.nombre ? -1 : a.nombre > b.nombre ? 1 : 0; });
+}
 // Marca + modelo + GB, sin red (4G/5G), sin espacios ni signos. "GALAXY" se quita
 // porque el catálogo a veces lo trae ("Samsung Galaxy A27") y a veces no ("Samsung A17").
 function invClaveModelo(s){
@@ -16094,7 +16092,8 @@ function invCargar(){
       invEstado.tiendas = invTiendasVisibles(meta.listaTiendas, u);
       var mia = invClaveTienda(u.tienda);
       var propia = invEstado.tiendas.filter(function(t){ return t.clave === mia; })[0];
-      invEstado.org = (propia || invEstado.tiendas[0] || {}).org || '';
+      // Sin tienda propia en la lista: la primera por nombre, como aparece en la hoja.
+      invEstado.org = (propia || invFiltrarTiendas(invEstado.tiendas, '')[0] || {}).org || '';
       if(invEstado.org) await invDoc(invEstado.org);
       return meta;
     }catch(e){
@@ -16124,14 +16123,14 @@ function invFichaHTML(id){
   var d = invActual(), n = invCant(id), cols = invColores(id);
   if(!d || !n || !cols.length) return '';
   var esc = function(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
-  return '<div class="fx-inv" role="group" aria-label="Colores en la tienda"><span class="fx-inv-t">' + esc(invClaveTienda(d.tienda)) + '</span>'
+  return '<div class="fx-inv" role="group" aria-label="Colores en la tienda"><span class="fx-inv-t">' + esc(invNombreTienda(d.tienda)) + '</span>'
     + invColoresHTML(cols, 'fx-inv-cols', true) + '</div>';
 }
 function invFiltrando(){ return !!invActual() && !invEstado.todos; }
 // Botón, selector de tienda y fecha arriba del catálogo.
 function invPintarControles(){
   var btn = document.getElementById('inv-btn'), info = document.getElementById('inv-info');
-  var sel = document.getElementById('inv-tienda'), selWrap = document.getElementById('inv-sel-wrap'), fecha = document.getElementById('inv-fecha');
+  var sel = document.getElementById('inv-tienda'), selN = document.getElementById('inv-tienda-n'), fecha = document.getElementById('inv-fecha');
   if(!btn || !info) return;
   var d = invActual(), hay = invEstado.tiendas.length > 0;
   btn.hidden = !d;
@@ -16142,19 +16141,51 @@ function invPintarControles(){
   info.hidden = !hay;
   // Selector para quien ve más de una tienda (regional, director, nacional).
   var conSelector = invEstado.tiendas.length > 1 || ['regional', 'director', 'director_nacional'].indexOf(_meRol()) >= 0;
-  if(selWrap) selWrap.hidden = !(hay && conSelector);
-  if(sel && hay && conSelector){
-    var esc = function(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); };
-    sel.innerHTML = invEstado.tiendas.map(function(t){
-      return '<option value="' + esc(t.org) + '"' + (t.org === invEstado.org ? ' selected' : '') + '>' + esc(invClaveTienda(t.tienda)) + '</option>';
-    }).join('');
-  }
+  if(sel) sel.hidden = !(hay && conSelector);
+  var actual = invEstado.tiendas.filter(function(t){ return t.org === invEstado.org; })[0];
+  if(selN) selN.textContent = actual ? invNombreTienda(actual.tienda) : '';
+  if(sel) sel.setAttribute('aria-label', 'Tienda: ' + (actual ? invNombreTienda(actual.tienda) : ''));
   if(fecha) fecha.textContent = d ? 'Inventario al ' + invFechaCorta(d.fecha) : (hay ? 'Sin inventario de esta tienda' : '');
 }
 function invAlternar(){
   invEstado.todos = !invEstado.todos;
   invPintarControles();
   renderDevs();
+}
+// [v1.73.28] Hoja para escoger tienda, con buscador cuando son más de 5.
+function invAbrirTiendas(){
+  var ov = document.getElementById('inv-sheet'), q = document.getElementById('inv-busca'), w = document.getElementById('inv-busca-wrap');
+  if(!ov) return;
+  if(q) q.value = '';
+  if(w) w.hidden = invEstado.tiendas.length <= 5;
+  var hoja = ov.querySelector('.inv-sheet');
+  if(hoja) hoja.classList.toggle('con-busca', invEstado.tiendas.length > 5);
+  invPintarTiendas();
+  ov.classList.add('open');
+  var l = document.getElementById('inv-lista'), s = l && l.querySelector('.inv-opc.sel');
+  if(s) s.scrollIntoView({ block: 'center' });
+}
+function invCerrarTiendas(e){
+  if(e && e.target && !(e.target.classList && e.target.classList.contains('hv2-sheet-overlay'))) return;
+  var ov = document.getElementById('inv-sheet');
+  if(ov) ov.classList.remove('open');
+}
+function invPintarTiendas(){
+  var l = document.getElementById('inv-lista'), q = document.getElementById('inv-busca');
+  if(!l) return;
+  var esc = function(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); };
+  var ts = invFiltrarTiendas(invEstado.tiendas, q ? q.value : '');
+  if(!ts.length){ l.innerHTML = '<div class="inv-vacio">Sin resultados</div>'; return; }
+  l.innerHTML = '<div class="inv-grupo">' + ts.map(function(t){
+    var on = t.org === invEstado.org;
+    return '<button type="button" class="inv-opc' + (on ? ' sel' : '') + '" role="option" aria-selected="' + on + '" data-org="' + esc(t.org) + '" onclick="invElegirTienda(this.dataset.org)"><span>' + esc(t.nombre) + '</span>'
+      + (on ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : '') + '</button>';
+  }).join('') + '</div>';
+}
+function invElegirTienda(org){
+  var ov = document.getElementById('inv-sheet');
+  if(ov) ov.classList.remove('open');
+  if(org && org !== invEstado.org) invElegir(org);
 }
 async function invElegir(org){
   invEstado.org = org;
