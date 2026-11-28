@@ -69,7 +69,13 @@ URL (después de publicarla):
 
 - `org`: de 1 a 40 letras, números, `-` o `_` (es el id del documento).
 - `fecha`: AAAA-MM-DD. `cant`: entero de 0 en adelante.
-- El mismo modelo dos veces en una tienda (por ejemplo, de otro color) se suma.
+- `colores` (opcional, por equipo):
+  `[{"color":"Midnight Black","tono":"#1D1D1F","cant":2}, {"color":"Tidal Blue","tono":null,"cant":1}]`.
+  Sus `cant` deben sumar la `cant` del equipo; si no, el envío se rechaza con `400` y dice
+  cuál. `tono` en `#RRGGBB` (o `#RGB`); `null` o cualquier otro valor se pinta gris.
+  Los colores con 0 piezas no se guardan. Sin `colores`, el equipo se ve como siempre.
+- El mismo modelo dos veces en una tienda (por ejemplo, de otro color) se suma, con sus
+  colores juntos por nombre.
 - Una tienda que no venga en el envío conserva su documento anterior, con su fecha.
 
 Respuestas: `200 {ok:true, tiendas, modelos}` · `400` el cuerpo no cuadra (dice qué) ·

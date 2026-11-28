@@ -6,6 +6,35 @@ const crypto = require('crypto');
 const ORG_OK = /^[A-Za-z0-9_-]{1,40}$/;
 const MAX_TIENDAS = 300;       // un batch de Firestore admite 500 escrituras
 const MAX_EQUIPOS = 2000;
+const MAX_COLORES = 60;
+
+// "#1d1d1f" → "#1D1D1F"; "#fff" → "#FFFFFF"; cualquier otra cosa → null (punto gris en la app).
+function normTono(t) {
+  const s = String(t == null ? '' : t).trim();
+  if (/^#[0-9A-Fa-f]{6}$/.test(s)) return s.toUpperCase();
+  if (/^#[0-9A-Fa-f]{3}$/.test(s)) return ('#' + s[1] + s[1] + s[2] + s[2] + s[3] + s[3]).toUpperCase();
+  return null;
+}
+
+// colores de un equipo → { lista } (null si no vino) o { error }. Sus piezas deben sumar cant.
+function leerColores(v, cant, donde) {
+  if (v === undefined || v === null) return { lista: null };
+  if (!Array.isArray(v)) return { error: donde + '.colores no es lista' };
+  if (v.length > MAX_COLORES) return { error: donde + ' trae más de ' + MAX_COLORES + ' colores' };
+  const lista = [];
+  let total = 0;
+  for (let k = 0; k < v.length; k++) {
+    const c = v[k] || {};
+    const color = String(c.color == null ? '' : c.color).trim().replace(/\s+/g, ' ');
+    const n = Number(c.cant);
+    if (!color || color.length > 60) return { error: donde + '.colores[' + k + '].color inválido' };
+    if (!Number.isInteger(n) || n < 0 || n > 100000) return { error: donde + '.colores[' + k + '].cant inválida' };
+    total += n;
+    lista.push({ color, tono: normTono(c.tono), cant: n });
+  }
+  if (total !== cant) return { error: donde + '.colores suman ' + total + ' y cant es ' + cant };
+  return { lista };
+}
 
 // Igual que invClaveTienda de la app: mayúsculas, sin acentos ni "PRM TDA".
 function claveTienda(s) {
@@ -46,17 +75,37 @@ function armar(body) {
     if (!tienda) return { error: 'tiendas[' + i + '].tienda vacío' };
     if (!Array.isArray(t.equipos)) return { error: 'tiendas[' + i + '].equipos no es lista' };
     if (t.equipos.length > MAX_EQUIPOS) return { error: 'tiendas[' + i + '] trae más de ' + MAX_EQUIPOS + ' equipos' };
-    // El mismo modelo dos veces en una tienda (otro color, por ejemplo) se suma.
+    // El mismo modelo dos veces en una tienda (otro color, por ejemplo) se suma, y sus
+    // colores también (por nombre). Si una de esas filas no trae colores, ese modelo
+    // se guarda sin colores para que nunca sumen distinto que sus piezas.
     const suma = new Map();
     for (let j = 0; j < t.equipos.length; j++) {
       const e = t.equipos[j] || {};
+      const donde = 'tiendas[' + i + '].equipos[' + j + ']';
       const modelo = String(e.modelo || '').trim().replace(/\s+/g, ' ').toUpperCase();
       const cant = Number(e.cant);
-      if (!modelo || modelo.length > 120) return { error: 'tiendas[' + i + '].equipos[' + j + '].modelo inválido' };
-      if (!Number.isInteger(cant) || cant < 0 || cant > 100000) return { error: 'tiendas[' + i + '].equipos[' + j + '].cant inválida' };
-      suma.set(modelo, (suma.get(modelo) || 0) + cant);
+      if (!modelo || modelo.length > 120) return { error: donde + '.modelo inválido' };
+      if (!Number.isInteger(cant) || cant < 0 || cant > 100000) return { error: donde + '.cant inválida' };
+      const cols = leerColores(e.colores, cant, donde);
+      if (cols.error) return { error: cols.error };
+      const s = suma.get(modelo) || { cant: 0, filas: 0, conColores: 0, colores: new Map() };
+      s.cant += cant;
+      s.filas++;
+      if (cols.lista) {
+        s.conColores++;
+        cols.lista.forEach((c) => {
+          const k = c.color.toUpperCase();
+          const x = s.colores.get(k);
+          if (x) { x.cant += c.cant; if (!x.tono) x.tono = c.tono; } else s.colores.set(k, Object.assign({}, c));
+        });
+      }
+      suma.set(modelo, s);
     }
-    const equipos = Array.from(suma, ([modelo, cant]) => ({ modelo, cant })).sort((a, b) => (a.modelo < b.modelo ? -1 : 1));
+    const equipos = Array.from(suma, ([modelo, s]) => {
+      const e = { modelo, cant: s.cant };
+      if (s.conColores && s.conColores === s.filas) e.colores = Array.from(s.colores.values()).filter((c) => c.cant > 0);
+      return e;
+    }).sort((a, b) => (a.modelo < b.modelo ? -1 : 1));
     equipos.forEach((e) => modelos.add(e.modelo));
     docs.push({
       id: org,
@@ -75,4 +124,4 @@ function listaTiendas(snapDocs) {
   })).sort((a, b) => (a.tienda < b.tienda ? -1 : a.tienda > b.tienda ? 1 : 0));
 }
 
-module.exports = { armar, tokenValido, claveTienda, listaTiendas };
+module.exports = { armar, tokenValido, claveTienda, listaTiendas, normTono };

@@ -761,9 +761,15 @@ const INV_FX = {
       { org: 'ZX1', tienda: 'PRM TDA LEON ALTACIA', clave: 'LEON ALTACIA', fecha: '2026-11-26' },
       { org: 'ZX2', tienda: 'PRM TDA LEON CENTRO', clave: 'LEON CENTRO', fecha: '2026-11-26' }] },
   ZX2: { org: 'ZX2', tienda: 'PRM TDA LEON CENTRO', clave: 'LEON CENTRO', region: 'BAJIO', fecha: '2026-11-26', equipos: [
-    { modelo: 'OPPO A5 256GB 4G', cant: 3 }, { modelo: 'OPPO A6 256GB 4G', cant: 5 }, { modelo: 'OPPO A6T 128GB 4G', cant: 2 },
-    { modelo: 'OPPO RENO16 F 256GB 5G', cant: 1 }, { modelo: 'OPPO RENO16 256GB 5G', cant: 4 }, { modelo: 'OPPO FIND X10 512GB 5G', cant: 1 },
-    { modelo: 'OPPO A58 128GB 4G', cant: 0 }, { modelo: 'HONOR X7B 256GB 4G', cant: 7 }, { modelo: 'APPLE IPHONE 17 256GB 5G', cant: 2 }] },
+    // [v1.73.27] Colores de ejemplo; el A6T viene sin colores (se ve como antes).
+    { modelo: 'OPPO A5 256GB 4G', cant: 3, colores: [{ color: 'Mist White', tono: '#F5F5F5', cant: 2 }, { color: 'Aurora Green', tono: '#3E8E7E', cant: 1 }] },
+    { modelo: 'OPPO A6 256GB 4G', cant: 5, colores: [{ color: 'Tidal Blue', tono: '#2F6FDB', cant: 2 }, { color: 'Midnight Black', tono: '#1D1D1F', cant: 2 }, { color: 'Sakura Pink', tono: null, cant: 1 }] },
+    { modelo: 'OPPO A6T 128GB 4G', cant: 2 },
+    { modelo: 'OPPO RENO16 F 256GB 5G', cant: 1, colores: [{ color: 'Mist White', tono: '#F5F5F5', cant: 1 }] },
+    { modelo: 'OPPO RENO16 256GB 5G', cant: 4, colores: [{ color: 'Dreamy Purple', tono: '#8E7CC3', cant: 3 }, { color: 'Silver', tono: '#F5F5F5', cant: 1 }] },
+    { modelo: 'OPPO FIND X10 512GB 5G', cant: 1, colores: [{ color: 'Titanium Gray', tono: '#8A8D91', cant: 1 }] },
+    { modelo: 'OPPO A58 128GB 4G', cant: 0 }, { modelo: 'HONOR X7B 256GB 4G', cant: 7 },
+    { modelo: 'APPLE IPHONE 17 256GB 5G', cant: 2, colores: [{ color: 'Black', tono: '#1D1D1F', cant: 1 }, { color: 'Lavender', tono: '#D9C8F0', cant: 1 }] }] },
   ZX1: { org: 'ZX1', tienda: 'PRM TDA LEON ALTACIA', clave: 'LEON ALTACIA', region: 'BAJIO', fecha: '2026-11-26', equipos: [
     { modelo: 'OPPO A5 256GB 4G', cant: 2 }, { modelo: 'OPPO A6K 256GB 4G', cant: 3 }, { modelo: 'SAMSUNG GALAXY A16 128GB 4G', cant: 2 }] },
   ZX3: { org: 'ZX3', tienda: 'PRM TDA LAGOS', clave: 'LAGOS', region: 'BAJIO', fecha: '2026-11-25', equipos: [{ modelo: 'XIAOMI REDMI 17 128GB 4G', cant: 4 }] },
@@ -777,6 +783,11 @@ async function invPreparar(p, fx) {
   }, fx);
   await p.waitForTimeout(1200);   // deja pasar la precarga de la sesión (2.5 s después de entrar)
 }
+// [v1.73.27] Colores que se ven en cada tarjeta o fila: id → ["Tidal Blue 2", ...]
+const invCols = (p) => p.evaluate(() => Object.fromEntries([...document.querySelectorAll('#dev-wrap .d-card, #dev-wrap .d-row')]
+  .map((c) => [/showFicha\('([^']+)'\)/.exec(c.getAttribute('onclick'))[1], [...c.querySelectorAll('.inv-col')].map((x) => x.querySelector('.inv-col-n').textContent + ' ' + x.querySelector('b').textContent)])
+  .filter((x) => x[1].length)));
+const invPunto = (p, sel, n) => p.evaluate(([sel, n]) => { const c = [...document.querySelectorAll(sel)].map((x) => getComputedStyle(x))[n]; return c ? { bg: c.backgroundColor, borde: c.boxShadow } : null; }, [sel, n]);
 const invVista = (p) => p.evaluate(() => {
   const ids = [...document.querySelectorAll('#dev-wrap .d-card, #dev-wrap .d-row')].map((c) => /showFicha\('([^']+)'\)/.exec(c.getAttribute('onclick'))[1]);
   const pz = Object.fromEntries([...document.querySelectorAll('#dev-wrap .d-card, #dev-wrap .d-row')].map((c) => [/showFicha\('([^']+)'\)/.exec(c.getAttribute('onclick'))[1], (c.querySelector('.cv-pzas') || {}).textContent || '']));
@@ -799,12 +810,45 @@ async function inventario(nav, base) {
     chk(tema + ': cada equipo con sus piezas', v.ids.every((id) => v.pz[id] === (id === 'opa6' ? '5 pzas' : id === 'opa5' ? '3 pzas' : id === 'opfindx10' ? '1 pza' : v.pz[id])) && v.pz.opreno16 === '4 pzas', v.pz);
     chk(tema + ': botón "Todos los modelos" sin presionar e "Inventario al 26 nov"', v.boton && v.presionado === 'false' && v.fecha === 'Inventario al 26 nov' && !v.selector, v);
     chk(tema + ': asesor sin selector de tienda', !v.selector);
+    // [v1.73.27] Colores debajo de las piezas, de más a menos; sin colores, como antes.
+    let cols = await invCols(p);
+    chk(tema + ': cada tarjeta con sus colores y piezas (de más a menos)', (cols.opa6 || []).join('|') === 'Midnight Black 2|Tidal Blue 2|Sakura Pink 1'
+      && (cols.opa5 || []).join('|') === 'Mist White 2|Aurora Green 1' && (cols.opreno16 || []).join('|') === 'Dreamy Purple 3|Silver 1', cols);
+    chk(tema + ': el A6T vino sin colores: sin fila de colores', !cols.opa6t && v.pz.opa6t === '2 pzas', cols);
+    const gris = await invPunto(p, '#dev-wrap .cv-card[onclick*="opa6\'"] .inv-dot', 2);
+    const blanco = await invPunto(p, '#dev-wrap .cv-card[onclick*="opa5\'"] .inv-dot', 0);
+    const negro = await invPunto(p, '#dev-wrap .cv-card[onclick*="opa6\'"] .inv-dot', 0);
+    chk(tema + ': tono null en gris (#C7C7CC)', gris && gris.bg === 'rgb(199, 199, 204)', gris);
+    chk(tema + ': borde sutil en el blanco (claro) y en el negro (oscuro)', tema === 'light' ? blanco.borde !== 'none' && negro.borde === 'none' : blanco.borde === 'none' && negro.borde !== 'none', { blanco, negro });
+    const debajo = await p.evaluate(() => { const c = document.querySelector('#dev-wrap .cv-card[onclick*="opa6\'"]'); return c.querySelector('.cv-cols').getBoundingClientRect().top > c.querySelector('.cv-pzas').getBoundingClientRect().bottom; });
+    chk(tema + ': los colores van debajo de la pastilla de piezas', debajo);
+    chk(tema + ': cuadrícula con colores sin desbordes', (await desbordes(p, '#s-catalog')).length === 0, await desbordes(p, '#s-catalog'));
+    await captura(p, OUT + '/inventario-colores-grid-' + tema + '.png');
+    await p.evaluate(() => toggleView()); await p.waitForTimeout(150);
+    cols = await invCols(p);
+    chk(tema + ': en lista también van los colores', (cols.opa6 || []).join('|') === 'Midnight Black 2|Tidal Blue 2|Sakura Pink 1' && !cols.opa6t, cols);
+    chk(tema + ': lista con colores sin desbordes', (await desbordes(p, '#s-catalog')).length === 0, await desbordes(p, '#s-catalog'));
+    await captura(p, OUT + '/inventario-colores-lista-' + tema + '.png');
+    await p.evaluate(() => toggleView()); await p.waitForTimeout(150);
+    // Ficha: vista de colores de la tienda.
+    await p.evaluate(() => showFicha('opa6')); await p.waitForTimeout(400);
+    const fx = await p.evaluate(() => { const s = document.querySelector('#s-ficha .fx-inv'); return s && { t: s.querySelector('.fx-inv-tit').textContent, pz: s.querySelector('.fx-inv-pz').textContent,
+      cols: [...s.querySelectorAll('.inv-col')].map((x) => x.textContent), despuesDeCotizar: s.previousElementSibling && s.previousElementSibling.classList.contains('fx-planes') }; });
+    chk(tema + ': ficha con los colores de la tienda', fx && fx.t === 'LEON CENTROInventario al 26 nov' && fx.pz === '5 pzas' && fx.cols.join('|') === 'Midnight Black2|Tidal Blue2|Sakura Pink1' && fx.despuesDeCotizar, fx);
+    chk(tema + ': ficha sin desbordes', (await desbordes(p, '#s-ficha')).length === 0, await desbordes(p, '#s-ficha'));
+    await captura(p, OUT + '/inventario-colores-ficha-' + tema + '.png');
+    await p.evaluate(() => showFicha('opa6t')); await p.waitForTimeout(300);
+    chk(tema + ': ficha de un equipo sin colores: como antes', await p.evaluate(() => !document.querySelector('#s-ficha .fx-inv')));
+    await p.evaluate(() => showFicha('opa58')); await p.waitForTimeout(300);
+    chk(tema + ': ficha de un equipo sin piezas en la tienda: como antes', await p.evaluate(() => !document.querySelector('#s-ficha .fx-inv')));
+    await p.evaluate(() => { show('s-catalog'); }); await p.waitForTimeout(150);
     if (tema === 'light') await captura(p, OUT + '/inventario-tienda.png');
     await p.locator('#inv-btn').click(); await p.waitForTimeout(200);
     v = await invVista(p);
     const todos = await p.evaluate(() => CAT.android.filter((d) => d.brand === 'OPPO' && isVigent(d.id)).map((d) => d.id));
     chk(tema + ': "Todos los modelos" muestra el catálogo completo', v.ids.join() === todos.join() && v.presionado === 'true', { v: v.ids.length, todos: todos.length });
     chk(tema + ': con todos, las piezas siguen solo en los que hay', v.ids.filter((id) => v.pz[id]).join() === esperado.join(), v.pz);
+    chk(tema + ': con todos, sin filas de colores', Object.keys(await invCols(p)).length === 0);
     if (tema === 'light') await captura(p, OUT + '/inventario-todos.png');
     chk(tema + ': catálogo sin desbordes', (await desbordes(p, '#s-catalog')).length === 0, await desbordes(p, '#s-catalog'));
     await p.evaluate(() => toggleView()); await p.waitForTimeout(150);

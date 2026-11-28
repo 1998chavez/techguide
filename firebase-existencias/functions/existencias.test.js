@@ -70,3 +70,34 @@ test('_meta.listaTiendas: todas las tiendas con documento, sin _meta, ordenadas'
     { org: 'ZX2', tienda: 'PRM TDA LEON CENTRO', clave: 'LEON CENTRO', fecha: '2026-11-26' },
   ]);
 });
+
+test('colores: opcionales; se guardan con su tono y deben sumar las piezas del equipo', () => {
+  const b = BASE();
+  b.tiendas[0].equipos[1].colores = [{ color: 'Midnight Black', tono: '#1d1d1f', cant: 1 }, { color: 'Sky  White', tono: null, cant: 1 }];
+  const r = armar(b);
+  assert.equal(r.error, undefined);
+  assert.deepEqual(r.docs[0].data.equipos, [
+    { modelo: 'APPLE IPHONE 17 256GB 5G', cant: 2, colores: [{ color: 'Midnight Black', tono: '#1D1D1F', cant: 1 }, { color: 'Sky White', tono: null, cant: 1 }] },
+    { modelo: 'HONOR X7B 256GB 4G', cant: 3 },
+  ], 'sin colores, el equipo queda como siempre');
+  const b2 = BASE(); b2.tiendas[0].equipos[0].colores = [{ color: 'Negro', tono: '#000000', cant: 2 }];
+  assert.match(armar(b2).error, /colores suman 2 y cant es 3/);
+  const b3 = BASE(); b3.tiendas[0].equipos[0].colores = 'Negro';
+  assert.match(armar(b3).error, /colores no es lista/);
+  const b4 = BASE(); b4.tiendas[0].equipos[0].colores = [{ color: '', cant: 3 }];
+  assert.match(armar(b4).error, /color inválido/);
+  const b5 = BASE(); b5.tiendas[0].equipos[0].colores = [{ color: 'Negro', cant: 3.5 }];
+  assert.match(armar(b5).error, /cant inválida/);
+});
+
+test('colores: el mismo modelo dos veces suma por color; un tono inválido queda gris; los de 0 no se guardan', () => {
+  const b = BASE();
+  b.tiendas[1].equipos = [
+    { modelo: 'HONOR X7B 256GB 4G', cant: 3, colores: [{ color: 'Negro', tono: 'black', cant: 2 }, { color: 'Azul', tono: '#2f6fdb', cant: 1 }] },
+    { modelo: 'HONOR X7B 256GB 4G', cant: 2, colores: [{ color: 'NEGRO', tono: '#111', cant: 2 }, { color: 'Verde', tono: '#00AA00', cant: 0 }] },
+  ];
+  assert.deepEqual(armar(b).docs[1].data.equipos, [{ modelo: 'HONOR X7B 256GB 4G', cant: 5,
+    colores: [{ color: 'Negro', tono: '#111111', cant: 4 }, { color: 'Azul', tono: '#2F6FDB', cant: 1 }] }]);
+  b.tiendas[1].equipos.push({ modelo: 'HONOR X7B 256GB 4G', cant: 1 });
+  assert.deepEqual(armar(b).docs[1].data.equipos, [{ modelo: 'HONOR X7B 256GB 4G', cant: 6 }], 'si una fila no trae colores, el modelo va sin colores');
+});

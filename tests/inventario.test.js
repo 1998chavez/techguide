@@ -124,3 +124,44 @@ test('una lectura por sesión: _meta y una por tienda', () => {
   assert.match(extraerFuncion(APP, 'updateAdminHomeCard'), /invCargar\(\)/);
   assert.match(extraerFuncion(APP, 'usoAbrir'), /invDevCargar\(\)/);
 });
+
+// [v1.73.27] Colores por equipo
+test('colores: se juntan por nombre en el mismo equipo y van de más a menos', () => {
+  const r = c.invEmparejar([
+    { modelo: 'OPPO A6T 128GB 4G', cant: 3, colores: [{ color: 'Negro', tono: '#1d1d1f', cant: 2 }, { color: 'Azul', tono: null, cant: 1 }] },
+    { modelo: 'OPPO A6T 128GB 5G', cant: 2, colores: [{ color: 'AZUL', tono: '#2F6FDB', cant: 2 }] },
+  ], idx, {});
+  assert.deepEqual(plano(r.porId), { opa6t: 5 });
+  assert.deepEqual(plano(r.colores), { opa6t: [{ color: 'Azul', tono: '#2F6FDB', cant: 3 }, { color: 'Negro', tono: '#1D1D1F', cant: 2 }] });
+});
+
+test('colores: si uno de los modelos del equipo vino sin colores, el equipo va sin colores', () => {
+  const r = c.invEmparejar([
+    { modelo: 'OPPO A6T 128GB 4G', cant: 3, colores: [{ color: 'Negro', tono: '#000000', cant: 3 }] },
+    { modelo: 'OPPO A6T 128GB 5G', cant: 2 },
+  ], idx, {});
+  assert.deepEqual(plano(r.porId), { opa6t: 5 });
+  assert.deepEqual(plano(r.colores), {});
+});
+
+test('fila de colores: punto con tono (gris si no hay), nombre escapado y piezas', () => {
+  assert.equal(c.invColoresHTML([], 'x'), '');
+  const h = c.invColoresHTML([{ color: 'Sky <b>White</b>', tono: '#F5F5F5', cant: 2 }, { color: 'Tidal Blue', tono: 'azul', cant: 1 }, { color: 'Midnight Black', tono: '#1D1D1F', cant: 1 }], 'cv-cols');
+  assert.match(h, /^<div class="inv-cols cv-cols">/);
+  assert.match(h, /<i class="inv-dot claro" style="background:#F5F5F5"/, 'el blanco lleva borde');
+  assert.match(h, /<i class="inv-dot claro" style="background:#C7C7CC"/, 'tono inválido: gris, con borde como los claros');
+  assert.match(h, /<i class="inv-dot oscuro" style="background:#1D1D1F"/, 'el negro lleva borde en oscuro');
+  assert.match(h, /<span class="inv-col-n">Sky &lt;b&gt;White&lt;\/b&gt;<\/span><b>2<\/b>/);
+  assert.equal(c.invTono('#2f6fdb'), '#2F6FDB');
+  assert.equal(c.invTono('red'), null);
+});
+
+test('colores: debajo de las piezas solo con el filtro de la tienda, y en la ficha', () => {
+  const r = extraerFuncion(APP, 'renderDevs');
+  assert.match(r, /const _cols=function\(id\)\{ return _inv\?invColoresHTML\(invColores\(id\),'cv-cols'\):''; \};/);
+  assert.match(r, /h\+=bs\(d\.status\);\n\s+h\+=_cols\(d\.id\);/);
+  assert.match(r, /h\+='<\/div>'\+_cols\(d\.id\)\+'<\/div>';/);
+  assert.match(extraerFuncion(APP, 'showFicha'), /if\(typeof invFichaHTML==='function'\) h\+=invFichaHTML\(id\);/);
+  assert.match(extraerFuncion(APP, 'invFichaHTML'), /if\(!d \|\| !n \|\| !cols\.length\) return '';/);
+  assert.match(extraerFuncion(APP.replace('async function invDoc(', 'function invDoc('), 'invDoc'), /colores: emp\.colores/);
+});
