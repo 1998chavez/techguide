@@ -1392,9 +1392,10 @@ function renderDevs(){
   if(_inv) devs=devs.filter(d=>invCant(d.id)>0);
   const wrap=document.getElementById('dev-wrap');
   if(!devs.length){wrap.innerHTML='<div class="no-r">'+(_inv?'Sin equipos'+(curBrand!=='Todos'?' de '+curBrand:'')+' en el inventario de la tienda':'Sin resultados')+'</div>';updateCmpBar();return;}
-  const _pz=function(id){ const n=(typeof invActual==='function' && invActual())?invCant(id):0; return n?'<span class="cv-pzas">'+invPzas(n)+'</span>':''; };
-  // [v1.73.27] Con el filtro de la tienda, debajo de las piezas van sus colores.
+  // [v1.73.27] Con el filtro de la tienda, cada color con su nombre y sus piezas; si el
+  // equipo trae colores, sin la pastilla del total (sería repetir la suma).
   const _cols=function(id){ return _inv?invColoresHTML(invColores(id),'cv-cols'):''; };
+  const _pz=function(id){ const n=(typeof invActual==='function' && invActual())?invCant(id):0; return n&&!(_inv&&invColores(id).length)?'<span class="cv-pzas">'+invPzas(n)+'</span>':''; };
 
   // [v1.73.23] Catálogo compacto. Cuadrícula de 3 columnas: foto con Bundle,
   // círculo de comparar y puntos encima; nombre, capacidad y estatus en texto
@@ -16098,14 +16099,14 @@ function invActual(){ return invEstado.org ? (invEstado.docs[invEstado.org] || n
 function invCant(id){ var d = invActual(); return (d && d.porId && d.porId[id]) || 0; }
 // [v1.73.27] Colores del equipo en la tienda elegida ([] si el inventario no los trae).
 function invColores(id){ var d = invActual(); return (d && d.colores && d.colores[id]) || []; }
-// Ficha: los colores del equipo en la tienda, con sus piezas. Solo si hay piezas y colores.
+// Ficha: los colores del equipo en la tienda, con sus piezas (sin total: es la suma).
+// Solo si hay piezas y colores.
 function invFichaHTML(id){
   var d = invActual(), n = invCant(id), cols = invColores(id);
   if(!d || !n || !cols.length) return '';
   var esc = function(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
   return '<section class="fx-inv" aria-label="Inventario de la tienda">'
-    + '<div class="fx-inv-cab"><div class="fx-inv-tit"><b>' + esc(invClaveTienda(d.tienda)) + '</b><span>Inventario al ' + invFechaCorta(d.fecha) + '</span></div>'
-    + '<span class="fx-inv-pz">' + invPzas(n) + '</span></div>'
+    + '<div class="fx-inv-cab"><div class="fx-inv-tit"><b>' + esc(invClaveTienda(d.tienda)) + '</b><span>Inventario al ' + invFechaCorta(d.fecha) + '</span></div></div>'
     + invColoresHTML(cols, 'fx-inv-cols') + '</section>';
 }
 function invFiltrando(){ return !!invActual() && !invEstado.todos; }

@@ -807,21 +807,23 @@ async function inventario(nav, base) {
     let v = await invVista(p);
     const esperado = await p.evaluate(() => CAT.android.filter((d) => d.brand === 'OPPO' && isVigent(d.id) && invCant(d.id) > 0).map((d) => d.id));
     chk(tema + ': al abrir, solo lo que hay en su tienda', v.ids.join() === esperado.join() && esperado.length >= 4 && !v.ids.includes('opa58'), { v: v.ids, esperado });
-    chk(tema + ': cada equipo con sus piezas', v.ids.every((id) => v.pz[id] === (id === 'opa6' ? '5 pzas' : id === 'opa5' ? '3 pzas' : id === 'opfindx10' ? '1 pza' : v.pz[id])) && v.pz.opreno16 === '4 pzas', v.pz);
+    // [v1.73.27] Con colores, sin la pastilla del total; el A6T (sin colores) la conserva.
+    chk(tema + ': sin pastilla de total en los que traen colores; el A6T sí', v.ids.filter((id) => v.pz[id]).join() === 'opa6t' && v.pz.opa6t === '2 pzas', v.pz);
     chk(tema + ': botón "Todos los modelos" sin presionar e "Inventario al 26 nov"', v.boton && v.presionado === 'false' && v.fecha === 'Inventario al 26 nov' && !v.selector, v);
     chk(tema + ': asesor sin selector de tienda', !v.selector);
     // [v1.73.27] Colores debajo de las piezas, de más a menos; sin colores, como antes.
     let cols = await invCols(p);
     chk(tema + ': cada tarjeta con sus colores y piezas (de más a menos)', (cols.opa6 || []).join('|') === 'Midnight Black 2|Tidal Blue 2|Sakura Pink 1'
       && (cols.opa5 || []).join('|') === 'Mist White 2|Aurora Green 1' && (cols.opreno16 || []).join('|') === 'Dreamy Purple 3|Silver 1', cols);
-    chk(tema + ': el A6T vino sin colores: sin fila de colores', !cols.opa6t && v.pz.opa6t === '2 pzas', cols);
+    chk(tema + ': el A6T vino sin colores: sin fila de colores', !cols.opa6t, cols);
     const gris = await invPunto(p, '#dev-wrap .cv-card[onclick*="opa6\'"] .inv-dot', 2);
     const blanco = await invPunto(p, '#dev-wrap .cv-card[onclick*="opa5\'"] .inv-dot', 0);
     const negro = await invPunto(p, '#dev-wrap .cv-card[onclick*="opa6\'"] .inv-dot', 0);
     chk(tema + ': tono null en gris (#C7C7CC)', gris && gris.bg === 'rgb(199, 199, 204)', gris);
     chk(tema + ': borde sutil en el blanco (claro) y en el negro (oscuro)', tema === 'light' ? blanco.borde !== 'none' && negro.borde === 'none' : blanco.borde === 'none' && negro.borde !== 'none', { blanco, negro });
-    const debajo = await p.evaluate(() => { const c = document.querySelector('#dev-wrap .cv-card[onclick*="opa6\'"]'); return c.querySelector('.cv-cols').getBoundingClientRect().top > c.querySelector('.cv-pzas').getBoundingClientRect().bottom; });
-    chk(tema + ': los colores van debajo de la pastilla de piezas', debajo);
+    const fila = await p.evaluate(() => { const c = document.querySelector('#dev-wrap .cv-card[onclick*="opa6\'"]'); const r = [...c.querySelectorAll('.inv-col')].map((x) => x.getBoundingClientRect());
+      const b = [...c.querySelectorAll('.inv-col b')].map((x) => Math.round(x.getBoundingClientRect().right)); return { renglones: r.every((x, i) => !i || x.top >= r[i - 1].bottom - 1), derecha: b.every((x) => x === b[0]) }; });
+    chk(tema + ': cuadrícula: un color por renglón con sus piezas a la derecha', fila.renglones && fila.derecha, fila);
     chk(tema + ': cuadrícula con colores sin desbordes', (await desbordes(p, '#s-catalog')).length === 0, await desbordes(p, '#s-catalog'));
     await captura(p, OUT + '/inventario-colores-grid-' + tema + '.png');
     await p.evaluate(() => toggleView()); await p.waitForTimeout(150);
@@ -832,9 +834,9 @@ async function inventario(nav, base) {
     await p.evaluate(() => toggleView()); await p.waitForTimeout(150);
     // Ficha: vista de colores de la tienda.
     await p.evaluate(() => showFicha('opa6')); await p.waitForTimeout(400);
-    const fx = await p.evaluate(() => { const s = document.querySelector('#s-ficha .fx-inv'); return s && { t: s.querySelector('.fx-inv-tit').textContent, pz: s.querySelector('.fx-inv-pz').textContent,
+    const fx = await p.evaluate(() => { const s = document.querySelector('#s-ficha .fx-inv'); return s && { t: s.querySelector('.fx-inv-tit').textContent, total: !!s.querySelector('.fx-inv-pz'),
       cols: [...s.querySelectorAll('.inv-col')].map((x) => x.textContent), despuesDeCotizar: s.previousElementSibling && s.previousElementSibling.classList.contains('fx-planes') }; });
-    chk(tema + ': ficha con los colores de la tienda', fx && fx.t === 'LEON CENTROInventario al 26 nov' && fx.pz === '5 pzas' && fx.cols.join('|') === 'Midnight Black2|Tidal Blue2|Sakura Pink1' && fx.despuesDeCotizar, fx);
+    chk(tema + ': ficha con los colores de la tienda', fx && fx.t === 'LEON CENTROInventario al 26 nov' && !fx.total && fx.cols.join('|') === 'Midnight Black2|Tidal Blue2|Sakura Pink1' && fx.despuesDeCotizar, fx);
     chk(tema + ': ficha sin desbordes', (await desbordes(p, '#s-ficha')).length === 0, await desbordes(p, '#s-ficha'));
     await captura(p, OUT + '/inventario-colores-ficha-' + tema + '.png');
     await p.evaluate(() => showFicha('opa6t')); await p.waitForTimeout(300);
@@ -859,7 +861,7 @@ async function inventario(nav, base) {
     // Volver a abrir: otra vez lo de la tienda, sin leer de nuevo.
     await p.evaluate(() => { show('s-home'); showCatalog('ios'); }); await p.waitForTimeout(200);
     v = await invVista(p);
-    chk(tema + ': al volver a entrar, otra vez lo de la tienda (iPhone 17: 2 pzas)', v.presionado === 'false' && v.ids.join() === 'ip17' && v.pz.ip17 === '2 pzas', v);
+    chk(tema + ': al volver a entrar, otra vez lo de la tienda (iPhone 17: Black 1, Lavender 1)', v.presionado === 'false' && v.ids.join() === 'ip17' && (await invCols(p)).ip17.join('|') === 'Black 1|Lavender 1', v);
     chk(tema + ': una lectura de _meta y una de su tienda en toda la sesión', v.lecturas.join() === '_meta,ZX2', v.lecturas);
     chk(tema + ': sin errores de página (asesor)', p.errores.length === 0, p.errores);
     await ctx.close();

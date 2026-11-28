@@ -159,6 +159,7 @@ test('fila de colores: punto con tono (gris si no hay), nombre escapado y piezas
 test('colores: debajo de las piezas solo con el filtro de la tienda, y en la ficha', () => {
   const r = extraerFuncion(APP, 'renderDevs');
   assert.match(r, /const _cols=function\(id\)\{ return _inv\?invColoresHTML\(invColores\(id\),'cv-cols'\):''; \};/);
+  assert.match(r, /return n&&!\(_inv&&invColores\(id\)\.length\)\?'<span class="cv-pzas">'/, 'con colores, sin la pastilla del total');
   assert.match(r, /h\+=bs\(d\.status\);\n\s+h\+=_cols\(d\.id\);/);
   assert.match(r, /h\+='<\/div>'\+_cols\(d\.id\)\+'<\/div>';/);
   assert.match(extraerFuncion(APP, 'showFicha'), /if\(typeof invFichaHTML==='function'\) h\+=invFichaHTML\(id\);/);
