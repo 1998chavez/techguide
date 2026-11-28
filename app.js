@@ -1394,7 +1394,7 @@ function renderDevs(){
   if(!devs.length){wrap.innerHTML='<div class="no-r">'+(_inv?'Sin equipos'+(curBrand!=='Todos'?' de '+curBrand:'')+' en el inventario de la tienda':'Sin resultados')+'</div>';updateCmpBar();return;}
   // [v1.73.27] Con el filtro de la tienda, cada color con su nombre y sus piezas; si el
   // equipo trae colores, sin la pastilla del total (sería repetir la suma).
-  const _cols=function(id){ return _inv?invColoresHTML(invColores(id),'cv-cols'):''; };
+  const _cols=function(id){ return _inv?invColoresHTML(invColores(id),'cv-cols',true):''; };
   const _pz=function(id){ const n=(typeof invActual==='function' && invActual())?invCant(id):0; return n&&!(_inv&&invColores(id).length)?'<span class="cv-pzas">'+invPzas(n)+'</span>':''; };
 
   // [v1.73.23] Catálogo compacto. Cuadrícula de 3 columnas: foto con Bundle,
@@ -15965,14 +15965,32 @@ function invLum(hex){
   var c = [1, 3, 5].map(function(i){ var v = parseInt(h.substr(i, 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
   return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 }
+// Nombre corto del color, sin prefijo: "Midnight Black" → "Black", "Black Titanium" →
+// "Black", "Negro Medianoche" → "Negro". Busca la palabra de color (inglés o español);
+// el material (Titanium/Titanio) solo si no hay otra. Sin palabra conocida, el nombre completo.
+var INV_COLOR_BASE = ['BLACK','WHITE','BLUE','GREEN','PINK','PURPLE','GRAY','GREY','SILVER','GOLD','RED','ORANGE','YELLOW','VIOLET',
+  'LAVENDER','BEIGE','BROWN','CREAM','MINT','TEAL','NAVY','CORAL','BRONZE','NEGRO','BLANCO','AZUL','VERDE','ROSA','MORADO','GRIS',
+  'PLATA','PLATEADO','DORADO','ORO','ROJO','NARANJA','AMARILLO','VIOLETA','LILA','LAVANDA','CAFE','CREMA','MENTA','BRONCE'];
+var INV_COLOR_MATERIAL = ['TITANIUM','TITANIO','GRAPHITE','GRAFITO'];
+function invColorCorto(nombre){
+  var w = String(nombre == null ? '' : nombre).trim().split(/\s+/);
+  var k = function(x){ return invSinAcentos(x).toUpperCase().replace(/[^A-Z]/g, ''); };
+  for(var i = w.length - 1; i >= 0; i--) if(INV_COLOR_BASE.indexOf(k(w[i])) >= 0) return w[i];
+  for(var j = w.length - 1; j >= 0; j--) if(INV_COLOR_MATERIAL.indexOf(k(w[j])) >= 0) return w[j];
+  return w.join(' ');
+}
 // Fila de colores: punto con su tono + nombre + piezas. cols = [{color, tono, cant}].
-function invColoresHTML(cols, clase){
+// corto: nombre sin prefijo; si dos colores del equipo quedan igual ("Sky Blue" y "Deep
+// Blue"), esos dos van con su nombre completo para no confundirlos.
+function invColoresHTML(cols, clase, corto){
   if(!cols || !cols.length) return '';
   var esc = function(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
-  return '<div class="inv-cols' + (clase ? ' ' + clase : '') + '">' + cols.map(function(c){
-    var t = invTono(c.tono) || INV_TONO_GRIS, l = invLum(t);
+  var nom = cols.map(function(c){ return corto ? invColorCorto(c.color) : String(c.color); });
+  var rep = {}; nom.forEach(function(n){ var u = n.toUpperCase(); rep[u] = (rep[u] || 0) + 1; });
+  return '<div class="inv-cols' + (clase ? ' ' + clase : '') + '">' + cols.map(function(c, i){
+    var t = invTono(c.tono) || INV_TONO_GRIS, l = invLum(t), n = rep[nom[i].toUpperCase()] > 1 ? String(c.color) : nom[i];
     return '<span class="inv-col"><i class="inv-dot' + (l > 0.5 ? ' claro' : l < 0.03 ? ' oscuro' : '') + '" style="background:' + t + '" aria-hidden="true"></i>'
-      + '<span class="inv-col-n">' + esc(c.color) + '</span><b>' + (Number(c.cant) || 0) + '</b></span>';
+      + '<span class="inv-col-n">' + esc(n) + '</span><b>' + (Number(c.cant) || 0) + '</b></span>';
   }).join('') + '</div>';
 }
 function invEmparejar(equipos, idx, alias){

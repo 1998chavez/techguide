@@ -813,8 +813,8 @@ async function inventario(nav, base) {
     chk(tema + ': asesor sin selector de tienda', !v.selector);
     // [v1.73.27] Colores debajo de las piezas, de más a menos; sin colores, como antes.
     let cols = await invCols(p);
-    chk(tema + ': cada tarjeta con sus colores y piezas (de más a menos)', (cols.opa6 || []).join('|') === 'Midnight Black 2|Tidal Blue 2|Sakura Pink 1'
-      && (cols.opa5 || []).join('|') === 'Mist White 2|Aurora Green 1' && (cols.opreno16 || []).join('|') === 'Dreamy Purple 3|Silver 1', cols);
+    chk(tema + ': cada tarjeta con sus colores sin prefijo y sus piezas (de más a menos)', (cols.opa6 || []).join('|') === 'Black 2|Blue 2|Pink 1'
+      && (cols.opa5 || []).join('|') === 'White 2|Green 1' && (cols.opreno16 || []).join('|') === 'Purple 3|Silver 1', cols);
     chk(tema + ': el A6T vino sin colores: sin fila de colores', !cols.opa6t, cols);
     const gris = await invPunto(p, '#dev-wrap .cv-card[onclick*="opa6\'"] .inv-dot', 2);
     const blanco = await invPunto(p, '#dev-wrap .cv-card[onclick*="opa5\'"] .inv-dot', 0);
@@ -828,7 +828,7 @@ async function inventario(nav, base) {
     await captura(p, OUT + '/inventario-colores-grid-' + tema + '.png');
     await p.evaluate(() => toggleView()); await p.waitForTimeout(150);
     cols = await invCols(p);
-    chk(tema + ': en lista también van los colores', (cols.opa6 || []).join('|') === 'Midnight Black 2|Tidal Blue 2|Sakura Pink 1' && !cols.opa6t, cols);
+    chk(tema + ': en lista también van los colores', (cols.opa6 || []).join('|') === 'Black 2|Blue 2|Pink 1' && !cols.opa6t, cols);
     chk(tema + ': lista con colores sin desbordes', (await desbordes(p, '#s-catalog')).length === 0, await desbordes(p, '#s-catalog'));
     await captura(p, OUT + '/inventario-colores-lista-' + tema + '.png');
     await p.evaluate(() => toggleView()); await p.waitForTimeout(150);
