@@ -1,5 +1,5 @@
 // [v1.73.0] Pruebas en navegador (Playwright, Chromium preinstalado).
-// Uso: node tests/navegador.js <inicio|reco|hoja|ficha|puntos|precal|platino|uso|rediseno|inventario>
+// Uso: node tests/navegador.js <inicio|reco|hoja|ficha|puntos|precal|platino|uso|rediseno|inventario|actualizacion>
 // Sirve el repo, entra con una sesión falsa, sin service worker ni red externa,
 // y deja capturas en /tmp/v173 para revisarlas a ojo.
 'use strict';
@@ -964,9 +964,86 @@ async function inventario(nav, base) {
   }
 }
 
+// [v1.73.29] Actualización con el service worker de verdad: se sirve una copia del repo y
+// se "publica" una versión nueva cambiando BUILD_ID en index.html y sw.js, como en GitHub.
+async function actualizacion(nav) {
+  const os = require('os');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'tg-upd-'));
+  fs.cpSync(RAIZ, tmp, { recursive: true, filter: (s) => !/^[\/\\]?(\.git|tests|node_modules|firebase-existencias)([\/\\]|$)/.test(s.slice(RAIZ.length)) });
+  // Servidor con red lenta a voluntad: en el celular el SW nuevo tarda segundos en
+  // bajar los archivos grandes, y la revisión al regresar corría antes de que terminara.
+  let lento = 0;
+  const http = require('http');
+  const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
+  const srv = http.createServer((q, r) => {
+    const u = decodeURIComponent(new URL(q.url, 'http://x').pathname);
+    let f = path.join(tmp, u.replace(/^\/techguide\//, '') || 'index.html');
+    if (!u.startsWith('/techguide/') || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); return r.end(); }
+    const dar = () => { r.writeHead(200, { 'Content-Type': TIPOS[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(r); };
+    if (lento && /catalog-img\.js|app\.js|catalog\.js/.test(u)) setTimeout(dar, lento); else dar();
+  });
+  await new Promise((ok) => srv.listen(0, '127.0.0.1', ok));
+  const base = 'http://127.0.0.1:' + srv.address().port + '/techguide/';
+  const publicar = (id) => {
+    for (const f of ['index.html', 'sw.js']) {
+      const ruta = path.join(tmp, f);
+      fs.writeFileSync(ruta, fs.readFileSync(ruta, 'utf8').replace(/BUILD_ID = '\d+'/g, "BUILD_ID = '" + id + "'").replace(/techguide-v\d+-[a-z]+|techguide-prueba-\d+/, 'techguide-prueba-' + id));
+    }
+  };
+  const volver = (p) => p.evaluate(() => {
+    const poner = (oculta) => { Object.defineProperty(document, 'visibilityState', { value: oculta ? 'hidden' : 'visible', configurable: true });
+      Object.defineProperty(document, 'hidden', { value: oculta, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); };
+    poner(true); poner(false);
+  });
+  const esperar = async (p, cond, ms) => { const fin = Date.now() + ms; while (Date.now() < fin) { try { if (await p.evaluate(cond)) return true; } catch (e) {} await p.waitForTimeout(300); } return false; };
+  const ctx = await nav.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, userAgent: devices['iPhone 13'].userAgent,
+    serviceWorkers: 'allow', timezoneId: 'America/Mexico_City', locale: 'es-MX' });
+  await ctx.addInitScript((s) => { try { localStorage.setItem('primemx_sesion_v1', s); } catch (e) {} }, JSON.stringify(SES));
+  const p = await ctx.newPage();
+  p.errores = []; p.on('pageerror', (e) => p.errores.push(String(e.message).slice(0, 160)));
+  await p.goto(base, { waitUntil: 'load' });
+  chk('el service worker toma control', await esperar(p, () => !!navigator.serviceWorker.controller, 20000));
+  await p.waitForTimeout(2500);
+  chk('sin versión nueva: sin aviso', await p.evaluate(() => !document.getElementById('upd-bar')));
+  const inicial = await p.evaluate(() => window.BUILD_ID);
+  // 1) Se publica una versión y el asesor regresa a la app (estaba en el inicio, nada abierto).
+  //    Red lenta: el SW nuevo tarda ~4 s en instalarse.
+  publicar('1900000001');
+  lento = 4000;
+  await volver(p);
+  const r1 = await esperar(p, () => window.BUILD_ID === '1900000001', 25000);
+  const e1 = await p.evaluate(() => ({ build: window.BUILD_ID, aviso: !!document.getElementById('upd-bar') })).catch(() => null);
+  chk('versión nueva al regresar, con red lenta: se actualiza sola (estaba en el inicio)', r1 && e1 && e1.build === '1900000001', { inicial, e1 });
+  lento = 0;
+  // 2) Con una cotización abierta no se recarga: sale el aviso y el menú lo marca
+  await esperar(p, () => !!navigator.serviceWorker.controller, 10000); await p.waitForTimeout(2500);
+  await p.evaluate(() => { showFicha('opreno16'); openCotModal(); }); await p.waitForTimeout(500);
+  publicar('1900000002');
+  await volver(p);
+  const r2 = await esperar(p, () => !!document.getElementById('upd-bar'), 25000);
+  const e2 = await p.evaluate(() => ({ build: window.BUILD_ID, menu: !!document.querySelector('#pmd-refresh .pmd-nuevo:not([hidden])') }));
+  chk('con la cotización abierta: no recarga, sale el aviso', r2 && e2.build === '1900000001', e2);
+  chk('el menú marca "Actualizar app" como nueva', e2.menu, e2);
+  // 3) Si cierra el aviso y sale OTRA versión, el aviso vuelve a salir (sigue cotizando)
+  await p.evaluate(() => ocultarAvisoActualizacion()); await p.waitForTimeout(300);
+  await volver(p); await p.waitForTimeout(1500);
+  chk('aviso cerrado: no vuelve para esa misma versión', await p.evaluate(() => !document.getElementById('upd-bar')));
+  publicar('1900000003');
+  await volver(p);
+  const r3 = await esperar(p, () => !!document.getElementById('upd-bar') && window._swBuildId === '1900000003', 25000);
+  chk('aviso cerrado y luego otra versión: el aviso vuelve', r3, await p.evaluate(() => ({ build: window.BUILD_ID, sw: window._swBuildId, aviso: !!document.getElementById('upd-bar') })));
+  // 4) Cierra la cotización y vuelve al inicio: ahí sí se actualiza sola
+  await p.evaluate(() => { cotClose(); show('s-home'); });
+  const r4 = await esperar(p, () => window.BUILD_ID === '1900000003', 15000);
+  chk('al cerrar la cotización y volver al inicio, se actualiza sola', r4);
+  chk('sin errores de página (actualización)', p.errores.length === 0, p.errores);
+  await ctx.close(); srv.close();
+  fs.rmSync(tmp, { recursive: true, force: true });
+}
+
 (async () => {
   const modo = process.argv[2];
-  const modos = { inicio, reco, hoja, ficha, puntos, precal, platino, uso, rediseno, inventario };
+  const modos = { inicio, reco, hoja, ficha, puntos, precal, platino, uso, rediseno, inventario, actualizacion };
   if (!modos[modo]) { console.error('modo desconocido: ' + modo); process.exit(2); }
   const srv = await servir(RAIZ);
   const base = 'http://127.0.0.1:' + srv.address().port + '/techguide/';

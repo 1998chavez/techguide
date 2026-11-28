@@ -14709,6 +14709,17 @@ if('serviceWorker' in navigator){
       document.addEventListener('visibilitychange', function(){
         if(!document.hidden){ try{ reg.update(); }catch(e){ /* ignore */ } }
       });
+      /* [v1.73.29] El SW nuevo tarda unos segundos en bajar e instalarse. La revisión
+         de "regresó a la app" corría ANTES de que terminara, no veía nada y el asesor
+         se quedaba con la versión vieja (en el celular, que casi nunca se cierra, por
+         días). Ahora, cuando el SW nuevo queda activo, se revisa otra vez. */
+      reg.addEventListener('updatefound', function(){
+        var w = reg.installing;
+        if(!w) return;
+        w.addEventListener('statechange', function(){
+          if(w.state === 'activated') setTimeout(revisarVersionNueva, 300);
+        });
+      });
     })
     .catch(e=>console.log('SW error:',e));
   
@@ -14729,6 +14740,7 @@ if('serviceWorker' in navigator){
        enteraba y seguía cotizando con precios viejos. Ahora se avisa en el
        home. La barra NO recarga sola — eso tumbaría una cotización a medias. */
     if(typeof mostrarAvisoActualizacion==='function') mostrarAvisoActualizacion();
+    if(typeof marcarMenuActualizacion==='function') marcarMenuActualizacion(true);
   }
   
   // Preguntar al SW activo cuál es su BUILD_ID
@@ -14750,6 +14762,7 @@ if('serviceWorker' in navigator){
             // cualquier bandera fantasma (p.ej. la que dejaba controllerchange al tomar
             // control el SW nuevo) para que no se dispare una recarga innecesaria.
             window._swUpdateDisponible = false;
+            if(typeof marcarMenuActualizacion==='function') marcarMenuActualizacion(false);
             // [v1.11.28] reiniciar contador anti-loop para futuras actualizaciones.
             try{ sessionStorage.removeItem('_swReloadCount'); }catch(e){}
           }
@@ -14766,7 +14779,7 @@ if('serviceWorker' in navigator){
     if(event.data.type === 'SW_UPDATED'){
       // [v1.11.40] Verificar el desfase real antes de marcar (evita recarga fantasma
       // cuando el HTML ya coincide con el SW nuevo).
-      setTimeout(function(){ if(typeof verificarVersionSW==='function') verificarVersionSW(); }, 300);
+      setTimeout(revisarVersionNueva, 300);
     }
   });
   navigator.serviceWorker.addEventListener('controllerchange', function(){
@@ -14774,8 +14787,19 @@ if('serviceWorker' in navigator){
     // que corre ya es la version nueva (caso normal: .html network-first), no hay
     // nada pendiente. Marcar a ciegas disparaba una recarga fantasma al volver a la
     // app. En su lugar verificamos el BUILD_ID real: solo marca si hay desfase.
-    setTimeout(function(){ if(typeof verificarVersionSW==='function') verificarVersionSW(); }, 300);
+    setTimeout(revisarVersionNueva, 300);
   });
+}
+// [v1.73.29] Verifica el BUILD_ID y, si el asesor abrió o regresó a la app hace poco
+// (30 s), aplica la versión nueva en cuanto sea seguro, igual que al regresar.
+window._regresoTs = Date.now();
+function revisarVersionNueva(){
+  if(typeof verificarVersionSW === 'function') verificarVersionSW();
+  setTimeout(function(){
+    if(window._swUpdateDisponible && Date.now() - (window._regresoTs || 0) < 30000 && typeof aplicarActualizacionSiSegura === 'function'){
+      aplicarActualizacionSiSegura('sw-nuevo-al-regresar');
+    }
+  }, 500);
 }
 
 // [v1.10.26] Decide si es seguro recargar AHORA y, si lo es, recarga.
@@ -14866,6 +14890,7 @@ function aplicarActualizacionSiSegura(origen){
 // entró una versión nueva mientras la app estaba en segundo plano.
 document.addEventListener('visibilitychange', function(){
   if(document.visibilityState !== 'visible') return;
+  window._regresoTs = Date.now();   // [v1.73.29] para aplicar el SW que termine de instalarse en los próximos segundos
   setTimeout(function(){
     if(typeof verificarVersionSW === 'function') verificarVersionSW();
     // Dar un instante a que verificarVersionSW marque el flag, luego evaluar
@@ -14883,7 +14908,9 @@ document.addEventListener('visibilitychange', function(){
    al día siguiente si sigue sin actualizar. */
 function mostrarAvisoActualizacion(){
   if(document.getElementById('upd-bar')) return;
-  try{ if(sessionStorage.getItem('_updOculto')==='1') return; }catch(e){}
+  /* [v1.73.29] Cerrar el aviso lo escondía toda la sesión, y en el celular la sesión
+     dura días: las versiones siguientes ya no avisaban. Ahora solo esconde esa versión. */
+  try{ var oc=sessionStorage.getItem('_updOculto'); if(oc && oc===String(window._swBuildId||'')) return; }catch(e){}
   /* [v1.12.12] La barra deja de vivir dentro del home y se monta en el body:
      antes, un asesor que entraba directo a cotizar y pasaba ahí la tarde
      nunca la veía, que es justo donde un precio viejo hace daño. */
@@ -14902,7 +14929,12 @@ function ocultarAvisoActualizacion(){
   var d=document.getElementById('upd-bar');
   if(d) d.remove();
   document.documentElement.classList.remove('con-upd');
-  try{ sessionStorage.setItem('_updOculto','1'); }catch(e){}
+  try{ sessionStorage.setItem('_updOculto', String(window._swBuildId||'')); }catch(e){}
+}
+// [v1.73.29] Con versión nueva pendiente, "Actualizar app" del menú dice "Nueva".
+function marcarMenuActualizacion(on){
+  var b=document.getElementById('pmd-nuevo');
+  if(b) b.hidden=!on;
 }
 
 function aplicarActualizacion(){
