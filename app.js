@@ -1524,7 +1524,10 @@ function showFicha(id){
   // Sin fecha: "Sin vencimiento" a secas (antes decía "Vigente hasta Sin vencimiento").
   const _vtxt=(VIGENCY[id] && VIGENCY[id]!=='indefinido') ? 'Vigente hasta '+_vl+_vwarn : _vl;
   h+='<div class="fx-vig"><span class="fx-vig-dot" style="background:'+_vc+'"></span>'+_vtxt+'</div>';
-  h+='</div></section>';
+  h+='</div>';
+  // [v1.73.27] Colores del equipo en la tienda, discretos al pie del encabezado
+  if(typeof invFichaHTML==='function') h+=invFichaHTML(id);
+  h+='</section>';
 
   // Plan, plazo, precio y Cotizar
   h+='<section class="fx-planes">';
@@ -1537,8 +1540,6 @@ function showFicha(id){
   h+='<div id="price-result"></div>';
   h+='<button type="button" class="fx-cotizar" onclick="enviarCotizacion()">Cotizar'+ICO_FLECHA+'</button>';
   h+='</section>';
-  // [v1.73.27] Colores del equipo en la tienda (inventario de Bajío)
-  if(typeof invFichaHTML==='function') h+=invFichaHTML(id);
 
   // Pestañas
   // (Escritas una por una: el panel de uso busca cada onclick en el código.)
@@ -16117,15 +16118,14 @@ function invActual(){ return invEstado.org ? (invEstado.docs[invEstado.org] || n
 function invCant(id){ var d = invActual(); return (d && d.porId && d.porId[id]) || 0; }
 // [v1.73.27] Colores del equipo en la tienda elegida ([] si el inventario no los trae).
 function invColores(id){ var d = invActual(); return (d && d.colores && d.colores[id]) || []; }
-// Ficha: los colores del equipo en la tienda, con sus piezas (sin total: es la suma).
-// Solo si hay piezas y colores.
+// Ficha: al pie del encabezado, en un renglón discreto, la tienda y cada color sin prefijo
+// con sus piezas (sin total: es la suma). Solo si hay piezas y colores.
 function invFichaHTML(id){
   var d = invActual(), n = invCant(id), cols = invColores(id);
   if(!d || !n || !cols.length) return '';
   var esc = function(t){ return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
-  return '<section class="fx-inv" aria-label="Inventario de la tienda">'
-    + '<div class="fx-inv-cab"><div class="fx-inv-tit"><b>' + esc(invClaveTienda(d.tienda)) + '</b><span>Inventario al ' + invFechaCorta(d.fecha) + '</span></div></div>'
-    + invColoresHTML(cols, 'fx-inv-cols') + '</section>';
+  return '<div class="fx-inv" role="group" aria-label="Colores en la tienda"><span class="fx-inv-t">' + esc(invClaveTienda(d.tienda)) + '</span>'
+    + invColoresHTML(cols, 'fx-inv-cols', true) + '</div>';
 }
 function invFiltrando(){ return !!invActual() && !invEstado.todos; }
 // Botón, selector de tienda y fecha arriba del catálogo.

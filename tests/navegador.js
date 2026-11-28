@@ -834,9 +834,10 @@ async function inventario(nav, base) {
     await p.evaluate(() => toggleView()); await p.waitForTimeout(150);
     // Ficha: vista de colores de la tienda.
     await p.evaluate(() => showFicha('opa6')); await p.waitForTimeout(400);
-    const fx = await p.evaluate(() => { const s = document.querySelector('#s-ficha .fx-inv'); return s && { t: s.querySelector('.fx-inv-tit').textContent, total: !!s.querySelector('.fx-inv-pz'),
-      cols: [...s.querySelectorAll('.inv-col')].map((x) => x.textContent), despuesDeCotizar: s.previousElementSibling && s.previousElementSibling.classList.contains('fx-planes') }; });
-    chk(tema + ': ficha con los colores de la tienda', fx && fx.t === 'LEON CENTROInventario al 26 nov' && !fx.total && fx.cols.join('|') === 'Midnight Black2|Tidal Blue2|Sakura Pink1' && fx.despuesDeCotizar, fx);
+    const fx = await p.evaluate(() => { const s = document.querySelector('#s-ficha .fx-inv'); const hero = document.querySelector('#s-ficha .fx-hero'); return s && { t: s.querySelector('.fx-inv-t').textContent,
+      cols: [...s.querySelectorAll('.inv-col')].map((x) => x.textContent), enEncabezado: s.parentElement === hero,
+      unRenglon: Math.round(s.getBoundingClientRect().height) <= 34, arribaDeCotizar: s.getBoundingClientRect().bottom < document.querySelector('#s-ficha .fx-cotizar').getBoundingClientRect().top }; });
+    chk(tema + ': ficha: tienda y colores discretos al pie del encabezado', fx && fx.t === 'LEON CENTRO' && fx.cols.join('|') === 'Black2|Blue2|Pink1' && fx.enEncabezado && fx.unRenglon && fx.arribaDeCotizar, fx);
     chk(tema + ': ficha sin desbordes', (await desbordes(p, '#s-ficha')).length === 0, await desbordes(p, '#s-ficha'));
     await captura(p, OUT + '/inventario-colores-ficha-' + tema + '.png');
     await p.evaluate(() => showFicha('opa6t')); await p.waitForTimeout(300);

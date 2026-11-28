@@ -162,7 +162,7 @@ test('colores: debajo de las piezas solo con el filtro de la tienda, y en la fic
   assert.match(r, /return n&&!\(_inv&&invColores\(id\)\.length\)\?'<span class="cv-pzas">'/, 'con colores, sin la pastilla del total');
   assert.match(r, /h\+=bs\(d\.status\);\n\s+h\+=_cols\(d\.id\);/);
   assert.match(r, /h\+='<\/div>'\+_cols\(d\.id\)\+'<\/div>';/);
-  assert.match(extraerFuncion(APP, 'showFicha'), /if\(typeof invFichaHTML==='function'\) h\+=invFichaHTML\(id\);/);
+  assert.match(extraerFuncion(APP, 'showFicha'), /h\+='<\/div>';\n.*\n\s+if\(typeof invFichaHTML==='function'\) h\+=invFichaHTML\(id\);\n\s+h\+='<\/section>';/, 'al pie del encabezado');
   assert.match(extraerFuncion(APP, 'invFichaHTML'), /if\(!d \|\| !n \|\| !cols\.length\) return '';/);
   assert.match(extraerFuncion(APP.replace('async function invDoc(', 'function invDoc('), 'invDoc'), /colores: emp\.colores/);
 });
@@ -173,7 +173,7 @@ test('color sin prefijo: la palabra del color; el material solo si no hay otra',
   for (const [n, e] of Object.entries(casos)) assert.equal(c.invColorCorto(n), e, n);
 });
 
-test('catálogo con nombre corto; si dos quedan igual, esos van completos; la ficha completo', () => {
+test('nombre corto; si dos quedan igual, esos van completos', () => {
   const cols = [{ color: 'Sky Blue', tono: '#9CC3E6', cant: 2 }, { color: 'Deep Blue', tono: '#1F3A93', cant: 1 }, { color: 'Midnight Black', tono: '#1D1D1F', cant: 1 }];
   const nombres = (h) => [...h.matchAll(/<span class="inv-col-n">([^<]*)<\/span>/g)].map((m) => m[1]).join('|');
   assert.equal(nombres(c.invColoresHTML(cols, 'cv-cols', true)), 'Sky Blue|Deep Blue|Black');
